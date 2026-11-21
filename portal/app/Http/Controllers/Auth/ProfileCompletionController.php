@@ -23,7 +23,13 @@ use Illuminate\View\View;
  */
 class ProfileCompletionController extends Controller
 {
-    public const STEPS = ['Welcome', 'From NREIMS', 'About you', 'All set'];
+    /** The step list in the side panel: [title, what the step is]. */
+    public const STEPS = [
+        ['Welcome', 'What NIMR Grants is'],
+        ['From NREIMS', 'What we already know'],
+        ['About you', 'Your post at NIMR'],
+        ['All set', 'Into the portal'],
+    ];
 
     public function welcome(Request $request): View|RedirectResponse
     {

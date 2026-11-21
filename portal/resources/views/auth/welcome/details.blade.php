@@ -1,14 +1,11 @@
 @extends('auth.welcome.layout')
 
-@section('title', 'Your post at NIMR')
+@section('title', 'About you')
 
 @section('content')
     <p class="wl-eyebrow">Step 3 of {{ count($steps) }}</p>
     <h1 class="wl-title">A little more about you, so everything runs smoothly.</h1>
-    <p class="wl-lede">
-        To make NIMR Grants work well for you, we need a few details about your post at NIMR.
-        You give them once, and we won’t ask again.
-    </p>
+    <p class="wl-lede">To make NIMR Grants work well for you, we need a few details about your post at NIMR. You give them once, and we won’t ask again.</p>
 
     @if($errors->any())
         <div class="alert alert-error wl-errors" role="alert">
@@ -20,9 +17,9 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('profile.complete.store') }}" class="wl-form">
+    <form method="POST" action="{{ route('profile.complete.store') }}">
         @csrf
-        <div class="form-grid">
+        <div class="wl-form-card">
             <div class="field">
                 <label class="label" for="designation">Designation</label>
                 <select id="designation" name="designation" class="select @error('designation') is-invalid @enderror" required>
@@ -61,7 +58,7 @@
                             <input type="radio" name="employment_type" value="{{ $value }}" required
                                    @checked(old('employment_type', $user->employment_type) === $value)>
                             <span><strong>{{ $label }}</strong>
-                                <span class="small muted">{{ $value === 'permanent' ? 'On NIMR’s permanent establishment' : 'On a fixed-term NIMR contract' }}</span></span>
+                                <small>{{ $value === 'permanent' ? 'On NIMR’s permanent establishment' : 'On a fixed-term NIMR contract' }}</small></span>
                         </label>
                     @endforeach
                 </div>
@@ -70,7 +67,7 @@
             <div class="field wide">
                 <label class="label" for="first_appointment_date">Date of first appointment at NIMR</label>
                 <input id="first_appointment_date" type="date" name="first_appointment_date"
-                       class="input @error('first_appointment_date') is-invalid @enderror"
+                       class="input date @error('first_appointment_date') is-invalid @enderror"
                        value="{{ old('first_appointment_date', $user->first_appointment_date?->toDateString()) }}"
                        max="{{ now()->toDateString() }}" required>
             </div>
@@ -78,7 +75,7 @@
 
         <div class="wl-actions">
             <a href="{{ route('profile.complete.nreims') }}" class="wl-back"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back</a>
-            <button type="submit" class="btn btn-primary">Save and continue <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+            <button type="submit" class="wl-go">Save and continue <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
         </div>
     </form>
 @endsection
