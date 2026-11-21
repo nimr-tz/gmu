@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureProfileComplete
 {
-    private const ALLOWED = ['profile.complete', 'profile.complete.store', 'logout'];
+    private const ALLOWED = ['profile.complete', 'profile.complete.nreims', 'profile.complete.details', 'profile.complete.store', 'logout'];
 
     public function handle(Request $request, Closure $next): Response
     {

@@ -405,3 +405,111 @@ fieldset.choice-group legend { padding:0; }
   .user-menu .user-text { display:none; }
 }
 @media (prefers-reduced-motion:reduce) { .sidebar { transition:none; } }
+
+/* ---- first sign-in welcome: four steps (auth/welcome/*) ------------------ */
+.wl { min-height:100vh; display:flex; flex-direction:column; background:var(--canvas); }
+.wl-head { background:var(--surface); border-bottom:1px solid var(--line); }
+.wl-head-in { max-width:1120px; margin:0 auto; padding:10px 32px; display:flex; flex-wrap:wrap; align-items:center;
+  justify-content:space-between; gap:8px 16px; }
+.wl-brand { display:flex; align-items:center; gap:12px; font-weight:600; font-size:15px; color:var(--ink); }
+.wl-brand img { width:40px; height:40px; object-fit:contain; }
+.wl-who { display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; font-size:13px; color:var(--muted-2); }
+.wl-who strong { color:var(--ink); font-weight:600; }
+.wl-signout { border:0; background:none; padding:0; min-height:44px; font:inherit; font-weight:600; color:var(--blue-700); cursor:pointer; }
+.wl-signout:hover { color:var(--blue-800); text-decoration:underline; }
+
+.wl-main { flex:1; width:100%; max-width:760px; margin:0 auto; padding:40px 24px 72px; }
+
+/* the step line: numbered dots joined by a rule, in the same blue as the application track */
+.wl-steps { list-style:none; margin:0 0 32px; padding:0; display:flex; gap:8px; counter-reset:wl; }
+.wl-steps li { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:8px; counter-increment:wl; }
+.wl-steps .bar { height:4px; border-radius:4px; background:var(--line); }
+.wl-steps .lbl { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; color:var(--muted-2); }
+.wl-steps .lbl::before { content:counter(wl); flex:0 0 22px; width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
+  font-size:12px; font-weight:600; background:var(--surface); border:1px solid var(--line-2); color:var(--muted-2); }
+.wl-steps .done .bar, .wl-steps .now .bar { background:var(--brand); }
+.wl-steps .done .lbl::before { content:'\2713'; background:var(--brand); border-color:var(--brand); color:#fff; }
+.wl-steps .now .lbl { color:var(--ink); font-weight:600; }
+.wl-steps .now .lbl::before { border-color:var(--brand); color:var(--brand); box-shadow:0 0 0 3px var(--blue-100); }
+
+.wl-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-lg);
+  padding:48px 48px 40px; animation:wl-in .35s ease both; }
+@keyframes wl-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.wl-crest { width:88px; height:88px; object-fit:contain; display:block; margin-bottom:28px; }
+.wl-eyebrow { font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--blue-700); }
+.wl-title { margin-top:10px; font-size:clamp(28px, 4vw, 40px); line-height:1.15; letter-spacing:-0.025em; font-weight:700; color:var(--ink); text-wrap:balance; }
+.wl-title .soft { display:block; color:var(--blue-700); }
+.wl-lede { margin-top:16px; font-size:18px; line-height:1.6; color:var(--ink-2); max-width:560px; }
+.wl-hero .wl-lede { font-size:19px; }
+
+.wl-actions { margin-top:36px; display:flex; flex-wrap:wrap-reverse; align-items:center; justify-content:space-between; gap:16px; }
+.wl-actions.end { justify-content:flex-end; }
+.wl-actions .btn-primary { min-height:48px; padding:0 26px; font-size:15px; }
+.wl-back { display:inline-flex; align-items:center; gap:8px; min-height:44px; font-weight:600; color:var(--muted); }
+.wl-back:hover { color:var(--ink); text-decoration:none; }
+.wl-hint { font-size:13px; color:var(--muted-2); }
+
+/* step 2: what came across from NREIMS */
+.wl-facts { margin:28px 0 0; padding:0; list-style:none; border:1px solid var(--line); border-radius:var(--radius-sm); }
+.wl-facts li { display:flex; align-items:center; gap:14px; padding:16px 18px; }
+.wl-facts li + li { border-top:1px solid var(--line-soft); }
+.wl-facts .ic { flex:0 0 36px; width:36px; height:36px; border-radius:10px; display:grid; place-items:center;
+  background:var(--blue-50); color:var(--blue-700); }
+.wl-facts .k { display:block; font-size:12px; color:var(--muted-2); }
+.wl-facts .v { display:block; font-size:16px; font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+.wl-facts .v.missing { font-weight:500; color:var(--muted-2); }
+.wl-facts .src { margin-left:auto; flex:0 0 auto; font-size:12px; color:var(--muted-3); display:flex; align-items:center; gap:6px; }
+.wl-note { margin-top:20px; font-size:15px; color:var(--ink-2); }
+.wl-privacy { margin-top:12px; display:flex; gap:10px; align-items:flex-start; padding:14px 16px; border-radius:var(--radius-sm);
+  background:var(--canvas); font-size:14px; color:var(--muted); }
+.wl-privacy i { margin-top:3px; color:var(--blue-700); }
+
+/* step 3: the person's post */
+.wl-form { margin-top:28px; }
+.wl-form .form-grid { row-gap:20px; }
+.wl-choices { display:flex; flex-wrap:wrap; gap:12px; }
+.wl-choice { flex:1 1 220px; display:flex; gap:12px; align-items:flex-start; padding:14px 16px; border:1px solid var(--line-2);
+  border-radius:12px; cursor:pointer; }
+.wl-choice:has(input:checked) { border-color:var(--brand); background:var(--blue-50); box-shadow:inset 0 0 0 1px var(--brand); }
+.wl-choice input { margin-top:3px; width:18px; height:18px; accent-color:var(--brand); }
+.wl-choice strong { display:block; }
+fieldset.wl-fieldset { border:0; padding:0; margin:0; min-width:0; }
+fieldset.wl-fieldset legend { padding:0; margin-bottom:6px; }
+.wl-elig { display:flex; gap:14px; align-items:flex-start; padding:16px 18px; border-radius:12px; margin-top:20px; font-size:14px; }
+.wl-elig strong { display:block; font-size:15px; }
+.wl-elig p { margin-top:4px; }
+.wl-elig.ok { background:var(--ok-bg); color:var(--blue-900); }
+.wl-elig.no { background:var(--warn-bg); color:var(--warn-ink); }
+.wl-elig .ico { flex:0 0 30px; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; color:#fff; }
+.wl-elig.ok .ico { background:var(--brand); }
+.wl-elig.no .ico { background:var(--warn); }
+.wl-errors { margin-top:24px; }
+.wl-errors ul { margin:6px 0 0; padding-left:18px; }
+
+/* step 4: ready */
+.wl-summary { margin-top:24px; display:flex; flex-wrap:wrap; gap:8px; }
+.wl-summary span { padding:6px 12px; border-radius:999px; background:var(--blue-50); color:var(--blue-900); font-size:13px; font-weight:500; }
+.wl-road-title { margin-top:36px; font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted-2); }
+.wl-road { list-style:none; margin:14px 0 0; padding:0; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; counter-reset:road; }
+.wl-road li { counter-increment:road; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.wl-road li::before { content:counter(road, decimal-leading-zero); display:block; font-family:var(--mono); font-size:12px; color:var(--blue-700); }
+.wl-road .t { display:block; margin-top:6px; font-size:14px; font-weight:600; color:var(--ink); }
+.wl-road .s { display:block; margin-top:2px; font-size:12px; color:var(--muted-2); }
+.wl-contact { margin-top:28px; padding-top:20px; border-top:1px solid var(--line-soft); font-size:14px; color:var(--muted); }
+
+@media (max-width:900px) {
+  .wl-head-in { padding:8px 16px; }
+  .wl-main { padding:24px 16px 56px; }
+  .wl-card { padding:28px 20px 24px; }
+  .wl-crest { width:64px; height:64px; margin-bottom:20px; }
+  .wl-lede, .wl-hero .wl-lede { font-size:16px; }
+  .wl-road { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .wl-head-in { flex-wrap:nowrap; }
+  .wl-who > span { display:none; }
+  .wl-steps { margin-bottom:24px; }
+  .wl-steps .lbl span { display:none; }
+  .wl-actions .btn-primary { flex:1 1 100%; }
+  .wl-actions > form { flex:1 1 100%; }
+  .wl-actions > form .btn-primary { width:100%; }
+}
+@media (prefers-reduced-motion:reduce) { .wl-card { animation:none; } }

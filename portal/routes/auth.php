@@ -41,9 +41,13 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    // First sign-in through NREIMS: confirm post, centre and appointment date.
-    Route::get('welcome', [ProfileCompletionController::class, 'edit'])->name('profile.complete');
-    Route::post('welcome', [ProfileCompletionController::class, 'update'])->name('profile.complete.store');
+    // First sign-in through NREIMS, in four steps: welcome, what came from
+    // NREIMS, the person's post at NIMR (the only step that saves), ready.
+    Route::get('welcome',         [ProfileCompletionController::class, 'welcome'])->name('profile.complete');
+    Route::get('welcome/nreims',  [ProfileCompletionController::class, 'nreims'])->name('profile.complete.nreims');
+    Route::get('welcome/details', [ProfileCompletionController::class, 'edit'])->name('profile.complete.details');
+    Route::post('welcome',        [ProfileCompletionController::class, 'update'])->name('profile.complete.store');
+    Route::get('welcome/ready',   [ProfileCompletionController::class, 'ready'])->name('profile.complete.ready');
 
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');

@@ -94,9 +94,58 @@ class NreimsLoginTest extends TestCase
         $this->assertSame('pi', $user->role->name);
         $this->assertTrue($user->needsProfileCompletion());
 
-        // Held at the profile form until it is done.
+        // Held in the welcome until it is done: step 1 greets them by name.
         $this->get(route('dashboard'))->assertRedirect(route('profile.complete'));
-        $this->get(route('profile.complete'))->assertOk()->assertSee('Confirm your details, Neema.');
+        $this->get(route('profile.complete'))->assertOk()
+            ->assertSee('Neema.')->assertSee('Welcome to NIMR Grants.')->assertSee('Get started');
+    }
+
+    public function test_the_welcome_walks_through_four_steps(): void
+    {
+        $this->get($this->nreimsReturns($this->neema()));
+
+        // Step 2 shows what came from NREIMS; step 3 holds the form.
+        $this->get(route('profile.complete.nreims'))->assertOk()
+            ->assertSee('We already know a little about you.')->assertSee('neema.mushi@nimr.or.tz')
+            ->assertSee('+255712000111')->assertSee('Yes, that’s me', false);
+        $this->get(route('profile.complete.details'))->assertOk()
+            ->assertSee('Now, tell us about your work at NIMR.')->assertSee('name="first_appointment_date"', false);
+
+        // Step 4 is only for someone who has finished.
+        $this->get(route('profile.complete.ready'))->assertRedirect(route('profile.complete'));
+        $this->post(route('profile.complete.store'), $this->postDetails())->assertRedirect(route('profile.complete.ready'));
+        $this->get(route('profile.complete.ready'))->assertOk()
+            ->assertSee('You’re all set, Neema.', false)->assertSee('Mwanza Centre')->assertSee('Go to your dashboard');
+
+        // Once done, the first three steps send them on to the dashboard.
+        foreach (['profile.complete', 'profile.complete.nreims', 'profile.complete.details'] as $step) {
+            $this->get(route($step))->assertRedirect(route('dashboard'));
+        }
+    }
+
+    public function test_the_ready_step_offers_an_open_call_to_an_eligible_applicant(): void
+    {
+        \App\Models\Seed\SeedCall::create([
+            'title' => 'Seed grant', 'code' => '2627', 'fiscal_year' => '2026/27', 'min_amount' => 2_000_000,
+            'max_amount' => 10_000_000, 'status' => 'open', 'concept_deadline' => now()->addMonth(),
+        ]);
+        $this->get($this->nreimsReturns($this->neema()));
+        $this->post(route('profile.complete.store'), $this->postDetails());
+
+        $this->get(route('profile.complete.ready'))->assertOk()
+            ->assertSee('Start your concept note')->assertSee('Read the call first');
+    }
+
+    private function postDetails(): array
+    {
+        return [
+            'designation'            => 'Research Scientist II',
+            'research_center'        => 'Mwanza Centre',
+            'department'             => 'Health Systems',
+            'phone'                  => '+255 712 000 111',
+            'employment_type'        => 'contract',
+            'first_appointment_date' => now()->subYears(3)->toDateString(),
+        ];
     }
 
     public function test_completing_the_profile_releases_the_user(): void
@@ -114,7 +163,7 @@ class NreimsLoginTest extends TestCase
             'phone'                  => '+255 712 000 111',
             'employment_type'        => 'contract',
             'first_appointment_date' => now()->subYears(3)->toDateString(),
-        ])->assertRedirect(route('dashboard'));
+        ])->assertRedirect(route('profile.complete.ready'));
 
         $user = User::where('nreims_id', 4812)->first();
         $this->assertFalse($user->needsProfileCompletion());
