@@ -93,6 +93,11 @@ New pages should follow one of these:
 - Use permissions through gates and roles (`manage-seed-grants`, approval levels). Hiding a button is not access control.
 - Uploads are allowed only where the call allows them: mentor letter, CV and support letters at stage 2.
 
+## Commits and deployment
+
+- **Do not include `Co-Authored-By` or any other AI credit in commit messages or pull requests.** The owner does not want Claude credited in this repository.
+- `master` deploys automatically (`.github/workflows/build-and-deploy.yml`, to Kubernetes through `nimr-tz/platform-gitops`). John Mduda runs the servers. Never overwrite or rewrite his commits or files (`Dockerfile`, `docker/`, the workflow, his lock-file changes): merge, never force-push. Live settings are his to set in `platform-gitops`, not in this repository.
+
 ## Definition of done
 
 Passing tests and a page that looks finished are the start of done, not the end. Before calling a change done:
