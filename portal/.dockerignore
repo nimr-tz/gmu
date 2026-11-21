@@ -1,0 +1,13 @@
+.env*
+node_modules
+vendor
+public/build
+public/hot
+storage/app
+storage/logs
+storage/framework
+bootstrap/cache/*.php
+database/*.sqlite*
+tests
+phpunit.xml
+.phpunit.result.cache

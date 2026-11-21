@@ -7,6 +7,8 @@ use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
 
+    'scheduler_output' => env('GMU_SCHEDULER_OUTPUT'),
+
     /*
     |--------------------------------------------------------------------------
     | Default Log Channel

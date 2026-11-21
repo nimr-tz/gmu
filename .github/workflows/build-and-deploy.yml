@@ -1,0 +1,142 @@
+name: Build, Deploy, and Notify
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: gmu-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/nimr-tz/gmu
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: portal
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: portal/package-lock.json
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite
+          coverage: none
+      - run: npm ci && npm run build
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+          php artisan test
+      - name: Check production dependencies
+        run: composer audit --locked --no-dev
+      - name: Check asset build dependencies
+        run: npm audit --audit-level=high
+      - name: Verify image builds on pull requests
+        if: github.event_name == 'pull_request'
+        run: docker build .
+
+  publish:
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: portal
+          push: true
+          tags: ${{ env.IMAGE }}:sha-${{ github.sha }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+  promote:
+    if: vars.GMU_AUTO_PROMOTE == 'true'
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: gitops-token
+        with:
+          app-id: ${{ secrets.PLATFORM_GITOPS_APP_ID }}
+          private-key: ${{ secrets.PLATFORM_GITOPS_APP_PRIVATE_KEY }}
+          owner: nimr-tz
+          repositories: platform-gitops
+          permission-contents: write
+      - uses: actions/checkout@v4
+        with:
+          repository: nimr-tz/platform-gitops
+          ref: main
+          token: ${{ steps.gitops-token.outputs.token }}
+      - name: Promote immutable image
+        env:
+          GMU_TAG: sha-${{ github.sha }}
+        run: |
+          file=clusters/msmt-02/research/gmu/kustomization.yaml
+          perl -pi -e 's/(newTag: )sha-[a-f0-9]{40}/$1$ENV{GMU_TAG}/' "$file"
+          grep -Fx "  newTag: $GMU_TAG" "$file"
+          if git diff --quiet -- "$file"; then exit 0; fi
+          git config user.name 'nimr-gitops[bot]'
+          git config user.email 'nimr-gitops[bot]@users.noreply.github.com'
+          git add "$file"
+          git commit -m "Deploy GMU $GMU_TAG"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+  notify:
+    if: always() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: [validate, publish, promote]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Check Gmail configuration
+        id: smtp
+        env:
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_TO: ${{ secrets.GMU_SMTP_TO }}
+        run: |
+          if [[ -n "$SMTP_USERNAME" && -n "$SMTP_PASSWORD" && -n "$SMTP_TO" ]]; then
+            echo 'configured=true' >> "$GITHUB_OUTPUT"
+          else
+            echo '::warning::Configure SMTP_USERNAME, SMTP_PASSWORD and GMU_SMTP_TO to enable Gmail notifications.'
+          fi
+      - name: Send release results via Gmail
+        if: steps.smtp.outputs.configured == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER || 'smtp.gmail.com' }}
+          server_port: ${{ secrets.SMTP_PORT || '465' }}
+          secure: true
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          from: ${{ secrets.SMTP_USERNAME }}
+          to: ${{ secrets.GMU_SMTP_TO }}
+          subject: GMU release ${{ github.run_number }} - image ${{ needs.publish.result }}, GitOps ${{ needs.promote.result }}
+          body: |
+            Validation: ${{ needs.validate.result }}
+            Image publish: ${{ needs.publish.result }}
+            GitOps update: ${{ needs.promote.result }}
+            Commit: ${{ github.sha }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
