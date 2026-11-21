@@ -65,7 +65,6 @@
                         </label>
                     @endforeach
                 </div>
-                <span class="help">Both can lead an application.</span>
             </fieldset>
 
             <div class="field wide">
@@ -73,23 +72,7 @@
                 <input id="first_appointment_date" type="date" name="first_appointment_date"
                        class="input @error('first_appointment_date') is-invalid @enderror"
                        value="{{ old('first_appointment_date', $user->first_appointment_date?->toDateString()) }}"
-                       max="{{ now()->toDateString() }}" required data-service-date>
-                <span class="help">The seed grant is for researchers in their first {{ \App\Models\User::MAX_SERVICE_YEARS_FOR_SEED_GRANT }} years at NIMR. We work this out from your date, so you don’t have to.</span>
-            </div>
-        </div>
-
-        <div class="wl-elig ok" data-elig="ok" hidden>
-            <span class="ico"><i class="fas fa-check" aria-hidden="true"></i></span>
-            <div>
-                <strong>You can lead a seed grant application</strong>
-                <p>You have served at NIMR for <span class="mono" data-service-text></span>.</p>
-            </div>
-        </div>
-        <div class="wl-elig no" data-elig="no" hidden>
-            <span class="ico"><i class="fas fa-info" aria-hidden="true"></i></span>
-            <div>
-                <strong>You can still review and use NIMR Grants</strong>
-                <p>You have served at NIMR for <span class="mono" data-service-text></span>. Leading a seed grant application needs under {{ \App\Models\User::MAX_SERVICE_YEARS_FOR_SEED_GRANT }} years’ service.</p>
+                       max="{{ now()->toDateString() }}" required>
             </div>
         </div>
 
@@ -99,29 +82,3 @@
         </div>
     </form>
 @endsection
-
-@push('scripts')
-<script>
-    // Show, as the date is entered, whether the service rule for lead applicants is met.
-    (function () {
-        var input = document.querySelector('[data-service-date]');
-        var ok = document.querySelector('[data-elig="ok"]'), no = document.querySelector('[data-elig="no"]');
-        var limit = {{ \App\Models\User::MAX_SERVICE_YEARS_FOR_SEED_GRANT }};
-        function update() {
-            ok.hidden = no.hidden = true;
-            if (!input.value) return;
-            var start = new Date(input.value + 'T00:00:00'), now = new Date();
-            if (isNaN(start) || start > now) return;
-            var months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-            if (now.getDate() < start.getDate()) months--;
-            var y = Math.floor(months / 12), m = months % 12;
-            var text = y + (y === 1 ? ' year ' : ' years ') + m + (m === 1 ? ' month' : ' months');
-            var box = months < limit * 12 ? ok : no;
-            box.querySelector('[data-service-text]').textContent = text;
-            box.hidden = false;
-        }
-        input.addEventListener('input', update);
-        update();
-    })();
-</script>
-@endpush

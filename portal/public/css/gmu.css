@@ -475,14 +475,6 @@ fieldset.choice-group legend { padding:0; }
 .wl-choice strong { display:block; }
 fieldset.wl-fieldset { border:0; padding:0; margin:0; min-width:0; }
 fieldset.wl-fieldset legend { padding:0; margin-bottom:6px; }
-.wl-elig { display:flex; gap:14px; align-items:flex-start; padding:16px 18px; border-radius:12px; margin-top:20px; font-size:14px; }
-.wl-elig strong { display:block; font-size:15px; }
-.wl-elig p { margin-top:4px; }
-.wl-elig.ok { background:var(--ok-bg); color:var(--blue-900); }
-.wl-elig.no { background:var(--warn-bg); color:var(--warn-ink); }
-.wl-elig .ico { flex:0 0 30px; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; color:#fff; }
-.wl-elig.ok .ico { background:var(--brand); }
-.wl-elig.no .ico { background:var(--warn); }
 .wl-errors { margin-top:24px; }
 .wl-errors ul { margin:6px 0 0; padding-left:18px; }
 
