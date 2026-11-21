@@ -70,39 +70,45 @@ jobs:
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
   promote:
-    if: vars.GMU_AUTO_PROMOTE == 'true'
     needs: publish
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
     steps:
-      - uses: actions/create-github-app-token@v2
-        id: gitops-token
-        with:
-          app-id: ${{ secrets.PLATFORM_GITOPS_APP_ID }}
-          private-key: ${{ secrets.PLATFORM_GITOPS_APP_PRIVATE_KEY }}
-          owner: nimr-tz
-          repositories: platform-gitops
-          permission-contents: write
       - uses: actions/checkout@v4
         with:
           repository: nimr-tz/platform-gitops
           ref: main
-          token: ${{ steps.gitops-token.outputs.token }}
+          ssh-key: ${{ secrets.GMU_GITOPS_SSH_KEY }}
       - name: Promote immutable image
         env:
           GMU_TAG: sha-${{ github.sha }}
         run: |
+          set -euo pipefail
           file=clusters/msmt-02/research/gmu/kustomization.yaml
-          perl -pi -e 's/(newTag: )sha-[a-f0-9]{40}/$1$ENV{GMU_TAG}/' "$file"
-          grep -Fx "  newTag: $GMU_TAG" "$file"
-          if git diff --quiet -- "$file"; then exit 0; fi
           git config user.name 'nimr-gitops[bot]'
           git config user.email 'nimr-gitops[bot]@users.noreply.github.com'
-          git add "$file"
-          git commit -m "Deploy GMU $GMU_TAG"
-          git pull --rebase origin main
-          git push origin HEAD:main
+
+          for attempt in 1 2 3; do
+            head=$(git ls-remote --exit-code "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" refs/heads/master | cut -f1)
+            if [[ "$head" != "$GITHUB_SHA" ]]; then
+              echo 'A newer source commit is on master. Skipping promotion of this image.'
+              exit 0
+            fi
+
+            git fetch --no-tags origin main
+            git switch --detach FETCH_HEAD
+            perl -0pi -e 's{(\n- name: ghcr\.io/nimr-tz/gmu\n  newTag: )sha-[a-f0-9]{40}(?=\n|\z)}{$1$ENV{GMU_TAG}}' "$file"
+            grep -Fx "  newTag: $GMU_TAG" "$file"
+            if git diff --quiet -- "$file"; then exit 0; fi
+
+            git add "$file"
+            git commit -m "Deploy GMU $GMU_TAG"
+            if git push origin HEAD:refs/heads/main; then exit 0; fi
+            echo "GitOps push failed on attempt $attempt. Fetching the latest main before retrying."
+          done
+          exit 1
 
   notify:
     if: always() && github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
