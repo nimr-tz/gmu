@@ -4,9 +4,10 @@
 
 @section('content')
     <p class="wl-eyebrow">Step 3 of {{ count($steps) }}</p>
-    <h1 class="wl-title">Now, tell us about your work at NIMR.</h1>
+    <h1 class="wl-title">A little more about you, so everything runs smoothly.</h1>
     <p class="wl-lede">
-        Six details, asked once. They let us confirm your eligibility for you, so you never have to prove it on a form.
+        To make NIMR Grants work well for you, we need a few details about your post at NIMR.
+        You give them once, and we won’t ask again.
     </p>
 
     @if($errors->any())

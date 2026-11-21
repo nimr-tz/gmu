@@ -489,13 +489,6 @@ fieldset.wl-fieldset legend { padding:0; margin-bottom:6px; }
 /* step 4: ready */
 .wl-summary { margin-top:24px; display:flex; flex-wrap:wrap; gap:8px; }
 .wl-summary span { padding:6px 12px; border-radius:999px; background:var(--blue-50); color:var(--blue-900); font-size:13px; font-weight:500; }
-.wl-road-title { margin-top:36px; font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted-2); }
-.wl-road { list-style:none; margin:14px 0 0; padding:0; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; counter-reset:road; }
-.wl-road li { counter-increment:road; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
-.wl-road li::before { content:counter(road, decimal-leading-zero); display:block; font-family:var(--mono); font-size:12px; color:var(--blue-700); }
-.wl-road .t { display:block; margin-top:6px; font-size:14px; font-weight:600; color:var(--ink); }
-.wl-road .s { display:block; margin-top:2px; font-size:12px; color:var(--muted-2); }
-.wl-contact { margin-top:28px; padding-top:20px; border-top:1px solid var(--line-soft); font-size:14px; color:var(--muted); }
 
 @media (max-width:900px) {
   .wl-head-in { padding:8px 16px; }
@@ -503,7 +496,6 @@ fieldset.wl-fieldset legend { padding:0; margin-bottom:6px; }
   .wl-card { padding:28px 20px 24px; }
   .wl-crest { width:64px; height:64px; margin-bottom:20px; }
   .wl-lede, .wl-hero .wl-lede { font-size:16px; }
-  .wl-road { grid-template-columns:repeat(2, minmax(0, 1fr)); }
   .wl-head-in { flex-wrap:nowrap; }
   .wl-who > span { display:none; }
   .wl-steps { margin-bottom:24px; }

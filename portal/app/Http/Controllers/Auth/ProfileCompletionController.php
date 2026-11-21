@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Seed\SeedApplication;
-use App\Models\Seed\SeedCall;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,14 +16,14 @@ use Illuminate\View\View;
  *   1. welcome   what NIMR Grants is
  *   2. nreims    what came across from NREIMS (name, email, phone)
  *   3. details   their post at NIMR: the only step that saves
- *   4. ready     what happens next
+ *   4. ready     a summary, and the way in
  *
  * Steps 1 to 3 are for someone who has not finished yet; step 4 is shown once
  * they have. Each step is its own page, so Back and a refresh both work.
  */
 class ProfileCompletionController extends Controller
 {
-    public const STEPS = ['Welcome', 'From NREIMS', 'Your post at NIMR', 'You’re ready'];
+    public const STEPS = ['Welcome', 'From NREIMS', 'About you', 'All set'];
 
     public function welcome(Request $request): View|RedirectResponse
     {
@@ -81,19 +79,7 @@ class ProfileCompletionController extends Controller
             return redirect()->route('profile.complete');
         }
 
-        $call = SeedCall::current();
-        $applicant = $user->hasRole((string) config('services.nreims.default_role'));
-        $hasApplication = $call && SeedApplication::where('seed_call_id', $call->id)->where('pi_id', $user->id)->exists();
-
-        return view('auth.welcome.ready', [
-            'user'      => $user,
-            'steps'     => self::STEPS,
-            'current'   => 3,
-            // Offer to start a concept note only to an applicant who can lead one in an open call.
-            'canStart'  => $applicant && $call?->acceptingConceptNotes() && ! $hasApplication && $user->withinSeedGrantServiceLimit(),
-            'call'      => $call?->isVisible() ? $call : null,
-            'hasApplication' => $hasApplication,
-        ]);
+        return view('auth.welcome.ready', ['user' => $user, 'steps' => self::STEPS, 'current' => 3]);
     }
 
     /** Steps 1 to 3: only for an NREIMS account that has not finished the welcome. */

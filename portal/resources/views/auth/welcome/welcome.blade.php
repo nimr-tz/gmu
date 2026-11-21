@@ -12,7 +12,9 @@
         <span class="soft">Welcome to NIMR Grants.</span>
     </h1>
     <p class="wl-lede">
-        Every grant NIMR opens to its researchers will be here, ready for you to apply.
+        The Grants Management Unit’s home for research funding at NIMR: the Institute’s own grants for its scientists,
+        and awards from funders and partners around the world. From the first call to the final report, every step of a
+        grant is managed here.
     </p>
 
     <div class="wl-actions end">

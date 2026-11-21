@@ -109,31 +109,19 @@ class NreimsLoginTest extends TestCase
             ->assertSee('We already know a little about you.')->assertSee('neema.mushi@nimr.or.tz')
             ->assertSee('+255712000111')->assertSee('Yes, that’s me', false);
         $this->get(route('profile.complete.details'))->assertOk()
-            ->assertSee('Now, tell us about your work at NIMR.')->assertSee('name="first_appointment_date"', false);
+            ->assertSee('A little more about you, so everything runs smoothly.')->assertSee('name="first_appointment_date"', false);
 
         // Step 4 is only for someone who has finished.
         $this->get(route('profile.complete.ready'))->assertRedirect(route('profile.complete'));
         $this->post(route('profile.complete.store'), $this->postDetails())->assertRedirect(route('profile.complete.ready'));
         $this->get(route('profile.complete.ready'))->assertOk()
-            ->assertSee('You’re all set, Neema.', false)->assertSee('Mwanza Centre')->assertSee('Go to your dashboard');
+            ->assertSee('You’re all set, Neema.', false)->assertSee('Your profile is complete.')->assertSee('Mwanza Centre')
+            ->assertSee('Enter NIMR Grants')->assertDontSee('Start your concept note');
 
         // Once done, the first three steps send them on to the dashboard.
         foreach (['profile.complete', 'profile.complete.nreims', 'profile.complete.details'] as $step) {
             $this->get(route($step))->assertRedirect(route('dashboard'));
         }
-    }
-
-    public function test_the_ready_step_offers_an_open_call_to_an_eligible_applicant(): void
-    {
-        \App\Models\Seed\SeedCall::create([
-            'title' => 'Seed grant', 'code' => '2627', 'fiscal_year' => '2026/27', 'min_amount' => 2_000_000,
-            'max_amount' => 10_000_000, 'status' => 'open', 'concept_deadline' => now()->addMonth(),
-        ]);
-        $this->get($this->nreimsReturns($this->neema()));
-        $this->post(route('profile.complete.store'), $this->postDetails());
-
-        $this->get(route('profile.complete.ready'))->assertOk()
-            ->assertSee('Start your concept note')->assertSee('Read the call first');
     }
 
     private function postDetails(): array
