@@ -4,10 +4,6 @@
 @section('context', 'Administration · People and roles')
 
 @section('content')
-@php
-    $tab = fn (bool $on) => 'inline-flex h-8 items-center whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors '
-        . ($on ? 'bg-card text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground hover:text-foreground');
-@endphp
 
 <x-page-header title="People and roles"
     :description="$users->total() . ' ' . Str::plural('account', $users->total()) . ($sso
@@ -19,18 +15,18 @@
 </x-page-header>
 
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <nav class="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1" aria-label="Filter">
-        <a href="{{ route('admin.users.index') }}" class="{{ $tab(! request('role') && ! request('status')) }}">All</a>
-        @foreach($roles as $role)
-            <a href="{{ route('admin.users.index', ['role' => $role->name]) }}" class="{{ $tab(request('role') === $role->name) }}">{{ $role->display_name }}</a>
-        @endforeach
-        <a href="{{ route('admin.users.index', ['status' => 'inactive']) }}" class="{{ $tab(request('status') === 'inactive') }}">Deactivated</a>
-    </nav>
+    @php
+        $roleItems = [route('admin.users.index') => 'All'];
+        foreach ($roles as $role) { $roleItems[route('admin.users.index', ['role' => $role->name])] = $role->display_name; }
+        $roleItems[route('admin.users.index', ['status' => 'inactive'])] = 'Deactivated';
+        $current = request('status') === 'inactive' ? route('admin.users.index', ['status' => 'inactive']) : (request('role') ? route('admin.users.index', ['role' => request('role')]) : route('admin.users.index'));
+    @endphp
+    <x-segmented :items="$roleItems" :active="$current" />
     <form method="GET" class="relative w-full sm:w-72" role="search">
         @if(request('role'))<input type="hidden" name="role" value="{{ request('role') }}">@endif
         <label for="search" class="sr-only">Search</label>
         <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
-        <input id="search" type="search" name="search" class="input pl-9" placeholder="Name, email or department" value="{{ request('search') }}">
+        <input id="search" type="search" name="search" class="input input-sm pl-9" placeholder="Name, email or department" value="{{ request('search') }}">
     </form>
 </div>
 

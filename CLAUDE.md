@@ -44,8 +44,9 @@ The bar is a premium product dashboard: quiet surfaces, hairline borders, small 
   - **grey**: in progress or neutral
 
   Red and amber mean only these things. Never use them for decoration.
+- **Every card is a frame**: a quiet grey frame carries the title, description and actions; a white panel inside holds the content; supporting figures sit in the frame below (`x-card`, `x-kpi`). Controls are small (32px buttons), filters are segmented (`x-segmented`), tables have plain grey headers and hairline rows, and group rows are tinted by meaning. The primary button is NIMR navy; brand blue is for accents, links, focus and charts.
 - Use the semantic colour names (`background`, `card`, `muted`, `border`, `primary`, `ok`, `warn`, `danger`, `review`, `neutral`, `chart-1`…`chart-5`), not raw ramps, except for charts and tints. In a badge or alert, status colours come through the `x-badge`/`x-alert` `tone`.
-- **Navigation lives only in the left side panel** (navy `sidebar`). The top bar holds context, notifications and the user menu, never navigation links. On small screens the side panel slides in (the menu button). Don't add a second navigation pattern.
+- **Navigation lives only in the left side panel**: light, on the page frame, with the account menu at its foot. The page itself is a white panel inset in the frame. Its thin top bar holds the breadcrumb (from `@section('context', 'A · B')`) and notifications, never navigation links. On small screens the side panel slides in (the menu button). Don't add a second navigation pattern.
 - Fonts: Geist and Geist Mono (`font-sans`, `font-mono`), bundled by Vite. Use mono for amounts, references and scores. Base text is 14px; captions 12–13px.
 - Use tokens only. Never hard-code a hex colour or an arbitrary colour (`bg-[#…]`) in a view. The only exception is emails, where inline hex is required; copy the values from the tokens.
 - Never build a Tailwind class name from pieces (`'grid-cols-' . $n`): the build can't see it. Write each full class name.
@@ -55,7 +56,7 @@ The bar is a premium product dashboard: quiet surfaces, hairline borders, small 
 Reuse these before writing new markup:
 
 - **Layout:** `layouts/app.blade.php` (`@extends('layouts.app')`). It already shows flash messages and validation errors, so pages don't repeat them. `layouts/gmu.blade.php` is legacy.
-- **Components** (`components/`, used as `<x-…>`): `page-header` (title, description, eyebrow, back link, badge/meta/actions slots), `card` (title, description, icon, actions and footer slots, `flush`, `tone`), `kpi` (key figure), `button` (variant, size, icon), `badge` (tone, dot), `alert` (tone, title), `field` (label, help, error), `choice` (radio card), `stat`, `meter`, `empty`, `dropdown`, `icon` (Lucide, inline).
+- **Components** (`components/`, used as `<x-…>`): `page-header` (title, description, eyebrow, back link, badge/meta/actions slots), `card` (title, description, icon, actions and footer slots, `flush`, `tone`), `kpi` (key figure), `segmented` (filters and view switches), `button` (variant, size, icon), `badge` (tone, dot), `alert` (tone, title), `field` (label, help, error), `choice` (radio card), `stat`, `meter`, `empty`, `dropdown`, `icon` (Lucide, inline).
 - **CSS classes** for bare controls (`resources/css/app.css`): `input`, `select`, `textarea` (grows with its text), `checkbox`, `radio`, `switch`, `label`, `help`, `error-text`, `data-table`, `prose-text`, and the call tints `tint-1`…`tint-5`.
 - **Charts:** a `<canvas data-chart='@json($spec)'>`; `resources/js/charts.js` draws it with Chart.js, which loads only on pages that have one. Give every chart a screen-reader table.
 - The old `components/ui/` (`x-ui.*`) belong to the legacy pages. Don't use them in new work.

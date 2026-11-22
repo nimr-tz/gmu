@@ -1,38 +1,37 @@
 {{--
-    A surface for one piece of content.
+    The one surface: a quiet frame that carries the header, around a white panel
+    that holds the content. Supporting figures or notes sit in the frame below.
       title, description   the header (omit both for a bare card)
-      actions slot         buttons on the right of the header
-      footer slot          a quiet strip at the bottom
-      flush                no padding, for tables and lists that run edge to edge
+      icon                 a small outlined icon before the title
+      actions slot         controls on the right of the header
+      footer slot          a strip in the frame, under the panel
+      flush                no padding in the panel, for tables and lists that run edge to edge
       tone                 danger | warn | ok to edge the card in that status colour
 --}}
 @props(['title' => null, 'description' => null, 'flush' => false, 'tone' => null, 'icon' => null])
 @php
-    $edge = ['danger' => 'border-danger-line', 'warn' => 'border-warn-line', 'ok' => 'border-ok-line'][$tone] ?? 'border-border';
+    $edge = ['danger' => 'border-danger-line bg-danger-soft/50', 'warn' => 'border-warn-line bg-warn-soft/50', 'ok' => 'border-ok-line bg-ok-soft/50'][$tone] ?? 'border-border bg-muted';
+    $head = $title || $description || isset($actions);
 @endphp
-<section {{ $attributes->merge(['class' => "overflow-hidden rounded-xl border bg-card shadow-xs {$edge}"]) }}>
-    @if($title || $description || isset($actions))
-        <header class="flex flex-wrap items-start justify-between gap-3 px-5 pb-4 pt-5 {{ $flush ? 'border-b border-border' : '' }}">
-            <div class="flex min-w-0 items-start gap-3">
+<section {{ $attributes->merge(['class' => "flex flex-col rounded-xl border p-1 {$edge}"]) }}>
+    @if($head)
+        <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 pb-2.5 pt-2">
+            <div class="flex min-w-0 items-center gap-2.5">
                 @if($icon)
-                    <span class="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-gray-600 shadow-xs"><x-icon :name="$icon" class="size-[18px]" /></span>
+                    <span class="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-gray-600 shadow-xs"><x-icon :name="$icon" class="size-4" /></span>
                 @endif
                 <div class="min-w-0">
-                    @if($title)<h2 class="text-[15px] font-semibold leading-6">{{ $title }}</h2>@endif
-                    @if($description)<p class="mt-0.5 text-[13px] text-muted-foreground">{{ $description }}</p>@endif
+                    @if($title)<h2 class="text-sm font-semibold leading-5">{{ $title }}</h2>@endif
+                    @if($description)<p class="text-[13px] leading-5 text-muted-foreground">{{ $description }}</p>@endif
                 </div>
             </div>
-            @isset($actions)<div class="flex shrink-0 flex-wrap items-center gap-2">{{ $actions }}</div>@endisset
+            @isset($actions)<div class="flex shrink-0 flex-wrap items-center gap-1.5">{{ $actions }}</div>@endisset
         </header>
     @endif
 
-    @if($flush)
-        {{ $slot }}
-    @else
-        <div class="px-5 pb-5 {{ $title || $description || isset($actions) ? '' : 'pt-5' }}">{{ $slot }}</div>
-    @endif
+    <div class="flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-xs {{ $flush ? '' : 'p-5' }}">{{ $slot }}</div>
 
     @isset($footer)
-        <footer {{ $footer->attributes->merge(['class' => 'border-t border-border bg-muted/50 px-5 py-3 text-[13px] text-muted-foreground']) }}>{{ $footer }}</footer>
+        <footer {{ $footer->attributes->merge(['class' => 'px-3 pb-1.5 pt-2.5 text-[13px] text-muted-foreground']) }}>{{ $footer }}</footer>
     @endisset
 </section>

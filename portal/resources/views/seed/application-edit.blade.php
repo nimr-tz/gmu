@@ -43,7 +43,7 @@
     @csrf @method('PUT')
 
     {{-- Save bar: stays in view while writing --}}
-    <div class="sticky top-16 z-20 -mx-4 mb-6 border-b border-border bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+    <div class="sticky top-12 z-20 -mx-4 -mt-5 mb-6 border-b border-border bg-card/90 px-4 py-3 backdrop-blur lg:-mx-6 lg:-mt-6 lg:px-6">
         <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
             <div class="min-w-0 flex-[1_1_20rem]">
                 <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -82,7 +82,7 @@
 
     <div class="grid items-start gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
         {{-- Sections, with what is done --}}
-        <aside class="space-y-4 lg:sticky lg:top-40">
+        <aside class="space-y-4 lg:sticky lg:top-32">
             <nav aria-label="Sections" class="hidden lg:block">
                 <p class="mb-2 flex items-center justify-between px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Sections <span class="font-mono normal-case tracking-normal">{{ $doneCount }}/{{ count($nav) }}</span></p>
                 <ul class="space-y-0.5">

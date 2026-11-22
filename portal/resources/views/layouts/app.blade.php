@@ -14,8 +14,11 @@
 @php
     $user     = auth()->user();
     $unread   = $user->unreadNotificationsCount();
-    $initials = strtoupper(collect(explode(' ', $user->name))->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode(''));
+    $initials = strtoupper(collect(explode(' ', preg_replace('/^(Dr\.?|Prof\.?|Mr\.?|Ms\.?|Mrs\.?)\s+/i', '', $user->name)))->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode(''));
     $external = config('gmu.external_grants');
+
+    // Where you are, from the page's context: "Submissions · SG-2627-004" → Submissions › SG-2627-004.
+    $crumbs = array_values(array_filter(explode(' · ', trim($__env->yieldContent('context', 'Overview')))));
 
     // Seed grant entries by role, with "needs action" counts (App\Support\SeedNav).
     $seedGroups = \App\Support\SeedNav::groups($user);
@@ -37,48 +40,50 @@
         ],
     ];
 
-    $navLink = fn (bool $active) => 'group flex h-9 items-center gap-3 rounded-md px-3 text-[13.5px] font-medium transition-colors '
-        . ($active ? 'bg-sidebar-chip text-white' : 'text-sidebar-foreground hover:bg-sidebar-hover hover:text-white');
+    $link = fn (bool $active) => 'group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13.5px] transition-colors '
+        . ($active ? 'bg-gray-200/70 font-medium text-foreground' : 'text-gray-700 hover:bg-gray-200/50 hover:text-foreground');
+    $icon = fn (bool $active) => 'size-4 ' . ($active ? 'text-foreground' : 'text-subtle group-hover:text-gray-600');
 @endphp
-<body class="h-full" x-data="{ nav: false }" @keydown.escape.window="nav = false">
+<body class="h-full bg-background" x-data="{ nav: false }" @keydown.escape.window="nav = false">
 
 {{-- Side panel: the only navigation. Fixed on desktop, slides in on small screens. --}}
-<div x-cloak x-show="nav" x-transition.opacity class="fixed inset-0 z-40 bg-blue-950/50 lg:hidden" @click="nav = false"></div>
+<div x-cloak x-show="nav" x-transition.opacity class="fixed inset-0 z-40 bg-foreground/30 lg:hidden" @click="nav = false"></div>
 <aside id="sidebar" aria-label="Side panel"
-       class="fixed inset-y-0 left-0 z-50 flex w-64 -translate-x-full flex-col bg-sidebar transition-transform duration-200 lg:translate-x-0 print:hidden"
+       class="fixed inset-y-0 left-0 z-50 flex w-60 -translate-x-full flex-col bg-background transition-transform duration-200 lg:translate-x-0 print:hidden max-lg:shadow-pop"
        :class="nav && 'translate-x-0'">
-    <div class="flex h-16 shrink-0 items-center justify-between gap-3 px-4">
-        <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3 rounded-md">
-            <img src="{{ asset('images/nimr-logo.png') }}" alt="" class="size-9 shrink-0 rounded-full bg-white p-0.5">
+    <div class="flex h-14 shrink-0 items-center justify-between gap-2 px-4">
+        <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-2.5">
+            <img src="{{ asset('images/nimr-logo.png') }}" alt="" class="size-8 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-border">
             <span class="min-w-0 leading-tight">
-                <span class="block text-[15px] font-semibold text-white">NIMR Grants</span>
-                <span class="block truncate text-xs text-sidebar-muted">Grants Management Unit</span>
+                <span class="block text-sm font-semibold">NIMR Grants</span>
+                <span class="block truncate text-xs text-muted-foreground">Grants Management Unit</span>
             </span>
         </a>
-        <button type="button" class="grid size-8 place-items-center rounded-md text-sidebar-muted hover:bg-sidebar-hover hover:text-white lg:hidden" @click="nav = false" aria-label="Close menu">
+        <button type="button" class="grid size-7 place-items-center rounded-md text-subtle hover:bg-gray-200/60 hover:text-foreground lg:hidden" @click="nav = false" aria-label="Close menu">
             <x-icon name="x" />
         </button>
     </div>
 
-    <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-4" aria-label="Main">
-        <div class="space-y-0.5">
+    <nav class="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-2" aria-label="Main">
+        <div>
+            <p class="mb-1 px-2 text-[13px] text-muted-foreground">Home</p>
             @php $active = request()->routeIs('dashboard'); @endphp
-            <a href="{{ route('dashboard') }}" class="{{ $navLink($active) }}" @if($active) aria-current="page" @endif>
-                <x-icon name="layout-dashboard" class="size-4 {{ $active ? 'text-white' : 'text-sidebar-muted group-hover:text-white' }}" /> Dashboard
+            <a href="{{ route('dashboard') }}" class="{{ $link($active) }}" @if($active) aria-current="page" @endif>
+                <x-icon name="layout-dashboard" class="{{ $icon($active) }}" /> Dashboard
             </a>
         </div>
 
         @foreach($seedGroups as $heading => $items)
             <div>
-                <p class="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-sidebar-muted">{{ $heading }}</p>
-                <div class="space-y-0.5">
-                    @foreach($items as [$label, $url, $icon, $pattern, $count, $alert])
+                <p class="mb-1 px-2 text-[13px] text-muted-foreground">{{ ucfirst(strtolower($heading)) }}</p>
+                <div class="space-y-px">
+                    @foreach($items as [$label, $url, $iconName, $pattern, $count, $alert])
                         @php $active = request()->routeIs(...explode('|', $pattern)); @endphp
-                        <a href="{{ $url }}" class="{{ $navLink($active) }}" @if($active) aria-current="page" @endif>
-                            <x-icon :name="$icon" class="size-4 {{ $active ? 'text-white' : 'text-sidebar-muted group-hover:text-white' }}" />
+                        <a href="{{ $url }}" class="{{ $link($active) }}" @if($active) aria-current="page" @endif>
+                            <x-icon :name="$iconName" class="{{ $icon($active) }}" />
                             <span class="min-w-0 flex-1 truncate">{{ $label }}</span>
                             @if($count !== null)
-                                <span class="grid h-5 min-w-5 place-items-center rounded-full px-1.5 font-mono text-[11px] font-medium {{ $alert ? 'bg-danger text-white' : 'bg-primary text-white' }}">{{ $count }}</span>
+                                <span class="grid h-5 min-w-5 place-items-center rounded-md px-1.5 font-mono text-[11px] font-medium {{ $alert ? 'bg-danger text-white' : 'bg-card text-foreground ring-1 ring-border' }}">{{ $count }}</span>
                             @endif
                         </a>
                     @endforeach
@@ -90,12 +95,12 @@
             @php $shown = array_filter($items, fn ($i) => $i[4]); @endphp
             @continue(empty($shown))
             <div>
-                <p class="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-sidebar-muted">{{ $heading }}</p>
-                <div class="space-y-0.5">
-                    @foreach($shown as [$label, $route, $icon, $pattern])
+                <p class="mb-1 px-2 text-[13px] text-muted-foreground">{{ $heading }}</p>
+                <div class="space-y-px">
+                    @foreach($shown as [$label, $route, $iconName, $pattern])
                         @php $active = request()->routeIs($pattern); @endphp
-                        <a href="{{ route($route) }}" class="{{ $navLink($active) }}" @if($active) aria-current="page" @endif>
-                            <x-icon :name="$icon" class="size-4 {{ $active ? 'text-white' : 'text-sidebar-muted group-hover:text-white' }}" /> {{ $label }}
+                        <a href="{{ route($route) }}" class="{{ $link($active) }}" @if($active) aria-current="page" @endif>
+                            <x-icon :name="$iconName" class="{{ $icon($active) }}" /> {{ $label }}
                         </a>
                     @endforeach
                 </div>
@@ -103,44 +108,17 @@
         @endforeach
     </nav>
 
-    <div class="shrink-0 border-t border-white/10 p-3">
-        <div class="flex items-center gap-3 rounded-md px-2 py-1.5">
-            <span class="grid size-8 shrink-0 place-items-center rounded-full bg-sidebar-chip text-xs font-semibold text-white">{{ $initials }}</span>
-            <span class="min-w-0 flex-1 leading-tight">
-                <span class="block truncate text-[13px] font-medium text-white">{{ $user->name }}</span>
-                <span class="block truncate text-xs text-sidebar-muted">{{ $user->role?->display_name ?? 'No role assigned' }}</span>
-            </span>
-        </div>
-    </div>
-</aside>
-
-<div class="flex min-h-full flex-col lg:pl-64 print:pl-0">
-    {{-- Top bar: context, notifications and the account menu. Never navigation. --}}
-    <header class="sticky top-0 z-30 print:hidden flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card/85 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/75 sm:px-6 lg:px-8">
-        <button type="button" class="-ml-1 grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
-                @click="nav = true" aria-label="Open menu" aria-controls="sidebar" :aria-expanded="nav">
-            <x-icon name="menu" class="size-5" />
-        </button>
-        <p class="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">@yield('context', 'National Institute for Medical Research')</p>
-
-        <a href="{{ route('notifications.index') }}" class="relative grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-           aria-label="Notifications{{ $unread ? ", {$unread} unread" : '' }}">
-            <x-icon name="bell" class="size-[18px]" />
-            @if($unread > 0)
-                <span class="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 font-mono text-[10px] font-medium text-white ring-2 ring-card">{{ $unread > 9 ? '9+' : $unread }}</span>
-            @endif
-        </a>
-        <span class="h-6 w-px bg-border" aria-hidden="true"></span>
-
-        <x-dropdown width="w-60">
+    {{-- The account, at the foot of the panel --}}
+    <div class="shrink-0 p-2">
+        <x-dropdown direction="up" align="left" width="w-56">
             <x-slot:trigger>
-                <button type="button" class="flex items-center gap-2.5 rounded-md py-1 pl-1 pr-2 hover:bg-muted" aria-label="Account menu">
-                    <span class="grid size-8 place-items-center rounded-full bg-primary-soft text-xs font-semibold text-blue-800">{{ $initials }}</span>
-                    <span class="hidden text-left leading-tight sm:block">
-                        <span class="block text-[13px] font-medium">{{ $user->name }}</span>
-                        <span class="block text-xs text-muted-foreground">{{ $user->role?->display_name ?? 'No role assigned' }}</span>
+                <button type="button" class="flex w-full items-center gap-2.5 rounded-lg p-2 text-left hover:bg-gray-200/60" aria-label="Account menu">
+                    <span class="relative grid size-8 shrink-0 place-items-center rounded-full bg-blue-950 text-xs font-semibold text-white">{{ $initials }}</span>
+                    <span class="min-w-0 flex-1 leading-tight">
+                        <span class="block truncate text-[13px] font-semibold">{{ $user->name }}</span>
+                        <span class="block truncate text-xs text-muted-foreground">{{ $user->role?->display_name ?? 'No role assigned' }}</span>
                     </span>
-                    <x-icon name="chevron-down" class="size-3.5 text-subtle" />
+                    <x-icon name="chevrons-up-down" class="size-3.5 text-subtle" />
                 </button>
             </x-slot:trigger>
             <div class="border-b border-border px-2.5 pb-2 pt-1.5">
@@ -156,25 +134,54 @@
                 <x-dropdown-item icon="log-out">Sign out</x-dropdown-item>
             </form>
         </x-dropdown>
-    </header>
+    </div>
+</aside>
 
-    <main class="mx-auto w-full max-w-page flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8 print:p-0">
-        @php $showErrors = $errors->any() && ! $errors->has('__hidden'); @endphp
-        @if(session('success') || session('error') || session('status') || $showErrors)
-            <div class="mb-6 space-y-3">
-                @if(session('success'))<x-alert tone="ok">{{ session('success') }}</x-alert>@endif
-                @if(session('error'))<x-alert tone="danger">{{ session('error') }}</x-alert>@endif
-                @if(session('status'))<x-alert tone="info">{{ session('status') }}</x-alert>@endif
-                @if($showErrors)
-                    <x-alert tone="danger" :title="$errors->count() . ' ' . Str::plural('problem', $errors->count()) . ' with what was submitted'">
-                        <ul class="list-disc space-y-0.5 pl-4">@foreach($errors->all() as $message)<li>{{ $message }}</li>@endforeach</ul>
-                    </x-alert>
-                @endif
-            </div>
-        @endif
+{{-- The page: a white panel set in the frame --}}
+<div class="flex min-h-full lg:pl-60 print:pl-0">
+    <div class="flex min-w-0 flex-1 flex-col bg-card lg:my-2 lg:mr-2 lg:rounded-xl lg:border lg:border-border lg:shadow-xs print:m-0 print:border-0 print:shadow-none">
+        {{-- Top bar: where you are, and notifications. Never navigation. --}}
+        <header class="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card/90 px-3 backdrop-blur lg:rounded-t-xl lg:px-5 print:hidden">
+            <button type="button" class="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+                    @click="nav = true" aria-label="Open menu" aria-controls="sidebar" :aria-expanded="nav">
+                <x-icon name="menu" class="size-[18px]" />
+            </button>
+            <nav aria-label="Breadcrumb" class="min-w-0 flex-1">
+                <ol class="flex min-w-0 items-center gap-1.5 text-[13px]">
+                    @foreach($crumbs as $crumb)
+                        <li class="flex min-w-0 items-center gap-1.5 {{ $loop->last ? 'font-medium text-foreground' : 'text-muted-foreground max-sm:hidden' }}">
+                            @unless($loop->first)<x-icon name="chevron-right" class="size-3.5 text-subtle" />@endunless
+                            <span class="truncate">{{ $crumb }}</span>
+                        </li>
+                    @endforeach
+                </ol>
+            </nav>
+            @yield('topbar')
+            <a href="{{ route('notifications.index') }}" class="relative grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+               aria-label="Notifications{{ $unread ? ", {$unread} unread" : '' }}">
+                <x-icon name="bell" class="size-[18px]" />
+                @if($unread > 0)<span class="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-card"></span>@endif
+            </a>
+        </header>
 
-        @yield('content')
-    </main>
+        <main class="mx-auto w-full max-w-page flex-1 px-4 py-5 lg:px-6 lg:py-6 print:p-0">
+            @php $showErrors = $errors->any() && ! $errors->has('__hidden'); @endphp
+            @if(session('success') || session('error') || session('status') || $showErrors)
+                <div class="mb-5 space-y-3">
+                    @if(session('success'))<x-alert tone="ok">{{ session('success') }}</x-alert>@endif
+                    @if(session('error'))<x-alert tone="danger">{{ session('error') }}</x-alert>@endif
+                    @if(session('status'))<x-alert tone="info">{{ session('status') }}</x-alert>@endif
+                    @if($showErrors)
+                        <x-alert tone="danger" :title="$errors->count() . ' ' . Str::plural('problem', $errors->count()) . ' with what was submitted'">
+                            <ul class="list-disc space-y-0.5 pl-4">@foreach($errors->all() as $message)<li>{{ $message }}</li>@endforeach</ul>
+                        </x-alert>
+                    @endif
+                </div>
+            @endif
+
+            @yield('content')
+        </main>
+    </div>
 </div>
 
 @stack('scripts')

@@ -17,14 +17,14 @@
 @layer base {
     :root {
         /* Surfaces and text (RGB channels, so Tailwind can apply opacity). */
-        --background: 247 248 250;
+        --background: 244 245 247;      /* the page frame and side panel */
         --foreground: 15 23 42;
         --card: 255 255 255;
-        --muted: 241 243 247;
-        --muted-foreground: 84 96 115;
-        --subtle: 107 118 134;
-        --border: 228 231 236;
-        --input: 210 215 223;
+        --muted: 248 249 250;           /* card frames, quiet fills */
+        --muted-foreground: 98 108 124;
+        --subtle: 132 141 155;
+        --border: 230 232 236;
+        --input: 216 220 226;
         --ring: 38 100 235;
 
         /* Brand: NIMR blue #2664EB. */
@@ -116,11 +116,11 @@
     /* Tables inside cards. */
     .data-table { @apply w-full text-left text-sm; }
     .data-table thead th {
-        @apply whitespace-nowrap border-b border-border bg-muted/60 px-4 py-2.5 text-xs font-medium text-muted-foreground first:pl-5 last:pr-5;
+        @apply h-10 whitespace-nowrap border-b border-border px-3 text-[13px] font-normal text-muted-foreground first:pl-5 last:pr-5;
     }
-    .data-table tbody td { @apply border-b border-border/70 px-4 py-3 align-middle first:pl-5 last:pr-5; }
+    .data-table tbody td { @apply border-b border-border/70 px-3 py-3 align-middle text-[13.5px] first:pl-5 last:pr-5; }
     .data-table tbody tr:last-child td { @apply border-b-0; }
-    .data-table tbody tr { @apply transition-colors hover:bg-muted/40; }
+    .data-table tbody tr { @apply transition-colors hover:bg-muted; }
     .data-table .num { @apply text-right font-mono tabular-nums whitespace-nowrap; }
-    .data-table .group-row td { @apply bg-muted/50 py-2; }
+    .data-table .group-row td { @apply bg-muted py-2; }
 }

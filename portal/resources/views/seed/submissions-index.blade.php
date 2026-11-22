@@ -9,12 +9,10 @@
     use App\Http\Controllers\SeedGrant\SubmissionsController as F;
     $scope = $all ? 'all' : $call->id;
     $lastCallId = null;
-    $tab = fn (bool $on) => 'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors '
-        . ($on ? 'bg-card text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground hover:text-foreground');
 @endphp
 
 @section('title', 'Submissions')
-@section('context', $all ? 'Submissions · all calls' : 'Submissions · ' . $call->title)
+@section('context', $all ? 'Submissions · All calls' : 'Submissions · ' . $call->title)
 
 @section('content')
 <x-page-header title="Submissions"
@@ -30,21 +28,19 @@
 </x-page-header>
 
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-    <nav class="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1" aria-label="Filter">
-        <a href="{{ route('seed.submissions.index', array_filter(['q' => $search, 'call' => $scope])) }}" class="{{ $tab(! $filter) }}" @if(! $filter) aria-current="page" @endif>All submitted</a>
-        @foreach(F::FILTERS as $key => [$label, $statuses])
-            @php $n = collect($statuses)->sum(fn ($s) => $counts[$s] ?? 0); @endphp
-            <a href="{{ route('seed.submissions.index', array_filter(['filter' => $key, 'q' => $search, 'call' => $scope])) }}" class="{{ $tab($filter === $key) }}" @if($filter === $key) aria-current="page" @endif>
-                {{ $label }} <span class="font-mono text-xs {{ $filter === $key ? 'text-primary' : 'text-subtle' }}">{{ $n }}</span>
-            </a>
-        @endforeach
-    </nav>
+    @php
+        $filterItems = [route('seed.submissions.index', array_filter(['q' => $search, 'call' => $scope])) => 'All submitted'];
+        foreach (F::FILTERS as $key => [$label, $statuses]) {
+            $filterItems[route('seed.submissions.index', array_filter(['filter' => $key, 'q' => $search, 'call' => $scope]))] = [$label, collect($statuses)->sum(fn ($st) => $counts[$st] ?? 0)];
+        }
+    @endphp
+    <x-segmented :items="$filterItems" :active="route('seed.submissions.index', array_filter(['filter' => $filter, 'q' => $search, 'call' => $scope]))" />
     <form method="GET" class="relative w-full sm:w-72" role="search">
         <input type="hidden" name="call" value="{{ $scope }}">
         @if($filter)<input type="hidden" name="filter" value="{{ $filter }}">@endif
         <label for="q" class="sr-only">Search</label>
         <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
-        <input id="q" type="search" name="q" value="{{ $search }}" class="input pl-9" placeholder="Ref, title or applicant">
+        <input id="q" type="search" name="q" value="{{ $search }}" class="input input-sm pl-9" placeholder="Ref, title or applicant">
     </form>
 </div>
 
@@ -56,7 +52,7 @@
                 @forelse($applications as $a)
                     @if($all && $a->seed_call_id !== $lastCallId)
                         @php $lastCallId = $a->seed_call_id; @endphp
-                        <tr class="group-row hover:bg-transparent"><td colspan="6">
+                        <tr class="{{ $a->call->tintClass() }} hover:bg-transparent"><td colspan="6" class="border-y border-tint-line !bg-tint !py-2">
                             <div class="flex items-center justify-between gap-3">
                                 @include('seed.partials.call-tag', ['call' => $a->call])
                                 <a href="{{ route('seed.submissions.index', ['call' => $a->seed_call_id]) }}" class="shrink-0 text-xs font-medium text-primary hover:underline">Only this call</a>

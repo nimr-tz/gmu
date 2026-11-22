@@ -10,16 +10,8 @@
     $m = fn ($n) => $n ? number_format($n / 1e6, 1) . 'M' : '0';
     $maxCentre = max(1, $byCentre->max() ?? 1);
     $oldest = $needs->first()['application'] ?? null;
-    $segColor = ['concept' => 'chart-1', 'proposal' => 'chart-2', 'approval' => 'chart-3', 'award' => 'chart-4', 'closed' => 'chart-5'];
     $swatch = ['concept' => 'bg-chart-1', 'proposal' => 'bg-chart-2', 'approval' => 'bg-chart-3', 'award' => 'bg-chart-4', 'closed' => 'bg-chart-5'];
-    $chart = [
-        'type' => 'bar', 'stacked' => true,
-        'labels' => $pipeline->map(fn ($r) => $r['call']->code)->values(),
-        'series' => collect($groups)->map(fn ($label, $key) => [
-            'label' => $label, 'color' => $segColor[$key],
-            'data' => $pipeline->map(fn ($r) => $r['segments'][$key])->values(),
-        ])->values(),
-    ];
+    $maxRow = max(1, $pipeline->max('total') ?? 1);
 @endphp
 
 @section('title', 'Dashboard')
@@ -79,14 +71,24 @@
                 </div>
             @endforeach
         </dl>
-        <div class="h-72 px-4 pb-4 pt-5">
-            <canvas data-chart='@json($chart)' role="img" aria-label="Applications in each part of the process, by call"></canvas>
-        </div>
-        <table class="sr-only">
-            <caption>Applications by stage and call</caption>
-            <thead><tr><th>Call</th>@foreach($groups as $label)<th>{{ $label }}</th>@endforeach</tr></thead>
-            <tbody>@foreach($pipeline as $row)<tr><th>{{ $row['call']->code }}</th>@foreach($row['segments'] as $n)<td>{{ $n }}</td>@endforeach</tr>@endforeach</tbody>
-        </table>
+        <ul class="divide-y divide-border">
+            @foreach($pipeline as $row)
+                @php $c = $row['call']; @endphp
+                <li class="grid items-center gap-x-4 gap-y-2 px-5 py-3.5 sm:grid-cols-[13rem_minmax(0,1fr)_3rem]">
+                    <a href="{{ route('seed.submissions.index', ['call' => $c->id]) }}" class="min-w-0 hover:text-primary">
+                        @include('seed.partials.call-tag', ['call' => $c, 'short' => true])
+                        <span class="mt-1 block truncate text-[13px] text-muted-foreground">{{ $c->title }}</span>
+                    </a>
+                    <div class="flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-muted" role="img"
+                         aria-label="{{ $c->code }}: @foreach($row['segments'] as $key => $n){{ $groups[$key] }} {{ $n }}@if(! $loop->last), @endif @endforeach">
+                        @foreach($row['segments'] as $key => $n)
+                            @if($n > 0)<span class="{{ $swatch[$key] }} first:rounded-l-full last:rounded-r-full" style="width: {{ $n / max(1, $maxRow) * 100 }}%" title="{{ $groups[$key] }}: {{ $n }}"></span>@endif
+                        @endforeach
+                    </div>
+                    <span class="text-right font-mono text-sm font-medium tabular-nums">{{ $row['total'] }}</span>
+                </li>
+            @endforeach
+        </ul>
     </x-card>
 
     <x-card title="Money by call" description="Approved against funds available" flush>
@@ -180,32 +182,33 @@
 </div>
 
 {{-- A card per call --}}
-<h2 class="mb-3 mt-8 text-xs font-medium uppercase tracking-wider text-muted-foreground">Calls running</h2>
-<div class="grid gap-4 2xl:grid-cols-2">
+<div class="mt-4 grid gap-4 2xl:grid-cols-2">
     @foreach($cards as $card)
         @php $c = $card['call']; @endphp
-        <section class="{{ $c->tintClass() }} rounded-xl border border-tint-line bg-tint p-5 shadow-xs">
-            <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0 space-y-1.5">
-                    @include('seed.partials.call-tag', ['call' => $c])
-                    <p class="text-xs text-muted-foreground">FY {{ $c->fiscal_year }} ·
+        <section class="{{ $c->tintClass() }} flex flex-col rounded-xl border border-tint-line bg-tint p-1">
+            <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 pb-2.5 pt-2">
+                <div class="min-w-0">
+                    <div class="flex min-w-0 items-center gap-2">
+                        @include('seed.partials.call-tag', ['call' => $c])
+                        <x-badge :tone="['open' => 'ok', 'closed' => 'neutral'][$c->status] ?? 'outline'" dot>{{ \App\Models\Seed\SeedCall::STATUSES[$c->status] }}</x-badge>
+                    </div>
+                    <p class="mt-0.5 text-[13px] text-muted-foreground">FY {{ $c->fiscal_year }} ·
                         {{ $c->concept_deadline ? 'concept notes ' . ($c->concept_deadline->copy()->endOfDay()->isPast() ? 'closed ' : 'close ') . $c->concept_deadline->format('j M Y') : 'no deadline set' }}</p>
                 </div>
-                <x-badge :tone="['open' => 'ok', 'closed' => 'neutral'][$c->status] ?? 'outline'" dot>{{ \App\Models\Seed\SeedCall::STATUSES[$c->status] }}</x-badge>
-            </div>
-            <ol class="mt-4 grid grid-cols-4 gap-1.5 sm:grid-cols-8" aria-label="Applications at each stage of {{ $c->title }}">
+                <div class="flex gap-1.5">
+                    <x-button size="sm" :href="route('seed.submissions.index', ['call' => $c->id])">Submissions</x-button>
+                    <x-button size="sm" :href="route('seed.ranking', ['call' => $c->id])">Ranking</x-button>
+                    <x-button size="sm" :href="route('seed.calls.show', $c)" icon-right="arrow-right">Call page</x-button>
+                </div>
+            </header>
+            <ol class="grid flex-1 grid-cols-4 divide-x divide-y divide-border overflow-hidden rounded-lg border border-border bg-card shadow-xs sm:grid-cols-8 sm:divide-y-0" aria-label="Applications at each stage of {{ $c->title }}">
                 @foreach($card['stages'] as $stage)
-                    <li class="rounded-lg bg-card px-1.5 py-2 text-center {{ $stage['count'] ? 'ring-1 ring-inset ring-blue-200' : '' }}">
-                        <span class="block font-mono text-base tabular-nums {{ $stage['count'] ? 'font-semibold text-blue-800' : 'text-subtle' }}">{{ $stage['count'] }}</span>
-                        <span class="mt-0.5 block text-[10.5px] leading-tight text-muted-foreground">{{ $stage['label'] }}</span>
+                    <li class="px-2 py-3 text-center">
+                        <span class="block font-mono text-lg tabular-nums {{ $stage['count'] ? 'font-semibold text-foreground' : 'text-subtle' }}">{{ $stage['count'] }}</span>
+                        <span class="mt-0.5 block text-[11px] leading-tight text-muted-foreground">{{ $stage['label'] }}</span>
                     </li>
                 @endforeach
             </ol>
-            <div class="mt-4 flex flex-wrap gap-2">
-                <x-button size="sm" :href="route('seed.submissions.index', ['call' => $c->id])">Submissions</x-button>
-                <x-button size="sm" :href="route('seed.ranking', ['call' => $c->id])">Ranking</x-button>
-                <x-button size="sm" :href="route('seed.calls.show', $c)">Call page</x-button>
-            </div>
         </section>
     @endforeach
 </div>
