@@ -1,3 +1,126 @@
+/* ===========================================================================
+   NIMR Grants: design system (Tailwind)
+   Tokens below; the palette and scales are in tailwind.config.js.
+   Fonts are bundled by Vite, so nothing loads from a CDN.
+   =========================================================================== */
+@import '@fontsource/geist-sans/400.css';
+@import '@fontsource/geist-sans/500.css';
+@import '@fontsource/geist-sans/600.css';
+@import '@fontsource/geist-sans/700.css';
+@import '@fontsource/geist-mono/400.css';
+@import '@fontsource/geist-mono/500.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        /* Surfaces and text (RGB channels, so Tailwind can apply opacity). */
+        --background: 247 248 250;
+        --foreground: 15 23 42;
+        --card: 255 255 255;
+        --muted: 241 243 247;
+        --muted-foreground: 84 96 115;
+        --subtle: 107 118 134;
+        --border: 228 231 236;
+        --input: 210 215 223;
+        --ring: 38 100 235;
+
+        /* Brand: NIMR blue #2664EB. */
+        --primary: 38 100 235;
+        --primary-foreground: 255 255 255;
+        --primary-soft: 238 243 254;
+
+        /* Side panel: navy taken from the same hue. */
+        --sidebar: 14 26 58;
+        --sidebar-foreground: 199 210 234;
+        --sidebar-muted: 140 155 191;
+        --sidebar-hover: 23 38 79;
+        --sidebar-chip: 34 53 106;
+
+        /* Status. Blue: done or positive. Amber: waiting on someone. Red: stopped,
+           late or blocked. Navy: under review. Grey: in progress or neutral.
+           Never green. */
+        --ok: 38 100 235;       --ok-soft: 234 241 254;     --ok-ink: 29 79 196;    --ok-line: 188 208 251;
+        --warn: 217 142 4;      --warn-soft: 253 243 220;   --warn-ink: 122 75 0;   --warn-line: 242 212 154;
+        --danger: 217 45 32;    --danger-soft: 253 236 236; --danger-ink: 180 35 24; --danger-line: 243 195 190;
+        --review: 14 26 58;     --review-soft: 226 231 243; --review-ink: 28 57 123; --review-line: 196 205 228;
+        --neutral: 100 116 139; --neutral-soft: 241 243 247; --neutral-ink: 51 65 85; --neutral-line: 218 223 231;
+
+        /* Charts: cool hues only, deepest blue for the final stage. */
+        --chart-1: 188 208 251;
+        --chart-2: 205 189 246;
+        --chart-3: 143 200 238;
+        --chart-4: 38 100 235;
+        --chart-5: 213 219 229;
+
+        /* Call tints default to the brand's palest blue. */
+        --tint-bg: #EAF1FE; --tint-line: #C9D9FA; --tint-chip: #D3E0FC; --tint-ink: #1C419C;
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+        @apply bg-background text-foreground font-sans text-sm antialiased;
+        font-feature-settings: 'ss01', 'cv11';
+    }
+    h1, h2, h3, h4 { @apply font-semibold tracking-tight text-foreground; }
+    :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
+    [x-cloak] { display: none !important; }
+    ::selection { @apply bg-blue-100 text-blue-950; }
+    .tabular, .font-mono { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+    /* Each call's pale tint (SeedCall::tintClass): blues, lavender, slate. */
+    .tint-1 { --tint-bg:#EAF1FE; --tint-line:#C9D9FA; --tint-chip:#D3E0FC; --tint-ink:#1C419C; }
+    .tint-2 { --tint-bg:#F3EDFE; --tint-line:#D9CBF9; --tint-chip:#E4D7FB; --tint-ink:#4B2E99; }
+    .tint-3 { --tint-bg:#E7F4FC; --tint-line:#C2E0F4; --tint-chip:#CEE8F8; --tint-ink:#0B5A85; }
+    .tint-4 { --tint-bg:#ECF1F7; --tint-line:#C8D4E3; --tint-chip:#D6DFEA; --tint-ink:#2B3E57; }
+    .tint-5 { --tint-bg:#EDEDFC; --tint-line:#CFD1F6; --tint-chip:#D9DBFA; --tint-ink:#3A3FA0; }
+
+    /* Form controls (also used bare, inside components). */
+    .input, .select, .textarea {
+        @apply block w-full rounded-md border-input bg-card px-3 text-sm text-foreground shadow-xs
+               placeholder:text-subtle transition-colors
+               focus:border-primary focus:ring-2 focus:ring-primary/20 focus:ring-offset-0
+               disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground;
+    }
+    .input, .select { @apply h-9; }
+    .select { @apply pr-8; }
+    /* Text boxes grow with what is written, so long answers are read whole. */
+    .textarea { @apply py-2 leading-relaxed; field-sizing: content; min-height: 4.75rem; max-height: 48rem; }
+    .input-sm, .select-sm { @apply h-8 text-[13px]; }
+    .input[aria-invalid='true'], .select[aria-invalid='true'], .textarea[aria-invalid='true'] {
+        @apply border-danger focus:border-danger focus:ring-danger/20;
+    }
+    .checkbox { @apply h-4 w-4 rounded border-input text-primary shadow-xs focus:ring-2 focus:ring-primary/20 focus:ring-offset-0; }
+    .radio { @apply h-4 w-4 border-input text-primary shadow-xs focus:ring-2 focus:ring-primary/20 focus:ring-offset-0; }
+    .label { @apply block text-[13px] font-medium text-foreground; }
+    .help { @apply mt-1.5 block text-xs text-muted-foreground; }
+    .error-text { @apply mt-1.5 block text-xs font-medium text-danger-ink; }
+
+    /* A switch built on a checkbox: <input type="checkbox" class="switch"> */
+    .switch {
+        @apply relative h-5 w-9 shrink-0 cursor-pointer appearance-none rounded-full bg-gray-300 transition-colors
+               checked:bg-primary disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .switch::after {
+        content: ''; @apply absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-xs transition-transform;
+    }
+    .switch:checked::after { @apply translate-x-4; }
+
+    /* Long text written by applicants and reviewers. */
+    .prose-text { @apply whitespace-pre-line text-[14px] leading-relaxed text-gray-700; }
+
+    /* Tables inside cards. */
+    .data-table { @apply w-full text-left text-sm; }
+    .data-table thead th {
+        @apply whitespace-nowrap border-b border-border bg-muted/60 px-4 py-2.5 text-xs font-medium text-muted-foreground first:pl-5 last:pr-5;
+    }
+    .data-table tbody td { @apply border-b border-border/70 px-4 py-3 align-middle first:pl-5 last:pr-5; }
+    .data-table tbody tr:last-child td { @apply border-b-0; }
+    .data-table tbody tr { @apply transition-colors hover:bg-muted/40; }
+    .data-table .num { @apply text-right font-mono tabular-nums whitespace-nowrap; }
+    .data-table .group-row td { @apply bg-muted/50 py-2; }
+}

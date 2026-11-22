@@ -75,7 +75,7 @@
                 @foreach($items as [$label, $url, $icon, $pattern, $count, $alert])
                     @php $active = request()->routeIs(...explode('|', $pattern)); @endphp
                     <a href="{{ $url }}" class="nav-link {{ $active ? 'is-active' : '' }}" @if($active) aria-current="page" @endif>
-                        <i class="fas {{ $icon }}" aria-hidden="true"></i> {{ $label }}
+                        <x-icon :name="$icon" /> {{ $label }}
                         @if($count !== null)<span class="nav-count {{ $alert ? 'is-alert' : '' }}">{{ $count }}</span>@endif
                     </a>
                 @endforeach

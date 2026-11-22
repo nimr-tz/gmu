@@ -10,7 +10,7 @@ The older external-grants features are hidden behind `GMU_EXTERNAL_GRANTS` (off 
 
 Everyone signs in through NREIMS, but NREIMS does sign-in **only**. Profiles, roles and everything else live in the portal. Never add a feature that needs a change on the NREIMS side.
 
-`portal/FRONTEND_MIGRATION_PLAN.md` (React/Inertia/Tailwind) is **superseded**. We build with Blade and `public/css/gmu.css`, with no front-end build step.
+`portal/FRONTEND_MIGRATION_PLAN.md` (React/Inertia) is **superseded**. We build with **Blade, Tailwind CSS and Alpine.js**, compiled by Vite (`npm run build`; the Dockerfile and CI already run it) and served from the portal itself, never a CDN. The design system is `tailwind.config.js` (palette and scales) plus `resources/css/app.css` (tokens). `public/css/gmu.css` is **legacy**: it styles only the sign-in and welcome pages and the hidden external-grant pages. Don't add to it.
 
 ## Who it is for, and what it should feel like
 
@@ -32,8 +32,10 @@ Being predictable is part of caring for the user here. Pages of the same kind lo
 
 ## Visual rules (non-negotiable)
 
-- **Brand blue `#2664EB`** (`--brand`, `--blue-600`), with the blue ramp `--blue-50` … `--blue-950` in `gmu.css`.
-- **Never green, anywhere**: not for brand, success, "approved" or charts. This is an institutional rule. Positive and done states use blue.
+The bar is a premium product dashboard: quiet surfaces, hairline borders, small type set carefully, real charts. When unsure, look at how a well-made SaaS dashboard (shadcn/ui-style) does it, then keep NIMR's rules below.
+
+- **Brand blue `#2664EB`**: `primary` in Tailwind, with the ramp `blue-50` … `blue-950`.
+- **Never green, anywhere**: not for brand, success, "approved" or charts. This is an institutional rule. Positive and done states use blue. The Tailwind palette is *replaced*, not extended, so green does not exist to use.
 - Status colour has fixed meanings:
   - **blue** (`ok`): done or positive
   - **amber** (`warn`): waiting on someone
@@ -42,24 +44,28 @@ Being predictable is part of caring for the user here. Pages of the same kind lo
   - **grey**: in progress or neutral
 
   Red and amber mean only these things. Never use them for decoration.
-- **Navigation lives only in the left side panel** (navy `--panel`). The top bar holds context, notifications and the user menu, never navigation links. On small screens the side panel slides in (the menu button). Don't add a second navigation pattern.
-- Fonts: Geist and Geist Mono (`--sans`, `--mono`). Use mono for amounts, references and scores.
-- Use tokens only. Never hard-code a hex colour in a view. The only exception is emails, where inline hex is required; copy the values from the tokens.
-- Don't use the legacy aliases `--green`, `--navy-700`, `--navy-500`, or the `dot-green` class. They exist for old pages and all resolve to blue. Use `--brand` / `--ok` / `dot-blue`.
+- Use the semantic colour names (`background`, `card`, `muted`, `border`, `primary`, `ok`, `warn`, `danger`, `review`, `neutral`, `chart-1`…`chart-5`), not raw ramps, except for charts and tints. In a badge or alert, status colours come through the `x-badge`/`x-alert` `tone`.
+- **Navigation lives only in the left side panel** (navy `sidebar`). The top bar holds context, notifications and the user menu, never navigation links. On small screens the side panel slides in (the menu button). Don't add a second navigation pattern.
+- Fonts: Geist and Geist Mono (`font-sans`, `font-mono`), bundled by Vite. Use mono for amounts, references and scores. Base text is 14px; captions 12–13px.
+- Use tokens only. Never hard-code a hex colour or an arbitrary colour (`bg-[#…]`) in a view. The only exception is emails, where inline hex is required; copy the values from the tokens.
+- Never build a Tailwind class name from pieces (`'grid-cols-' . $n`): the build can't see it. Write each full class name.
 
 ## Building blocks
 
 Reuse these before writing new markup:
 
-- **Layout:** `layouts/gmu.blade.php`. It already shows flash messages and validation errors, so pages don't repeat them.
-- **Components** (`components/ui/`): `page-head` (title, lede, actions), `card`, `field` (label, help, error), `pill`, `stat`, `meter`, `empty`.
+- **Layout:** `layouts/app.blade.php` (`@extends('layouts.app')`). It already shows flash messages and validation errors, so pages don't repeat them. `layouts/gmu.blade.php` is legacy.
+- **Components** (`components/`, used as `<x-…>`): `page-header` (title, description, eyebrow, back link, badge/meta/actions slots), `card` (title, description, icon, actions and footer slots, `flush`, `tone`), `kpi` (key figure), `button` (variant, size, icon), `badge` (tone, dot), `alert` (tone, title), `field` (label, help, error), `choice` (radio card), `stat`, `meter`, `empty`, `dropdown`, `icon` (Lucide, inline).
+- **CSS classes** for bare controls (`resources/css/app.css`): `input`, `select`, `textarea` (grows with its text), `checkbox`, `radio`, `switch`, `label`, `help`, `error-text`, `data-table`, `prose-text`, and the call tints `tint-1`…`tint-5`.
+- **Charts:** a `<canvas data-chart='@json($spec)'>`; `resources/js/charts.js` draws it with Chart.js, which loads only on pages that have one. Give every chart a screen-reader table.
+- The old `components/ui/` (`x-ui.*`) belong to the legacy pages. Don't use them in new work.
 - **Seed grant partials** (`seed/partials/`):
   - `status`: the one way to show a status pill
   - `track`: the 8-step progress line, our signature element
   - `content`: read-only concept note or proposal
   - `feedback`: what the applicant sees from review
 
-New styling goes into `gmu.css` as a named class. **Don't add inline `style=""`.** The seed views already have about 450 of them, which is debt to pay down, not a pattern to copy.
+Style with Tailwind classes in the view or component. If the same long class string repeats, make it a component, not a CSS class. **Don't add inline `style=""`**, except a computed width or position (a meter's fill).
 
 ### Page templates
 
@@ -69,7 +75,7 @@ New pages should follow one of these:
 |---|---|---|
 | **Queue / list** | `page-head` → filter row → table or list → `empty` state that says what will appear and when | `seed/submissions-index`, `seed/reviews-index` |
 | **Record** | `page-head` with status pill → `track` → "what happens next" banner → content cards → side column of actions and history | `seed/application-show`, `seed/submissions-show` |
-| **Form** | Sections in the call document's order and lettering (A, B, C…) → word or page limits shown live → a save that never loses work → one primary action | `seed/application-edit` |
+| **Form** | A sticky bar with save and the one primary action → a section list with what is done → sections in the call document's order and lettering (A, B, C…) → word or page limits shown live → unsaved text kept on the device until saved | `seed/application-edit` |
 | **Decision** | The thing being judged → the criteria → the decision controls last, with the consequence stated before you press | `seed/review-show`, `seed/approval-show` |
 | **Dashboard** | "Needs you now" first, then the state of the call, then everything else | `seed/dashboard-applicant`, `seed/dashboard-gmu` |
 
@@ -108,14 +114,13 @@ Passing tests and a page that looks finished are the start of done, not the end.
 3. Check the page at phone width (375px): no sideways scroll, and the side panel opens from the menu button.
 4. Check the empty state, the error state and the "not your turn" state, not just the happy path.
 5. Read every email and notification it sends, as the person receiving it.
-6. Check that there's no green, no hard-coded colour, no new inline style, and no status text written by hand.
+6. Check that there's no green, no hard-coded colour, no new inline style, and no status text written by hand. Run `npm run build` after changing classes, or the page will miss them.
 
 ## Known gaps
 
 These are things to fix, not patterns to copy.
 
 - Rows written before the switch to East Africa Time (19 Nov 2026) hold UTC clock times, so they show 3 hours early. This affects only local demo data; reseed it to clear.
-- `pill-info` looks identical to `pill-ok`, so "Awaiting reviewers" reads the same as "Approved". The `STATUS_TONES` comment says in-progress states are grey; the code disagrees.
-- About 450 inline styles across `resources/views/seed`.
+- `STATUS_TONES` still says `info` for some in-progress states. The status partial shows `info` as grey, as intended; tidy the constant to say so.
 - Older emails (`deadline-reminder`, `weekly-digest`) use `d M Y`.
-- Legacy token aliases (`--green`, `--navy-*`) and `dot-green` are still in use on external-grant pages.
+- The sign-in and welcome pages and the hidden external-grant pages still use `layouts/gmu.blade.php` and `gmu.css`, with its legacy aliases (`--green`, `--navy-*`, `dot-green`). Move a page to `layouts.app` when you next work on it.

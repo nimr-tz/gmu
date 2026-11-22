@@ -21,11 +21,11 @@ final class SeedNav
             $needs = SeedApplication::whereIn('status', [SeedGrant::SUBMITTED, SeedGrant::SCREENED, SeedGrant::PROPOSAL_SUBMITTED, SeedGrant::APPROVED, SeedGrant::AGREEMENT_ACCEPTED])->count();
             $recommended = SeedApplication::where('status', SeedGrant::RECOMMENDED)->count();
 
-            $items = [['Calls', route('seed.calls.index'), 'fa-bullhorn', 'seed.calls.*|seed.call*', null, false]];
+            $items = [['Calls', route('seed.calls.index'), 'megaphone', 'seed.calls.*|seed.call*', null, false]];
             if (SeedCall::exists()) {
-                $items[] = ['Submissions', route('seed.submissions.index'), 'fa-file-alt', 'seed.submissions.*', $needs ?: null, false];
-                $items[] = ['Ranking', route('seed.ranking'), 'fa-list-ol', 'seed.ranking', null, false];
-                $items[] = ['Approvals', route('seed.approvals.index'), 'fa-shield-alt', 'seed.approvals.*', $recommended ?: null, false];
+                $items[] = ['Submissions', route('seed.submissions.index'), 'file-text', 'seed.submissions.*', $needs ?: null, false];
+                $items[] = ['Ranking', route('seed.ranking'), 'list-ordered', 'seed.ranking', null, false];
+                $items[] = ['Approvals', route('seed.approvals.index'), 'shield-check', 'seed.approvals.*', $recommended ?: null, false];
             }
 
             return ['Grants' => $items] + self::reviewing($user);
@@ -35,22 +35,22 @@ final class SeedNav
             $waiting = SeedApplication::where('status', ApprovalsController::QUEUE_STATUS[$level])->count();
 
             return ['Decisions' => [
-                ['Awaiting decision', route('seed.approvals.index'), 'fa-shield-alt', 'seed.approvals.*', $waiting ?: null, false],
-                ['Full ranking', route('seed.ranking'), 'fa-list-ol', 'seed.ranking', null, false],
-                ['Calls', route('seed.calls.index'), 'fa-bullhorn', 'seed.calls.*|seed.call', null, false],
+                ['Awaiting decision', route('seed.approvals.index'), 'shield-check', 'seed.approvals.*', $waiting ?: null, false],
+                ['Full ranking', route('seed.ranking'), 'list-ordered', 'seed.ranking', null, false],
+                ['Calls', route('seed.calls.index'), 'megaphone', 'seed.calls.*|seed.call', null, false],
             ]] + self::reviewing($user);
         }
 
         $applications = SeedApplication::where('pi_id', $user->id)->latest('id')->get();
         $items = [];
         if (SeedCall::where('status', '!=', 'draft')->exists()) {
-            $items[] = ['Calls', route('seed.calls.index'), 'fa-bullhorn', 'seed.calls.*|seed.call', null, false];
+            $items[] = ['Calls', route('seed.calls.index'), 'megaphone', 'seed.calls.*|seed.call', null, false];
         }
         if ($applications->isNotEmpty()) {
-            $items[] = [$applications->count() === 1 ? 'My application' : 'My applications', route('seed.mine'), 'fa-file-alt',
+            $items[] = [$applications->count() === 1 ? 'My application' : 'My applications', route('seed.mine'), 'file-text',
                 'seed.mine|seed.applications.show|seed.applications.edit', $applications->contains->isRevising() ? 'Revise' : null, false];
             foreach ($applications->whereNotNull('agreement_issued_at') as $application) {
-                $items[] = ['Grant agreement · ' . $application->reference, route('seed.applications.agreement', $application), 'fa-file-signature',
+                $items[] = ['Grant agreement · ' . $application->reference, route('seed.applications.agreement', $application), 'pen-line',
                     'seed.applications.agreement', $application->status === SeedGrant::AGREEMENT_ISSUED ? 1 : null, false];
             }
         }
@@ -71,7 +71,7 @@ final class SeedNav
         $todo = $assignments->filter(fn ($a) => $controller->needsAction($a))->count();
 
         return ['Reviewing' => [
-            ['My reviews', route('seed.reviews.index'), 'fa-comments', 'seed.reviews.*', $todo ?: null, false],
+            ['My reviews', route('seed.reviews.index'), 'message-square', 'seed.reviews.*', $todo ?: null, false],
         ]];
     }
 }
