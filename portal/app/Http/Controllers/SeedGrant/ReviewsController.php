@@ -28,7 +28,10 @@ class ReviewsController extends Controller
 
         [$todo, $done] = $assignments->partition(fn ($a) => $this->needsAction($a));
 
-        return view('seed.reviews-index', ['todo' => $todo, 'done' => $done]);
+        // The scoring guide follows the call the reviewer has work in, else the default call.
+        $call = $todo->first()?->application->call ?? $done->first()?->application->call ?? \App\Models\Seed\SeedCall::current();
+
+        return view('seed.reviews-index', ['todo' => $todo, 'done' => $done, 'form' => \App\Support\CallForm::for($call)]);
     }
 
     public function show(Request $request, SeedReviewerAssignment $assignment)
@@ -78,7 +81,7 @@ class ReviewsController extends Controller
             'comments'          => ['nullable', 'string', 'max:10000'],
             'confidential_note' => ['nullable', 'string', 'max:5000'],
         ];
-        foreach (SeedGrant::CRITERIA as $key => [, , $max]) {
+        foreach ($assignment->application->call->form()->criteria() as $key => [, , $max]) {
             $rules["scores.{$key}"] = ['nullable', 'numeric', 'min:0', "max:{$max}"];
         }
         $data = $request->validate($rules);

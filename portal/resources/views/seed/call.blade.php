@@ -90,14 +90,15 @@
                     <table class="table">
                         <thead><tr><th>Criterion</th><th>What reviewers look for</th><th class="num">Weight</th></tr></thead>
                         <tbody>
-                            @foreach(SeedGrant::CRITERIA as [$name, $what, $max])
+                            @foreach($call->form()->criteria() as [$name, $what, $max])
                                 <tr><td class="strong" style="white-space:nowrap;">{{ $name }}</td><td class="sub" style="font-size:14px;">{{ $what }}</td><td class="num">{{ $max }}%</td></tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
             </div>
-            <p style="margin-top:12px; font-size:14px; color:var(--ink-2);">Recommended for funding at <strong class="mono">{{ SeedGrant::PASS_TOTAL }}/100</strong> or above, and only with at least half the marks for scientific quality. Ties go to the stronger science score, then feasibility, then relevance.</p>
+            <p style="margin-top:12px; font-size:14px; color:var(--ink-2);">Recommended for funding at <strong class="mono">{{ SeedGrant::trimNumber($call->form()->passMark()) }}/{{ SeedGrant::trimNumber($call->form()->maxTotal()) }}</strong> or above{{ $call->form()->minimumsPhrase(', and only with at least ', ' for ') }}.
+                {{ $call->form()->tieBreak() ? 'Ties go to the stronger ' . collect($call->form()->tieBreak())->map(fn ($k) => mb_strtolower($call->form()->criteria()[$k][0]))->implode(', then ') . ' score.' : '' }}</p>
         </section>
     </div>
 

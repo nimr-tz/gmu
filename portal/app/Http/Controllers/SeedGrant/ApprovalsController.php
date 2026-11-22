@@ -72,10 +72,12 @@ class ApprovalsController extends Controller
 
         $this->workflow->approve($application, $request->user(), $level, $data['decision'], $data['note'] ?? null);
 
-        $message = match ([$level, $data['decision']]) {
-            ['gmu', 'approved']  => 'Sent to the DRCP.',
-            ['drcp', 'approved'] => 'Cleared and sent to the Director General.',
-            default              => $data['decision'] === 'returned' ? 'Returned to GMU.' : 'Approved. The PI and GMU have been told.',
+        $next = $application->call->form()->nextApprovalLevel($level);
+        $message = match (true) {
+            $data['decision'] === 'returned' => 'Returned to GMU.',
+            $next === 'drcp'                 => 'Sent to the DRCP.',
+            $next === 'dg'                   => 'Cleared and sent to the Director General.',
+            default                          => 'Approved. The PI and GMU have been told.',
         };
 
         return $level === 'gmu'

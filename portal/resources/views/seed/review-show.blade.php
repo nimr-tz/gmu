@@ -85,12 +85,13 @@
                 @csrf @method('PUT')
 
                 @if($stage === 'proposal')
+                    @php $form = $application->call->form(); $maxTotal = $form->maxTotal() ?: 100; @endphp
                     <section class="card is-dark" style="padding:22px;">
                         <p class="eyebrow" style="color:var(--blue-300);">Your total</p>
-                        <div class="row" style="gap:6px; align-items:baseline; margin-top:6px;"><span class="mono" style="font-size:48px; line-height:1; color:#fff;" data-total>{{ $review?->total ?? '—' }}</span><span class="mono" style="color:#A9B6D3;">/ 100</span></div>
+                        <div class="row" style="gap:6px; align-items:baseline; margin-top:6px;"><span class="mono" style="font-size:48px; line-height:1; color:#fff;" data-total>{{ $review?->total ?? '—' }}</span><span class="mono" style="color:#A9B6D3;">/ {{ S::trimNumber($maxTotal) }}</span></div>
                         <div style="position:relative; margin-top:16px; height:10px; border-radius:99px; background:#1C2B57;">
-                            <div data-total-bar style="position:absolute; left:0; top:0; bottom:0; border-radius:99px; width:{{ $review?->total ?? 0 }}%; background:var(--blue-400);"></div>
-                            <div aria-hidden="true" style="position:absolute; left:{{ S::PASS_TOTAL }}%; top:-5px; bottom:-5px; width:2px; background:#fff;"></div>
+                            <div data-total-bar style="position:absolute; left:0; top:0; bottom:0; border-radius:99px; width:{{ min(100, ($review?->total ?? 0) / $maxTotal * 100) }}%; background:var(--blue-400);"></div>
+                            <div aria-hidden="true" style="position:absolute; left:{{ min(100, $form->passMark() / $maxTotal * 100) }}%; top:-5px; bottom:-5px; width:2px; background:#fff;"></div>
                         </div>
                         <p class="small" style="margin-top:12px; color:#C7D2EA;" data-verdict></p>
                     </section>
@@ -98,7 +99,7 @@
                     <section class="card">
                         <div class="card-body stack-sm">
                             <h2 class="card-title">Score each criterion</h2>
-                            @foreach(S::CRITERIA as $key => [$name, $what, $max])
+                            @foreach($form->criteria() as $key => [$name, $what, $max])
                                 @php $value = old("scores.$key", $review?->score($key)); @endphp
                                 <div>
                                     <div class="row-between" style="flex-wrap:nowrap; align-items:flex-start;">
@@ -148,24 +149,34 @@
 
 @if($stage === 'proposal' && $assignment->coi_status === 'none')
 @push('scripts')
+@php
+    $scoreForm = $application->call->form();
+    $scoreMins = [];
+    foreach ($scoreForm->minimums() as $k => $min) {
+        $scoreMins[$k] = ['min' => $min, 'name' => $scoreForm->criteria()[$k][0], 'max' => $scoreForm->criteria()[$k][2]];
+    }
+@endphp
 <script>
 (function () {
-    var pass = {{ S::PASS_TOTAL }}, minSci = {{ S::minScience() }};
+    var pass = {{ $scoreForm->passMark() }}, maxTotal = {{ $scoreForm->maxTotal() ?: 100 }};
+    var mins = {!! json_encode((object) $scoreMins) !!};
     var inputs = document.querySelectorAll('[data-score]');
     function update() {
-        var total = 0, complete = true, science = null;
+        var total = 0, complete = true, scores = {};
         inputs.forEach(function (i) {
             var out = document.querySelector('[data-out-for="' + i.id + '"]');
             if (i.hasAttribute('data-unset')) { complete = false; out.textContent = '—'; return; }
             var v = parseFloat(i.value); total += v; out.textContent = v;
-            if (i.dataset.score === 'science') science = v;
+            scores[i.dataset.score] = v;
         });
         document.querySelector('[data-total]').textContent = complete ? total : '—';
-        document.querySelector('[data-total-bar]').style.width = (complete ? total : 0) + '%';
+        document.querySelector('[data-total-bar]').style.width = Math.min(100, (complete ? total : 0) / maxTotal * 100) + '%';
         var verdict = document.querySelector('[data-verdict]');
         if (!complete) { verdict.textContent = 'Score every criterion to see the total.'; return; }
-        var ok = total >= pass && science >= minSci;
-        verdict.textContent = ok ? 'Fundable on your scores.' : (science < minSci ? 'Science below ' + minSci + ' of 25: not fundable.' : 'Below ' + pass + ': not fundable.');
+        var under = Object.keys(mins).filter(function (k) { return (scores[k] || 0) < mins[k].min; });
+        var ok = total >= pass && under.length === 0;
+        verdict.textContent = ok ? 'Fundable on your scores.'
+            : (under.length ? mins[under[0]].name + ' below ' + mins[under[0]].min + ' of ' + mins[under[0]].max + ': not fundable.' : 'Below ' + pass + ': not fundable.');
         verdict.style.color = ok ? '#BCD0FB' : '#F8B4A3';
     }
     inputs.forEach(function (i) { i.addEventListener('input', function () { i.removeAttribute('data-unset'); update(); }); });

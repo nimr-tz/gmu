@@ -49,7 +49,7 @@
                 <div class="row-between"><h2 class="card-title">How the panel scored it</h2>
                     <span class="small muted">{{ $means['count'] }} {{ str('reviewer')->plural($means['count']) }}</span></div>
                 <div style="margin-top:10px;">
-                    @foreach(S::CRITERIA as $key => [$name, , $max])
+                    @foreach($application->call->form()->criteria() as $key => [$name, , $max])
                         <div style="display:grid; grid-template-columns:minmax(0,1fr) 150px 72px; gap:16px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line-soft);">
                             <span class="{{ $key === 'science' ? 'strong' : '' }}">{{ $name }}</span>
                             <span class="meter"><span style="width:{{ $means[$key] / $max * 100 }}%; {{ $key === 'science' ? 'background:var(--blue-900);' : '' }}"></span></span>
@@ -73,7 +73,7 @@
                 @foreach($cats as $k => $v)
                     <div><dt class="small row" style="gap:8px;"><span style="width:10px; height:10px; border-radius:3px; background:{{ $shades[$k] }};"></span>{{ S::BUDGET_CATEGORIES[$k] }}</dt>
                         <dd class="mono" style="margin:4px 0 0; font-size:16px;">{{ number_format($v) }}</dd>
-                        @if($k === 'equipment' && $total > 0)<dd class="tiny" style="margin:2px 0 0; color:{{ $v / $total * 100 > $application->call->equipment_cap_percent ? 'var(--danger-ink)' : 'var(--blue-700)' }};">{{ number_format($v / $total * 100, 1) }}%, limit {{ $application->call->equipment_cap_percent }}%</dd>@endif
+                        @if($k === 'equipment' && $total > 0)<dd class="tiny" style="margin:2px 0 0; color:{{ $v / $total * 100 > ($application->call->form()->equipmentCap() ?? 100) ? 'var(--danger-ink)' : 'var(--blue-700)' }};">{{ number_format($v / $total * 100, 1) }}%, limit {{ $application->call->equipment_cap_percent }}%</dd>@endif
                     </div>
                 @endforeach
             </dl>

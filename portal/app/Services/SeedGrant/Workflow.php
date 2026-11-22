@@ -47,7 +47,7 @@ class Workflow
             return $existing;
         }
 
-        $this->assertEligible($pi);
+        $this->assertEligible($pi, $call);
 
         return DB::transaction(function () use ($pi, $call) {
             $next = SeedApplication::where('seed_call_id', $call->id)->lockForUpdate()->count() + 1;
@@ -96,7 +96,7 @@ class Workflow
     public function submitConcept(SeedApplication $application): void
     {
         $this->assertStatus($application, [SeedGrant::DRAFT]);
-        $this->assertEligible($application->pi);
+        $this->assertEligible($application->pi, $application->call);
 
         // A concept note GMU returned for correction may come back after the deadline.
         $returned = $this->wasReturned($application);
@@ -341,8 +341,10 @@ class Workflow
 
         $stage = $round->stage;
         if ($stage === 'proposal' && $decision === 'advance' && ! $application->meetsThreshold()) {
-            $this->fail('decision', sprintf('Below the funding threshold: a proposal needs at least %d overall and %s for scientific quality.',
-                SeedGrant::PASS_TOTAL, rtrim(rtrim(number_format(SeedGrant::minScience(), 1), '0'), '.')));
+            $form = $application->call->form();
+            $mins = collect($form->minimums())->map(fn ($min, $key) => SeedGrant::trimNumber($min) . ' for ' . mb_strtolower($form->criteria()[$key][0]))->implode(', ');
+            $this->fail('decision', 'Below the funding threshold: a proposal needs at least ' . SeedGrant::trimNumber($form->passMark()) . ' overall'
+                . ($mins !== '' ? ' and ' . $mins : '') . '.');
         }
         if ($decision === 'revise' && blank($note)) {
             $this->fail('decision_note', 'Tell the applicant what to revise.');
@@ -436,7 +438,7 @@ class Workflow
 
         if ($assignment->stage === 'proposal') {
             $scores = [];
-            foreach (SeedGrant::CRITERIA as $key => [, , $max]) {
+            foreach ($application->call->form()->criteria() as $key => [, , $max]) {
                 $value = $data['scores'][$key] ?? null;
                 $scores[$key] = $value === null || $value === '' ? null : max(0, min($max, round((float) $value * 2) / 2));
             }
@@ -487,7 +489,12 @@ class Workflow
         $expected = ['gmu' => SeedGrant::RECOMMENDED, 'drcp' => SeedGrant::WITH_DRCP, 'dg' => SeedGrant::WITH_DG][$level] ?? null;
         $this->assertStatus($application, [$expected]);
 
-        $allowed = $level === 'dg' ? ['approved', 'conditions', 'returned'] : ['approved', 'returned'];
+        $chain = $application->call->form()->approvalLevels();
+        if (! in_array($level, $chain, true)) {
+            $this->fail('decision', 'This call does not need ' . SeedApproval::LEVELS[$level] . ' approval.');
+        }
+        // Conditions are set by whoever gives the final approval.
+        $allowed = $level === end($chain) ? ['approved', 'conditions', 'returned'] : ['approved', 'returned'];
         if (! in_array($decision, $allowed, true)) {
             $this->fail('decision', 'Choose a decision.');
         }
@@ -499,6 +506,7 @@ class Workflow
         }
 
         $application->approvals()->create(['level' => $level, 'decision' => $decision, 'note' => $note, 'decided_by' => $by->id]);
+        $next = $application->call->form()->nextApprovalLevel($level);
 
         if ($decision === 'returned') {
             $application->status = SeedGrant::RECOMMENDED;
@@ -508,25 +516,25 @@ class Workflow
             return;
         }
 
-        $application->status = match ($level) {
-            'gmu'  => SeedGrant::WITH_DRCP,
-            'drcp' => SeedGrant::WITH_DG,
-            'dg'   => SeedGrant::APPROVED,
+        $application->status = match ($next) {
+            'drcp'  => SeedGrant::WITH_DRCP,
+            'dg'    => SeedGrant::WITH_DG,
+            default => SeedGrant::APPROVED,
         };
 
-        if ($level === 'dg') {
+        if ($next === null) {
             $application->approved_amount = $application->budgetTotal('proposal');
             $application->approval_conditions = $decision === 'conditions' ? $note : null;
         }
         $application->save();
 
-        match ($level) {
-            'gmu'  => $this->tell($this->usersWithRole('drcp'), 'seed_approval', 'For DRCP clearance: ' . $application->reference,
-                        'GMU has sent a recommended seed grant for your clearance.', $application),
-            'drcp' => $this->tell($this->usersWithRole('dg'), 'seed_approval', 'For your approval: ' . $application->reference,
-                        'Cleared by DRCP. Awaiting the Director General’s decision.', $application),
-            'dg'   => $this->tell(collect([$application->pi])->merge($this->gmu()), 'seed_approved', 'Approved: ' . $application->reference,
-                        'The Director General approved the seed grant. GMU will issue the grant agreement.', $application),
+        match ($next) {
+            'drcp'  => $this->tell($this->usersWithRole('drcp'), 'seed_approval', 'For DRCP clearance: ' . $application->reference,
+                         'GMU has sent a recommended application for your clearance.', $application),
+            'dg'    => $this->tell($this->usersWithRole('dg'), 'seed_approval', 'For your approval: ' . $application->reference,
+                         ($level === 'drcp' ? 'Cleared by DRCP.' : 'Signed off by GMU.') . ' Awaiting the Director General’s decision.', $application),
+            default => $this->tell(collect([$application->pi])->merge($this->gmu()), 'seed_approved', 'Approved: ' . $application->reference,
+                         'The ' . SeedApproval::LEVELS[$level] . ' approved the application. GMU will issue the grant agreement.', $application),
         };
     }
 
@@ -572,17 +580,20 @@ class Workflow
 
     // ── Checks ──────────────────────────────────────────────────────────────
 
-    /** Rules on the lead applicant from section 4 of the call. */
-    public function eligibilityProblems(User $pi): array
+    /** The call's rules on the lead applicant (its years-at-NIMR limit, when switched on). */
+    public function eligibilityProblems(User $pi, ?SeedCall $call = null): array
     {
+        $years = ($call ?? SeedCall::current())?->form()->serviceYears();
         $problems = [];
         if (! $pi->employment_type) {
             $problems[] = 'Your employment type is not recorded.';
         }
-        if (! $pi->first_appointment_date) {
-            $problems[] = 'Your date of first appointment at NIMR is not recorded.';
-        } elseif (! $pi->withinSeedGrantServiceLimit()) {
-            $problems[] = 'Lead applicants must have served at NIMR for under ' . User::MAX_SERVICE_YEARS_FOR_SEED_GRANT . ' years.';
+        if ($years !== null) {
+            if (! $pi->first_appointment_date) {
+                $problems[] = 'Your date of first appointment at NIMR is not recorded.';
+            } elseif (! $pi->withinServiceLimit($years)) {
+                $problems[] = "Lead applicants must have served at NIMR for under {$years} years.";
+            }
         }
 
         return $problems;
@@ -593,48 +604,56 @@ class Workflow
     {
         $application->loadMissing(['budgetItems', 'documents', 'call']);
         $call = $application->call;
+        $form = $call->form();
         $problems = [];
 
         if ($stage === 'concept') {
-            // Section A of NIMR's concept note form.
+            // Section A, as this call asks for it.
             $titleWords = SeedGrant::wordCount($application->title);
             if ($titleWords === 0) {
                 $problems['title'] = 'Give the project a title.';
-            } elseif ($titleWords > SeedGrant::TITLE_MAX_WORDS) {
-                $problems['title'] = "The title is {$titleWords} words; the limit is " . SeedGrant::TITLE_MAX_WORDS . '.';
+            } elseif ($titleWords > $form->titleWords()) {
+                $problems['title'] = "The title is {$titleWords} words; the limit is " . $form->titleWords() . '.';
             }
 
-            $prior = $application->priorLargeGrant();
-            if ($prior === null) {
-                $problems['prior_grant'] = 'Say whether you have held a research grant above USD 10,000 as Principal Investigator.';
-            } elseif ($prior === 'yes') {
-                $problems['prior_grant'] = 'Lead applicants must not have held a research grant above USD 10,000 as Principal Investigator, so this call is not open to you.';
-            }
-
-            foreach (['mentor_name' => 'name', 'mentor_designation' => 'designation', 'mentor_centre' => 'NIMR centre or section', 'mentor_suitability' => 'relevant expertise'] as $field => $label) {
-                if (blank($application->{$field})) {
-                    $problems[$field] = 'Give your mentor’s ' . $label . '.';
+            if ($prior = $form->priorGrant()) {
+                $usd = 'USD ' . number_format($prior['usd']);
+                $answer = $application->priorLargeGrant();
+                if ($answer === null) {
+                    $problems['prior_grant'] = "Say whether you have held a research grant above {$usd} as Principal Investigator.";
+                } elseif ($answer === 'yes') {
+                    $problems['prior_grant'] = "Lead applicants must not have held a research grant above {$usd} as Principal Investigator, so this call is not open to you.";
                 }
             }
-            $this->checkWords($problems, 'mentor_suitability', 'The mentor’s expertise', $application->mentor_suitability, SeedGrant::MENTOR_EXPERTISE_WORDS);
-            $this->checkWords($problems, 'co_investigators', 'Co-investigators', $application->conceptField('co_investigators'), SeedGrant::CO_INVESTIGATORS_WORDS);
 
-            // Questions 7 and 8 start with a tick-box.
-            foreach (SeedGrant::CONCEPT_CHOICES as $key => $choice) {
+            if (($mentorWords = $form->mentorWords()) !== null) {
+                foreach (['mentor_name' => 'name', 'mentor_designation' => 'designation', 'mentor_centre' => 'NIMR centre or section', 'mentor_suitability' => 'relevant expertise'] as $field => $label) {
+                    if (blank($application->{$field})) {
+                        $problems[$field] = 'Give your mentor’s ' . $label . '.';
+                    }
+                }
+                $this->checkWords($problems, 'mentor_suitability', 'The mentor’s expertise', $application->mentor_suitability, $mentorWords);
+            }
+            if (($coWords = $form->coInvestigatorWords()) !== null) {
+                $this->checkWords($problems, 'co_investigators', 'Co-investigators', $application->conceptField('co_investigators'), $coWords);
+            }
+
+            // Tick-box questions (7 and 8, when the call asks them).
+            foreach ($form->choices() as $key => $choice) {
                 if ($application->choice($key) === null) {
-                    $problems["choices.{$key}"] = SeedGrant::CONCEPT_SECTIONS[$key][0] . ': answer the question.';
+                    $problems["choices.{$key}"] = $form->sections('concept')[$key][0] . ': answer the question.';
                 }
             }
 
-            // Section E: every declaration.
-            if (count($application->declarations()) < count(SeedGrant::DECLARATIONS)) {
+            // Section E: every declaration the call asks for.
+            if (count(array_intersect(array_keys($form->declarations()), $application->declarations())) < count($form->declarations())) {
                 $problems['declarations'] = 'Tick every statement in the applicant declaration.';
             }
         }
 
-        foreach (SeedGrant::sections($stage) as $key => [$heading, , $limit]) {
+        foreach ($form->sections($stage) as $key => [$heading, , $limit]) {
             $words = SeedGrant::wordCount($application->sectionText($stage, $key));
-            $required = $stage !== 'concept' || SeedGrant::sectionRequired($key, $application->choice($key));
+            $required = $stage !== 'concept' || $form->sectionRequired($key, $application->choice($key));
             if ($words === 0 && $required) {
                 $problems["{$stage}.{$key}"] = $heading . ': this section is empty.';
             } elseif ($words > $limit) {
@@ -655,10 +674,11 @@ class Workflow
                 $problems['budget_category'] = 'Put every budget line under personnel, equipment, research or indirect costs.';
             }
             $equipment = $application->budgetByCategory()['equipment'];
-            if ($total > 0 && $equipment > $total * $call->equipment_cap_percent / 100) {
-                $problems['budget_equipment'] = sprintf('Equipment is %.1f%% of the budget; the limit is %d%%.', $equipment / $total * 100, $call->equipment_cap_percent);
+            $cap = $form->equipmentCap();
+            if ($cap !== null && $total > 0 && $equipment > $total * $cap / 100) {
+                $problems['budget_equipment'] = sprintf('Equipment is %.1f%% of the budget; the limit is %d%%.', $equipment / $total * 100, $cap);
             }
-            foreach (SeedGrant::DOCUMENT_KINDS as $kind => [$label, $required]) {
+            foreach ($form->documents() as $kind => [$label, $required]) {
                 if ($required && $application->documents->where('kind', $kind)->isEmpty()) {
                     $problems["document_{$kind}"] = 'Upload the ' . mb_strtolower($label) . '.';
                 }
@@ -676,9 +696,9 @@ class Workflow
         }
     }
 
-    private function assertEligible(User $pi): void
+    private function assertEligible(User $pi, ?SeedCall $call = null): void
     {
-        if ($problems = $this->eligibilityProblems($pi)) {
+        if ($problems = $this->eligibilityProblems($pi, $call)) {
             throw ValidationException::withMessages(['eligibility' => $problems]);
         }
     }

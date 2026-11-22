@@ -165,7 +165,7 @@ class SeedApplication extends Model
     public function wordCount(string $stage): int
     {
         $words = 0;
-        foreach (array_keys(SeedGrant::sections($stage)) as $key) {
+        foreach (array_keys($this->call->form()->sections($stage)) as $key) {
             $words += SeedGrant::wordCount($this->sectionText($stage, $key));
         }
 
@@ -267,7 +267,7 @@ class SeedApplication extends Model
         }
 
         $means = [];
-        foreach (array_keys(SeedGrant::CRITERIA) as $key) {
+        foreach (array_keys($this->call->form()->criteria()) as $key) {
             $means[$key] = round($reviews->avg(fn (SeedReview $r) => $r->score($key) ?? 0), 1);
         }
         $means['total'] = round($reviews->avg('total'), 1);
@@ -280,7 +280,7 @@ class SeedApplication extends Model
     {
         $m = $this->meanScores();
 
-        return $m !== null && SeedGrant::meetsThreshold($m['total'], $m['science']);
+        return $this->call->form()->meetsThreshold($m);
     }
 
     public function approvalAt(string $level): ?SeedApproval

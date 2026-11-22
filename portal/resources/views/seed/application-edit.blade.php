@@ -59,16 +59,16 @@
         @foreach($sections as $key => [$heading, , $limit])
             @php
                 $w = SeedGrant::wordCount($application->sectionText($stage, $key));
-                $needed = ! $isConcept || SeedGrant::sectionRequired($key, $application->choice($key));
-                $answered = ! $isConcept || ! isset(SeedGrant::CONCEPT_CHOICES[$key]) || $application->choice($key) !== null;
+                $needed = ! $isConcept || $form->sectionRequired($key, $application->choice($key));
+                $answered = ! $isConcept || ! isset($form->choices()[$key]) || $application->choice($key) !== null;
                 $state = $w > $limit ? 'over' : (($w === 0 && $needed) || ! $answered ? 'no' : 'ok');
                 $short = $isConcept ? preg_replace('/^(\d+|[A-Z])\. /', '$1. ', \Illuminate\Support\Str::before($heading, ' and ')) : $heading;
             @endphp
             <a href="#s-{{ $key }}"><span class="tick {{ $state }}"><i class="fas {{ $state === 'over' ? 'fa-exclamation' : 'fa-check' }}" aria-hidden="true"></i></span>{{ $short }}</a>
         @endforeach
         <a href="#budget"><span class="tick {{ $lines->isEmpty() ? 'no' : 'ok' }}"><i class="fas fa-check" aria-hidden="true"></i></span>{{ $isConcept ? 'D. Budget' : 'Budget' }}</a>
-        @if($isConcept)
-            <a href="#declaration"><span class="tick {{ count($application->declarations()) === count(SeedGrant::DECLARATIONS) ? 'ok' : 'no' }}"><i class="fas fa-check" aria-hidden="true"></i></span>E. Declaration</a>
+        @if($isConcept && $form->declarations())
+            <a href="#declaration"><span class="tick {{ count(array_intersect(array_keys($form->declarations()), $application->declarations())) === count($form->declarations()) ? 'ok' : 'no' }}"><i class="fas fa-check" aria-hidden="true"></i></span>E. Declaration</a>
         @endif
         @unless($isConcept)
             <a href="#documents"><span class="tick {{ $application->documents->isEmpty() ? 'no' : 'ok' }}"><i class="fas fa-check" aria-hidden="true"></i></span>Documents</a>
@@ -112,12 +112,13 @@
                             <div class="kv"><span class="k">Employment</span><span class="v">{{ \App\Models\User::EMPLOYMENT_TYPES[$pi->employment_type] ?? '—' }}</span></div>
                             <div class="kv"><span class="k">Date of first appointment</span>
                                 <span class="v">{{ $pi->first_appointment_date?->format('j M Y') ?? '—' }}
-                                    @if($service)<span class="small muted"> · {{ $service['years'] }} y {{ $service['months'] }} m{{ $pi->withinSeedGrantServiceLimit() ? ', under 5 years' : '' }}</span>@endif
+                                    @if($service)<span class="small muted"> · {{ $service['years'] }} y {{ $service['months'] }} m{{ $form->serviceYears() && $pi->withinServiceLimit($form->serviceYears()) ? ', under ' . $form->serviceYears() . ' years' : '' }}</span>@endif
                                 </span></div>
                         </div>
 
+                        @if($priorRule = $form->priorGrant())
                         <fieldset class="choice-group" style="margin-top:20px;">
-                            <legend class="label">Have you previously received a research grant exceeding USD 10,000 as Principal Investigator?</legend>
+                            <legend class="label">Have you previously received a research grant exceeding USD {{ number_format($priorRule['usd']) }} as Principal Investigator?</legend>
                             <div class="row" style="gap:20px; margin-top:8px;">
                                 @foreach(['no' => 'No', 'yes' => 'Yes'] as $value => $label)
                                     <label class="check"><input type="radio" name="prior_grant" value="{{ $value }}" @checked($prior === $value) data-reveal="prior-details" data-reveal-on="yes"> <span>{{ $label }}</span></label>
@@ -125,13 +126,15 @@
                             </div>
                             <div id="prior-details" @if($prior !== 'yes') hidden @endif style="margin-top:12px;">
                                 <label for="prior_grant_details" class="label">Grant title, funding organisation and amount awarded</label>
-                                <textarea id="prior_grant_details" name="prior_grant_details" class="textarea" rows="2" data-words data-limit="{{ SeedGrant::PRIOR_GRANT_WORDS }}">{{ $priorDetails }}</textarea>
-                                <div class="wordcount" data-count-for="prior_grant_details">{{ SeedGrant::wordCount($priorDetails) }} / {{ SeedGrant::PRIOR_GRANT_WORDS }} words</div>
-                                <p class="small" style="margin-top:6px; color:var(--danger-ink);">The call is open only to researchers who have not held a grant above USD 10,000 as PI.</p>
+                                <textarea id="prior_grant_details" name="prior_grant_details" class="textarea" rows="2" data-words data-limit="{{ $priorRule['words'] }}">{{ $priorDetails }}</textarea>
+                                <div class="wordcount" data-count-for="prior_grant_details">{{ SeedGrant::wordCount($priorDetails) }} / {{ $priorRule['words'] }} words</div>
+                                <p class="small" style="margin-top:6px; color:var(--danger-ink);">The call is open only to researchers who have not held a grant above USD {{ number_format($priorRule['usd']) }} as PI.</p>
                             </div>
                         </fieldset>
+                        @endif
 
                         <div class="form-grid" style="margin-top:20px;">
+                            @if($form->mentorWords() !== null)
                             <x-ui.field label="Proposed scientific mentor’s full name" name="mentor_name">
                                 <input id="mentor_name" name="mentor_name" class="input" value="{{ old('mentor_name', $application->mentor_name) }}">
                             </x-ui.field>
@@ -143,15 +146,18 @@
                             </x-ui.field>
                             <div class="field wide">
                                 <label for="mentor_suitability" class="label">The mentor’s expertise relevant to the proposed study</label>
-                                <textarea id="mentor_suitability" name="mentor_suitability" class="textarea" rows="2" data-words data-limit="{{ SeedGrant::MENTOR_EXPERTISE_WORDS }}">{{ $expertise }}</textarea>
-                                <div class="wordcount" data-count-for="mentor_suitability">{{ SeedGrant::wordCount($expertise) }} / {{ SeedGrant::MENTOR_EXPERTISE_WORDS }} words</div>
+                                <textarea id="mentor_suitability" name="mentor_suitability" class="textarea" rows="2" data-words data-limit="{{ $form->mentorWords() }}">{{ $expertise }}</textarea>
+                                <div class="wordcount" data-count-for="mentor_suitability">{{ SeedGrant::wordCount($expertise) }} / {{ $form->mentorWords() }} words</div>
                             </div>
+                            @endif
+                            @if($form->coInvestigatorWords() !== null)
                             <div class="field wide">
                                 <label for="co_investigators" class="label">Proposed co-investigators or collaborators, if any</label>
                                 <p class="small muted">Names, designations and institutional affiliations.</p>
-                                <textarea id="co_investigators" name="co_investigators" class="textarea" rows="2" data-words data-limit="{{ SeedGrant::CO_INVESTIGATORS_WORDS }}">{{ $coInv }}</textarea>
-                                <div class="wordcount" data-count-for="co_investigators">{{ SeedGrant::wordCount($coInv) }} / {{ SeedGrant::CO_INVESTIGATORS_WORDS }} words</div>
+                                <textarea id="co_investigators" name="co_investigators" class="textarea" rows="2" data-words data-limit="{{ $form->coInvestigatorWords() }}">{{ $coInv }}</textarea>
+                                <div class="wordcount" data-count-for="co_investigators">{{ SeedGrant::wordCount($coInv) }} / {{ $form->coInvestigatorWords() }} words</div>
                             </div>
+                            @endif
                         </div>
                         <p class="small muted" style="margin-top:12px;">Total funding requested is taken from your budget below: TZS {{ number_format($call->min_amount) }} to {{ number_format($call->max_amount) }}.</p>
                     </div>
@@ -162,8 +168,8 @@
                         <h2 class="card-title">B. Concept note technical questions</h2>
                         <label for="title" class="label" style="margin-top:16px; display:block;">Proposed project title</label>
                         @php $titleText = old('title', $application->title); @endphp
-                        <input id="title" name="title" class="input" maxlength="255" value="{{ $titleText }}" data-words data-limit="{{ SeedGrant::TITLE_MAX_WORDS }}">
-                        <div class="wordcount" data-count-for="title">{{ SeedGrant::wordCount($titleText) }} / {{ SeedGrant::TITLE_MAX_WORDS }} words</div>
+                        <input id="title" name="title" class="input" maxlength="255" value="{{ $titleText }}" data-words data-limit="{{ $form->titleWords() }}">
+                        <div class="wordcount" data-count-for="title">{{ SeedGrant::wordCount($titleText) }} / {{ $form->titleWords() }} words</div>
                     </div>
                 </section>
             @endif
@@ -171,7 +177,7 @@
             @foreach($sections as $key => [$heading, $guidance, $limit])
                 @php
                     $text = old("sections.$key", $application->sectionText($stage, $key));
-                    $choice = $isConcept ? (SeedGrant::CONCEPT_CHOICES[$key] ?? null) : null;
+                    $choice = $isConcept ? ($form->choices()[$key] ?? null) : null;
                     $answer = $choice ? old("choices.$key", $application->choice($key)) : null;
                     $showText = ! $choice || in_array($answer, $choice['describe'], true);
                 @endphp
@@ -262,14 +268,14 @@
                 </div>
             </section>
 
-            @if($isConcept)
+            @if($isConcept && $form->declarations())
                 @php $ticked = old('declarations', $application->declarations()); @endphp
                 <section class="card" id="declaration">
                     <div class="card-body">
                         <h2 class="card-title">E. Applicant declaration</h2>
                         <p class="small muted" style="margin-top:4px;">Tick every statement. Submitting from your account stands as your signature and date.</p>
                         <div class="stack-sm" style="margin-top:14px;">
-                            @foreach(SeedGrant::DECLARATIONS as $value => $statement)
+                            @foreach($form->declarations() as $value => $statement)
                                 <label class="check" style="align-items:flex-start;">
                                     <input type="checkbox" name="declarations[]" value="{{ $value }}" style="margin-top:3px;" @checked(in_array($value, (array) $ticked, true))>
                                     <span>{{ $statement }}</span>
@@ -331,7 +337,7 @@
                 @csrf
                 <x-ui.field label="Document" name="kind">
                     <select id="kind" name="kind" class="select">
-                        @foreach(SeedGrant::DOCUMENT_KINDS as $value => [$label, $required])
+                        @foreach($form->documents() as $value => [$label, $required])
                             <option value="{{ $value }}">{{ $label }}{{ $required ? '' : ' (optional)' }}</option>
                         @endforeach
                     </select>
@@ -350,7 +356,7 @@
 <script>
 (function () {
     var min = {{ (int) $call->min_amount }}, max = {{ (int) $call->max_amount }};
-    var cap = {{ (int) $call->equipment_cap_percent }}, perPage = {{ SeedGrant::WORDS_PER_PAGE }}, maxPages = {{ $maxPages }};
+    var cap = {{ (int) ($form->equipmentCap() ?? 100) }}, perPage = {{ SeedGrant::WORDS_PER_PAGE }}, maxPages = {{ $maxPages }};
     function words(t) { t = t.trim(); return t ? t.split(/\s+/).length : 0; }
     function num(v) { return parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0; }
 

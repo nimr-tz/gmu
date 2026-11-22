@@ -67,7 +67,8 @@ class ApplicationController extends Controller
         return view('seed.application-edit', [
             'application' => $application,
             'stage'       => $stage,
-            'sections'    => SeedGrant::sections($stage),
+            'sections'    => $application->call->form()->sections($stage),
+            'form'        => $application->call->form(),
             'problems'    => $this->workflow->completenessProblems($application, $stage),
             'round'       => $application->roundAwaitingResponse(),
         ]);
@@ -107,12 +108,13 @@ class ApplicationController extends Controller
     {
         $stage = $application->stage();
         $sectionRules = [];
-        foreach (array_keys(SeedGrant::sections($stage)) as $key) {
+        $form = $application->call->form();
+        foreach (array_keys($form->sections($stage)) as $key) {
             $sectionRules["sections.{$key}"] = ['nullable', 'string', 'max:20000'];
         }
 
         $choiceRules = [];
-        foreach (SeedGrant::CONCEPT_CHOICES as $key => $choice) {
+        foreach ($form->choices() as $key => $choice) {
             $choiceRules["choices.{$key}"] = ['nullable', Rule::in(array_keys($choice['options']))];
         }
 
@@ -142,7 +144,7 @@ class ApplicationController extends Controller
 
         // The concept-stage fields are fixed once the concept note is shortlisted.
         if ($stage === 'concept') {
-            foreach (array_keys(SeedGrant::CONCEPT_CHOICES) as $key) {
+            foreach (array_keys($form->choices()) as $key) {
                 $answer = $data['choices'][$key] ?? null;
                 $sections[$key . '_answer'] = $answer;
                 // "No" to question 7 or 8 needs no description: drop any left over.
@@ -182,7 +184,7 @@ class ApplicationController extends Controller
         abort_unless($application->stage() === 'proposal', 404);
 
         $data = $request->validate([
-            'kind' => ['required', Rule::in(array_keys(SeedGrant::DOCUMENT_KINDS))],
+            'kind' => ['required', Rule::in(array_keys($application->call->form()->documents()))],
             'file' => UploadRules::for(['pdf', 'doc', 'docx'], UploadRules::MAX_STANDARD, true),
         ]);
 

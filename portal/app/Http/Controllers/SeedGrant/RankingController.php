@@ -48,13 +48,17 @@ class RankingController extends Controller
         $data = $request->validate(['ids' => ['required', 'array', 'min:1'], 'ids.*' => ['integer']], ['ids.required' => 'Tick at least one recommended proposal.']);
 
         $sent = 0;
-        SeedApplication::whereIn('id', $data['ids'])->where('status', SeedGrant::RECOMMENDED)->get()
-            ->each(function (SeedApplication $application) use ($workflow, $request, &$sent) {
+        $next = null;
+        SeedApplication::with('call')->whereIn('id', $data['ids'])->where('status', SeedGrant::RECOMMENDED)->get()
+            ->each(function (SeedApplication $application) use ($workflow, $request, &$sent, &$next) {
                 $workflow->approve($application, $request->user(), 'gmu', 'approved', null);
+                $next = $application->call->form()->nextApprovalLevel('gmu');
                 $sent++;
             });
 
-        return back()->with('success', $sent . ' ' . str('proposal')->plural($sent) . ' sent to the DRCP.');
+        $to = match ($next) { 'drcp' => 'sent to the DRCP', 'dg' => 'sent to the Director General', default => 'approved' };
+
+        return back()->with('success', $sent . ' ' . str('proposal')->plural($sent) . ' ' . $to . '.');
     }
 
     /** @return Collection<int, array{application:SeedApplication, means:?array, passes:bool}> */
@@ -62,12 +66,12 @@ class RankingController extends Controller
     {
         return $applications
             ->map(fn (SeedApplication $a) => ['application' => $a, 'means' => $m = $a->meanScores(),
-                'passes' => $m !== null && SeedGrant::meetsThreshold($m['total'], $m['science'])])
+                'passes' => $m !== null && $a->call->form()->meetsThreshold($m)])
             ->sort(function ($x, $y) {
                 if (($x['means'] === null) !== ($y['means'] === null)) {
                     return $x['means'] === null ? 1 : -1;
                 }
-                foreach (array_merge(['total'], SeedGrant::TIE_BREAK) as $key) {
+                foreach (array_merge(['total'], $x['application']->call->form()->tieBreak()) as $key) {
                     $cmp = ($y['means'][$key] ?? 0) <=> ($x['means'][$key] ?? 0);
                     if ($cmp !== 0) {
                         return $cmp;

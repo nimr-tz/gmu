@@ -223,6 +223,12 @@ final class SeedGrant
         return $text === '' ? 0 : count(preg_split('/\s+/u', $text));
     }
 
+    /** 12.5 → "12.5", 70.0 → "70". */
+    public static function trimNumber(int|float $n): string
+    {
+        return rtrim(rtrim(number_format((float) $n, 1, '.', ''), '0'), '.');
+    }
+
     public static function tzs(int|float|null $amount): string
     {
         return 'TZS ' . number_format((float) $amount);

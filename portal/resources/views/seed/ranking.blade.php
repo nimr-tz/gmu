@@ -29,7 +29,8 @@
             <table class="table" style="min-width:980px;">
                 <thead><tr>
                     @if($canManage)<th style="width:40px;"><span class="sr-only">Select</span></th>@endif
-                    <th>Rank</th><th>Proposal</th><th>Mean score</th><th class="num">Science /25</th><th class="num">Budget (TZS)</th><th>Status</th>
+                    <th>Rank</th><th>Proposal</th><th>Mean score</th>@php $form = $call->form(); $minKey = array_key_first($form->minimums()); @endphp
+                    @if($minKey)<th class="num">{{ $form->criteria()[$minKey][0] }} /{{ S::trimNumber($form->criteria()[$minKey][2]) }}</th>@endif<th class="num">Budget (TZS)</th><th>Status</th>
                 </tr></thead>
                 <tbody>
                     @forelse($ranked as $i => $row)
@@ -37,7 +38,7 @@
                         @if(! $lineDrawn && ! $row['passes'])
                             @php $lineDrawn = true; @endphp
                             <tr><td colspan="{{ $canManage ? 7 : 6 }}" style="padding:10px 22px; background:var(--panel); color:#fff; font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;">
-                                Funding threshold · {{ S::PASS_TOTAL }} overall and at least {{ S::minScience() }} on science</td></tr>
+                                Funding threshold · {{ S::trimNumber($form->passMark()) }} overall{{ $form->minimumsPhrase() }}</td></tr>
                         @endif
                         <tr style="{{ $row['passes'] ? '' : 'background:#FAFBFD;' }}">
                             @if($canManage)
@@ -57,9 +58,11 @@
                                     <span class="small muted">Not scored yet</span>
                                 @endif
                             </td>
+                            @if($minKey)
                             <td class="num">
-                                @if($m && $m['science'] < S::minScience())<span class="pill pill-danger">{{ $m['science'] }} · under half</span>@else{{ $m['science'] ?? '—' }}@endif
+                                @if($m && ($m[$minKey] ?? 0) < $form->minimums()[$minKey])<span class="pill pill-danger">{{ $m[$minKey] }} · below minimum</span>@else{{ $m[$minKey] ?? '—' }}@endif
                             </td>
+                            @endif
                             <td class="num">{{ number_format($a->budgetTotal('proposal')) }}</td>
                             <td>@include('seed.partials.status', ['application' => $a])</td>
                         </tr>

@@ -112,7 +112,7 @@
                                         @if($round->stage === 'proposal' && $review->scores)
                                             <div class="mono" style="margin-top:12px; font-size:22px;">{{ $review->total }}<span class="small muted"> / 100</span></div>
                                             <div class="tiny muted" style="margin-top:4px;">
-                                                @foreach(S::CRITERIA as $key => [$name, , $max]){{ $name }} {{ $review->score($key) }}/{{ $max }}@if(! $loop->last) · @endif @endforeach
+                                                @foreach($application->call->form()->criteria() as $key => [$name, , $max]){{ $name }} {{ $review->score($key) }}/{{ $max }}@if(! $loop->last) · @endif @endforeach
                                             </div>
                                         @endif
                                         <p class="doc-text" style="margin-top:12px; font-size:14px;">{{ $review->comments }}</p>
@@ -149,12 +149,20 @@
                         $service = $pi->serviceLength();
                         $autoChecks = [
                             'staff'      => ['NIMR staff, permanent or contract', (bool) $pi->employment_type, $pi->employment_type ? \App\Models\User::EMPLOYMENT_TYPES[$pi->employment_type] : 'not recorded'],
-                            'service'    => ['Under 5 years at NIMR', (bool) $pi->withinSeedGrantServiceLimit(), $service ? "{$service['years']} y {$service['months']} m" : 'not recorded'],
-                            'prior'      => ['No prior grant over USD 10,000 as PI', $application->declared_no_prior_large_grant, 'declared'],
+                            'service'    => ($years = $application->call->form()->serviceYears())
+                                ? ["Under {$years} years at NIMR", (bool) $pi->withinServiceLimit($years), $service ? "{$service['years']} y {$service['months']} m" : 'not recorded']
+                                : null,
+                            'prior'      => ($priorRule = $application->call->form()->priorGrant())
+                                ? ['No prior grant over USD ' . number_format($priorRule['usd']) . ' as PI', $application->declared_no_prior_large_grant, 'declared']
+                                : null,
                             'complete'   => ['All sections complete, within limits', empty($complete), $application->pageEstimate('concept') . ' pp'],
                             'budget'     => ['Budget within ' . number_format($application->call->min_amount / 1e6) . 'M–' . number_format($application->call->max_amount / 1e6) . 'M', ! isset($complete['budget']), number_format($application->budgetTotal('concept') / 1e6, 2) . 'M'],
-                            'mentor'     => ['Mentor named, with relevant expertise', filled($application->mentor_name) && filled($application->mentor_suitability), $application->mentor_name ?: '—'],
+                            'mentor'     => $application->call->form()->mentorWords() !== null
+                                ? ['Mentor named, with relevant expertise', filled($application->mentor_name) && filled($application->mentor_suitability), $application->mentor_name ?: '—']
+                                : null,
                         ];
+                        // Checks for features this call does not use are left out.
+                        $autoChecks = array_filter($autoChecks);
                     @endphp
                     <div style="margin-top:12px;">
                         @foreach($autoChecks as $key => [$label, $ok, $detail])

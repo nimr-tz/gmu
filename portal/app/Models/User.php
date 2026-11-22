@@ -88,14 +88,20 @@ class User extends Authenticatable
         return ['years' => $diff->y, 'months' => $diff->m];
     }
 
-    /** Under the service limit for leading a seed grant application. */
+    /** Under the seed grant's default service limit for leading an application. */
     public function withinSeedGrantServiceLimit(): ?bool
+    {
+        return $this->withinServiceLimit(self::MAX_SERVICE_YEARS_FOR_SEED_GRANT);
+    }
+
+    /** Has served at NIMR for fewer than this many years; null when the appointment date is not recorded. */
+    public function withinServiceLimit(int $years): ?bool
     {
         if (! $this->first_appointment_date) {
             return null;
         }
 
-        return $this->first_appointment_date->copy()->addYears(self::MAX_SERVICE_YEARS_FOR_SEED_GRANT)->isFuture();
+        return $this->first_appointment_date->copy()->addYears($years)->isFuture();
     }
 
     public function auditLabel(): string
