@@ -554,3 +554,53 @@ fieldset.wl-fieldset legend { padding:0; margin-bottom:8px; }
 .settings-question .textarea { margin-top:6px; font-size:13px; min-height:0; }
 .call-picker { display:flex; align-items:center; gap:8px; }
 .call-picker .select-sm { max-width:360px; }
+
+/* ---- calls told apart in every list --------------------------------------- */
+.call-tag { display:inline-flex; align-items:center; gap:8px; min-width:0; }
+.call-code { flex:0 0 auto; padding:2px 8px; border-radius:6px; background:var(--blue-50); color:var(--blue-800);
+  font-family:var(--mono); font-size:12px; font-weight:500; }
+.call-name { font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.group-row td { background:var(--canvas); padding-top:10px; padding-bottom:10px; }
+.group-row .call-tag { margin-right:12px; }
+.group-link { font-size:12px; font-weight:600; }
+.list-tools { margin-bottom:16px; }
+.chip-count { margin-left:6px; }
+.search-input { width:260px; }
+.table-wide { min-width:820px; }
+.nowrap { white-space:nowrap; }
+
+/* ---- GMU dashboard across calls ------------------------------------------- */
+.dash-title { margin-top:6px; }
+.section-title { margin:28px 0 12px; font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted-2); }
+.call-cards { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap:16px; }
+.call-card { padding:20px 22px; display:flex; flex-direction:column; gap:16px; }
+.call-card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.call-card-name { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.stage-strip { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(8, minmax(0, 1fr)); gap:6px; }
+.stage-strip li { padding:8px 6px; border-radius:8px; background:var(--canvas); text-align:center; min-width:0; }
+.stage-strip li.has { background:var(--blue-50); }
+.stage-strip .n { display:block; font-family:var(--mono); font-size:16px; color:var(--muted-3); }
+.stage-strip li.has .n { color:var(--blue-800); font-weight:600; }
+.stage-strip .l { display:block; margin-top:2px; font-size:10px; line-height:1.2; color:var(--muted-2); overflow-wrap:anywhere; }
+.call-card-facts { margin:0; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; }
+.call-card-facts dt { font-size:12px; color:var(--muted-2); }
+.call-card-facts dd { margin:2px 0 0; font-size:15px; font-weight:600; }
+.call-card-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.dash-lower { margin-top:24px; }
+.bar-list { list-style:none; margin:16px 0; padding:0; display:flex; flex-direction:column; gap:14px; }
+.bar-list .meter { margin-top:6px; }
+.bar-list .pill { height:20px; margin-left:4px; }
+.centre-list { list-style:none; margin:16px 0 0; padding:0; display:grid; grid-template-columns:auto 1fr auto; gap:10px 12px; align-items:center; font-size:13px; }
+.centre-list li { display:contents; }
+@media (max-width:900px) {
+  .stage-strip { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+  .call-card-facts { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+}
+.call-section-title { font-size:20px; }
+.call-para { margin-top:10px; font-size:15px; line-height:1.65; color:var(--ink-2); }
+.call-chips { margin-top:14px; }
+.call-summary { margin-top:24px; }
+.call-summary .card-body { display:flex; flex-direction:column; gap:20px; }
+.call-summary-grid { display:grid; grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); gap:24px; align-items:start; }
+.call-summary-grid .call-card-facts { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+@media (max-width:900px) { .call-summary-grid { grid-template-columns:1fr; } }

@@ -74,6 +74,7 @@ Route::middleware(['auth'])->group(function () {
 
         // GMU
         Route::get('submissions', [SeedGrant\SubmissionsController::class, 'index'])->name('submissions.index');
+        Route::get('submissions/export', [SeedGrant\SubmissionsController::class, 'export'])->name('submissions.export');
         Route::scopeBindings()->prefix('submissions/{application}')->name('submissions.')->group(function () {
             Route::get('/',                             [SeedGrant\SubmissionsController::class, 'show'])->name('show');
             Route::post('screen',                       [SeedGrant\SubmissionsController::class, 'screen'])->name('screen');

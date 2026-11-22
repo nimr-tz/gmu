@@ -150,6 +150,66 @@ class ManyCallsTest extends TestCase
         $this->actingAs($this->gmu)->get(route('seed.calls.edit', $call))->assertOk()->assertSee('so its form is locked');
     }
 
+    /** Two open calls, each with one submitted concept note. */
+    private function twoCallsWithSubmissions(): array
+    {
+        $calls = [];
+        foreach ([['Seed grant', '2627'], ['Policy brief grant', '2627PB']] as $i => [$title, $code]) {
+            $call = SeedCall::create(['title' => $title, 'code' => $code, 'fiscal_year' => '2026/27', 'min_amount' => 1, 'max_amount' => 10, 'status' => 'open', 'envelope' => 50_000_000]);
+            $pi = $this->user('pi', ['name' => "Applicant {$code}", 'research_center' => $i ? 'Tanga Centre' : 'Mwanza Centre']);
+            $application = new SeedApplication(['title' => "Study in {$code}"]);
+            $application->forceFill(['seed_call_id' => $call->id, 'pi_id' => $pi->id, 'reference' => "SG-{$code}-001", 'status' => S::SUBMITTED])->save();
+            $calls[] = $call;
+        }
+
+        return $calls;
+    }
+
+    public function test_gmu_sees_submissions_of_every_call_grouped_and_can_export_them(): void
+    {
+        [$seed, $policy] = $this->twoCallsWithSubmissions();
+
+        $this->actingAs($this->gmu)->get(route('seed.submissions.index', ['call' => 'all']))->assertOk()
+            ->assertSee('All calls')->assertSee('SG-2627-001')->assertSee('SG-2627PB-001')
+            ->assertSee('Policy brief grant')->assertSee('Only this call');
+        $this->actingAs($this->gmu)->get(route('seed.submissions.index', ['call' => $seed->id]))->assertOk()
+            ->assertSee('SG-2627-001')->assertDontSee('SG-2627PB-001');
+
+        $csv = $this->actingAs($this->gmu)->get(route('seed.submissions.export', ['call' => 'all']))->assertOk()->streamedContent();
+        $this->assertStringContainsString('"Call code",Call,Reference', $csv);
+        $this->assertStringContainsString('2627PB,"Policy brief grant",SG-2627PB-001', $csv);
+        $this->assertStringContainsString('SG-2627-001', $csv);
+
+        $this->actingAs($this->pi)->get(route('seed.submissions.export', ['call' => 'all']))->assertForbidden();
+    }
+
+    public function test_the_gmu_dashboard_has_a_card_per_call_and_one_action_list(): void
+    {
+        $this->twoCallsWithSubmissions();
+
+        $this->actingAs($this->gmu)->get(route('dashboard'))->assertOk()
+            ->assertSee('2 calls running')->assertSee('2 submissions need GMU')
+            ->assertSee('Seed grant')->assertSee('Policy brief grant')
+            ->assertSee('SG-2627PB-001')->assertSee('Screen');
+    }
+
+    public function test_the_call_page_follows_the_call_and_gmu_sees_its_figures(): void
+    {
+        $config = CallForm::defaults();
+        $config['service_limit']['on'] = false;
+        $config['page']['priorities'] = [];
+        $config['page']['about'] = "First paragraph of this call.\n\nSecond paragraph.";
+        $call = SeedCall::create(['title' => 'Open to all staff', 'code' => '2700', 'fiscal_year' => '2027/28', 'min_amount' => 1, 'max_amount' => 10,
+            'status' => 'open', 'config' => $config]);
+
+        $this->actingAs($this->pi)->get(route('seed.calls.show', $call))->assertOk()
+            ->assertSee('First paragraph of this call.')->assertSee('Second paragraph.')
+            ->assertDontSee('years’ service at NIMR', false)->assertDontSee('Priority areas')
+            ->assertDontSee('Where this call stands');
+
+        $this->actingAs($this->gmu)->get(route('seed.calls.show', $call))->assertOk()->assertSee('Where this call stands');
+    }
+
     public function test_drafts_are_hidden_from_staff(): void
     {
         $this->actingAs($this->gmu)->post(route('seed.calls.store'), $this->callPayload(['status' => 'draft', 'title' => 'Hidden call']))->assertSessionHasNoErrors();

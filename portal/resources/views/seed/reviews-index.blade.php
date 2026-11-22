@@ -29,6 +29,7 @@
                         </div>
                         <div class="list-main" style="flex:1 1 300px;">
                             <div class="row" style="gap:8px;">
+                                @include('seed.partials.call-tag', ['call' => $app->call, 'short' => true])
                                 <span class="mono small muted">{{ $app->reference }}</span>
                                 <span class="pill">{{ $a->stage === 'concept' ? 'Concept note' : 'Full proposal' }}{{ $round ? ' · round ' . $round->number : '' }}</span>
                                 @if($a->coi_status === 'pending')<span class="pill pill-danger">Declare interests first</span>
@@ -55,8 +56,9 @@
                     @foreach($done as $a)
                         @php $last = $a->application->rounds->where('stage', $a->stage)->flatMap->reviews->where('seed_reviewer_assignment_id', $a->id)->whereNotNull('submitted_at')->sortByDesc('submitted_at')->first(); @endphp
                         <a href="{{ route('seed.reviews.show', $a) }}" class="list-row">
-                            <span class="mono small muted" style="width:100px;">{{ $a->application->reference }}</span>
-                            <span class="list-main"><span class="list-title">{{ $a->coi_status === 'conflict' ? 'Conflict declared' : $a->application->title }}</span></span>
+                            @include('seed.partials.call-tag', ['call' => $a->application->call, 'short' => true])
+                            <span class="list-main"><span class="list-title">{{ $a->coi_status === 'conflict' ? 'Conflict declared' : $a->application->title }}</span>
+                                <span class="list-sub"><span class="mono">{{ $a->application->reference }}</span> · {{ $a->stage === 'proposal' ? 'Full proposal' : 'Concept note' }}</span></span>
                             @if($last)<span class="pill pill-{{ $tone[$last->recommendation] ?? '' }}">{{ \App\Models\Seed\SeedReview::RECOMMENDATIONS[$last->recommendation] }}</span>
                                 <span class="small muted" style="width:60px; text-align:right;">{{ $last->submitted_at->format('j M') }}</span>@endif
                         </a>

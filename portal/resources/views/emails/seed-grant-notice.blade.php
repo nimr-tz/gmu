@@ -11,7 +11,7 @@
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px; background:#FFFFFF; border:1px solid #E3E8F0; border-radius:12px;">
       <tr><td style="background:#0E1A3A; color:#FFFFFF; padding:20px 28px; border-radius:12px 12px 0 0;">
         <div style="font-size:16px; font-weight:bold;">NIMR Grants</div>
-        <div style="font-size:12px; color:#C7D2EA; margin-top:2px;">Implementation Science Seed Grant · {{ $reference }}</div>
+        <div style="font-size:12px; color:#C7D2EA; margin-top:2px;">{{ $callTitle ?: 'NIMR Grants' }} · {{ $reference }}</div>
       </td></tr>
       <tr><td style="padding:28px;">
         <p style="margin:0 0 14px; font-size:15px;">Dear {{ $recipientName }},</p>

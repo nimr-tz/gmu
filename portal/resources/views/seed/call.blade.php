@@ -30,23 +30,61 @@
     </dl>
 </section>
 
+@if($summary)
+    {{-- GMU only: where this call stands. --}}
+    <section class="card call-summary" aria-label="Where this call stands">
+        <div class="card-head">
+            <div><div class="card-title">Where this call stands</div>
+                <div class="card-note">{{ $summary['submitted'] }} submitted{{ $summary['drafts'] ? ', ' . $summary['drafts'] . ' in draft' : '' }}{{ $summary['closed'] ? ', ' . $summary['closed'] . ' closed' : '' }}. Only GMU sees this.</div></div>
+            <div class="call-card-actions">
+                <a href="{{ route('seed.submissions.index', ['call' => $call->id]) }}" class="btn btn-sm">Submissions</a>
+                <a href="{{ route('seed.submissions.export', ['call' => $call->id]) }}" class="btn btn-sm"><i class="fas fa-file-csv" aria-hidden="true"></i> Export</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <ol class="stage-strip" aria-label="Applications at each stage">
+                @foreach($summary['stages'] as $stage)
+                    <li class="{{ $stage['count'] ? 'has' : '' }}"><span class="n">{{ $stage['count'] }}</span><span class="l">{{ $stage['label'] }}</span></li>
+                @endforeach
+            </ol>
+            <div class="call-summary-grid">
+                <dl class="call-card-facts">
+                    <div><dt>Requested, still in play</dt><dd class="mono">{{ SeedGrant::tzs($summary['requested']) }}</dd></div>
+                    <div><dt>Approved</dt><dd class="mono">{{ SeedGrant::tzs($summary['approved']) }}</dd></div>
+                    <div><dt>Funds available</dt><dd class="mono">{{ $call->envelope ? SeedGrant::tzs($call->envelope) : 'Not set' }}</dd></div>
+                    <div><dt>Left to commit</dt><dd class="mono">{{ $call->envelope ? SeedGrant::tzs(max(0, $call->envelope - $summary['approved'])) : '—' }}</dd></div>
+                </dl>
+                <div>
+                    <div class="small strong">By centre</div>
+                    <ul class="centre-list">
+                        @php $maxCentre = max(1, $summary['byCentre']->max() ?? 1); @endphp
+                        @forelse($summary['byCentre'] as $centre => $n)
+                            <li><span>{{ $centre }}</span><span class="meter"><span style="width:{{ $n / $maxCentre * 100 }}%"></span></span><span class="mono">{{ $n }}</span></li>
+                        @empty
+                            <li class="small muted">No submissions yet.</li>
+                        @endforelse
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+@endif
+
 <div class="grid grid-wide" style="margin-top:32px;">
     <div class="stack" style="gap:36px;">
+        @if($call->form()->aboutParagraphs())
         <section>
-            <h2 style="font-size:20px;">Why this grant exists</h2>
-            <p class="lede" style="margin-top:10px; font-size:15px; line-height:1.65; color:var(--ink-2);">To build the research leadership and independence of early-career NIMR scientists. The grant helps you generate preliminary evidence, test implementation strategies, work with health-system partners and build a path to larger competitive funding.</p>
-            <p style="margin-top:10px; font-size:15px; line-height:1.65; color:var(--ink-2);">It does not fund large effectiveness trials, routine service delivery, or descriptive studies without a clear implementation question.</p>
+            <h2 class="call-section-title">Why this call exists</h2>
+            @foreach($call->form()->aboutParagraphs() as $paragraph)
+                <p class="call-para">{{ $paragraph }}</p>
+            @endforeach
         </section>
+        @endif
 
         <section>
             <h2 style="font-size:20px;">Who can lead an application</h2>
             <div class="grid grid-2" style="margin-top:16px; gap:12px;">
-                @foreach([
-                    'NIMR research scientists, laboratory scientists and health laboratory officers, permanent or contract',
-                    'Under five years’ service at NIMR',
-                    'Never held a research grant above USD 10,000 as PI',
-                    'An experienced NIMR scientist agrees to mentor you',
-                ] as $rule)
+                @foreach($call->form()->eligibilityLines() as $rule)
                     <div class="card" style="padding:16px; display:flex; gap:12px;"><i class="fas fa-check" style="color:var(--brand); margin-top:4px;" aria-hidden="true"></i><span>{{ $rule }}</span></div>
                 @endforeach
             </div>
@@ -59,7 +97,11 @@
             <div class="stack-sm" style="margin-top:16px;">
                 @foreach([
                     ['1', 'Concept note', 'var(--brand)', [['You submit', 'Online form, ≤ 5 pages, simple budget'], ['GMU screens', 'Eligibility, completeness, budget range'], ['Reviewers respond', 'Accept, revise or reject'], ['Shortlist', 'Invited to stage 2']]],
-                    ['2', 'Full proposal', 'var(--panel)', [['You submit', '≤ 10 pages, detailed budget, mentor letter, CV'], ['Scored review', 'Six weighted criteria'], ['Approval', 'GMU, then DRCP, then DG'], ['Agreement', 'Accept online before funds']]],
+                    ['2', 'Full proposal', 'var(--panel)', [
+                        ['You submit', '≤ 10 pages, detailed budget' . collect($call->form()->documents())->filter(fn ($d) => $d[1])->map(fn ($d) => ', ' . mb_strtolower($d[0]))->implode('')],
+                        $call->form()->scored() ? ['Scored review', count($call->form()->criteria()) . ' weighted criteria'] : ['Review', 'Accept, revise or reject'],
+                        ['Approval', collect($call->form()->approvalLevels())->map(fn ($l) => ['gmu' => 'GMU', 'drcp' => 'DRCP', 'dg' => 'DG'][$l])->implode(', then ')],
+                        ['Agreement', 'Accept online before funds']]],
                 ] as [$n, $name, $color, $steps])
                     <div class="card" style="padding:18px;">
                         <div class="row" style="gap:10px;"><span class="mono" style="width:28px; height:28px; border-radius:8px; background:{{ $color }}; color:#fff; display:grid; place-items:center; font-size:13px;">{{ $n }}</span><strong style="font-size:15px;">{{ $name }}</strong></div>
@@ -73,25 +115,28 @@
             </div>
         </section>
 
+        @if($call->form()->priorities())
         <section>
-            <h2 style="font-size:20px;">Priority areas</h2>
-            <p style="margin-top:10px; font-size:15px; color:var(--ink-2);">Your study must address an identifiable implementation problem. Innovation is welcome but not required.</p>
-            <div class="chips" style="margin-top:14px;">
-                @foreach(['Primary health care and referral', 'Infectious disease prevention, diagnosis and care', 'Maternal, newborn, child and adolescent health', 'NCDs and mental health', 'Community engagement and health workforce', 'Outbreak preparedness and surveillance', 'Digital health and data use', 'Diagnostics and service-delivery innovation', 'MoH and PO-RALG priorities, Vision 2050'] as $area)
+            <h2 class="call-section-title">Priority areas</h2>
+            @if($call->form()->prioritiesIntro())<p class="call-para">{{ $call->form()->prioritiesIntro() }}</p>@endif
+            <div class="chips call-chips">
+                @foreach($call->form()->priorities() as $area)
                     <span class="chip">{{ $area }}</span>
                 @endforeach
             </div>
         </section>
+        @endif
 
+        @if($call->form()->scored())
         <section>
             <h2 style="font-size:20px;">How full proposals are scored</h2>
             <div class="card" style="margin-top:16px;">
                 <div class="table-wrap">
                     <table class="table">
-                        <thead><tr><th>Criterion</th><th>What reviewers look for</th><th class="num">Weight</th></tr></thead>
+                        <thead><tr><th>Criterion</th><th>What reviewers look for</th><th class="num">Maximum score</th></tr></thead>
                         <tbody>
                             @foreach($call->form()->criteria() as [$name, $what, $max])
-                                <tr><td class="strong" style="white-space:nowrap;">{{ $name }}</td><td class="sub" style="font-size:14px;">{{ $what }}</td><td class="num">{{ $max }}%</td></tr>
+                                <tr><td class="strong" style="white-space:nowrap;">{{ $name }}</td><td class="sub" style="font-size:14px;">{{ $what }}</td><td class="num mono">{{ SeedGrant::trimNumber($max) }}</td></tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -100,6 +145,7 @@
             <p style="margin-top:12px; font-size:14px; color:var(--ink-2);">Recommended for funding at <strong class="mono">{{ SeedGrant::trimNumber($call->form()->passMark()) }}/{{ SeedGrant::trimNumber($call->form()->maxTotal()) }}</strong> or above{{ $call->form()->minimumsPhrase(', and only with at least ', ' for ') }}.
                 {{ $call->form()->tieBreak() ? 'Ties go to the stronger ' . collect($call->form()->tieBreak())->map(fn ($k) => mb_strtolower($call->form()->criteria()[$k][0]))->implode(', then ') . ' score.' : '' }}</p>
         </section>
+        @endif
     </div>
 
     <aside class="stack-sm" style="gap:20px;">

@@ -20,7 +20,7 @@ class DashboardController extends Controller
         $call = SeedCall::current();
 
         if ($user->can('manage-seed-grants')) {
-            return $call ? $this->gmu($call) : view('seed.dashboard-no-call', ['user' => $user]);
+            return SeedCall::exists() ? $this->gmu() : view('seed.dashboard-no-call', ['user' => $user]);
         }
         if ($call && ApprovalsController::levelFor($user)) {
             return redirect()->route('seed.approvals.index');
@@ -47,28 +47,26 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function gmu(SeedCall $call)
+    /**
+     * GMU's dashboard across every call: what needs action anywhere first,
+     * then a card per call still running, then reviewer load and centres.
+     */
+    private function gmu()
     {
-        $applications = SeedApplication::with(['pi', 'budgetItems', 'assignments.reviewer', 'rounds.reviews'])
-            ->where('seed_call_id', $call->id)->get();
+        $applications = SeedApplication::with(['pi', 'budgetItems', 'assignments.reviewer', 'rounds.reviews', 'call'])->get();
         $submitted = $applications->where('status', '!=', S::DRAFT);
-
-        // Counts for each step of the track, drafts aside.
-        $pipeline = collect(S::TRACK)->map(fn ($step) => [
-            'label' => $step[0],
-            'count' => $submitted->whereIn('status', $step[2])->count(),
-        ]);
 
         $needs = collect();
         $overdue = 0;
         $load = [];
         foreach ($submitted as $a) {
+            $next = $a->call->form()->nextApprovalLevel('gmu');
             $why = match ($a->status) {
                 S::SUBMITTED          => ['Screen', ''],
                 S::SCREENED, S::PROPOSAL_SUBMITTED => [$a->activeAssignments()->count() < Workflow::MIN_REVIEWERS ? 'Assign reviewers' : 'Send to reviewers', 'info'],
                 S::APPROVED           => ['Issue agreement', 'ok'],
                 S::AGREEMENT_ACCEPTED => ['Upload signed copy', 'ok'],
-                S::RECOMMENDED        => ['Send to DRCP', 'ok'],
+                S::RECOMMENDED        => [['drcp' => 'Send to DRCP', 'dg' => 'Send to the DG'][$next] ?? 'Approve', 'ok'],
                 default               => null,
             };
 
@@ -95,22 +93,40 @@ class DashboardController extends Controller
                 $why = ['Reassign: conflict', 'danger'];
             }
             if ($why) {
-                $needs->push(['application' => $a, 'action' => $why[0], 'tone' => $why[1]]);
+                $needs->push(['application' => $a, 'action' => $why[0], 'tone' => $why[1], 'toRanking' => $a->status === S::RECOMMENDED]);
             }
         }
 
+        // A card for every call still running: drafts, open calls, and closed calls with work in progress.
+        $finished = array_merge(S::CLOSED_STATUSES, [S::AWARDED]);
+        $cards = SeedCall::latest('id')->get()
+            ->filter(fn (SeedCall $c) => $c->status !== 'closed'
+                || $submitted->where('seed_call_id', $c->id)->whereNotIn('status', $finished)->isNotEmpty())
+            ->map(function (SeedCall $c) use ($applications, $submitted, $needs) {
+                $mine = $submitted->where('seed_call_id', $c->id);
+
+                return [
+                    'call'      => $c,
+                    'stages'    => collect(S::TRACK)->map(fn ($step) => ['label' => $step[0], 'count' => $mine->whereIn('status', $step[2])->count()]),
+                    'submitted' => $mine->count(),
+                    'drafts'    => $applications->where('seed_call_id', $c->id)->where('status', S::DRAFT)->count(),
+                    'needs'     => $needs->filter(fn ($n) => $n['application']->seed_call_id === $c->id)->count(),
+                    'requested' => $mine->sum(fn ($a) => $a->requestedAmount()),
+                    'approved'  => $mine->whereIn('status', [S::APPROVED, S::AGREEMENT_ISSUED, S::AGREEMENT_ACCEPTED, S::AWARDED])->sum('approved_amount'),
+                ];
+            })->values();
+
         return view('seed.dashboard-gmu', [
-            'call'       => $call,
-            'pipeline'   => $pipeline,
-            'needs'      => $needs->sortBy(fn ($n) => $n['application']->updated_at)->values(),
-            'requested'  => $submitted->sum(fn ($a) => $a->requestedAmount()),
+            'cards'          => $cards,
+            'callCount'      => $cards->count(),
+            // Oldest waiting first, across every call.
+            'needs'          => $needs->sortBy(fn ($n) => $n['application']->updated_at)->values(),
             'submittedCount' => $submitted->count(),
-            'overdue'    => $overdue,
+            'overdue'        => $overdue,
             'withApplicants' => $submitted->whereIn('status', [S::CONCEPT_REVISION, S::PROPOSAL_REVISION, S::SHORTLISTED, S::AGREEMENT_ISSUED])->count(),
-            'ineligible' => $submitted->where('status', S::INELIGIBLE)->count(),
-            'drafts'     => $applications->where('status', S::DRAFT)->count(),
-            'load'       => collect($load)->sortByDesc('total')->values(),
-            'byCentre'   => $submitted->groupBy(fn ($a) => $a->pi->research_center ?: 'Not recorded')->map->count()->sortDesc(),
+            'ineligible'     => $submitted->where('status', S::INELIGIBLE)->count(),
+            'load'           => collect($load)->sortByDesc('total')->values(),
+            'byCentre'       => $submitted->groupBy(fn ($a) => $a->pi->research_center ?: 'Not recorded')->map->count()->sortDesc(),
         ]);
     }
 }

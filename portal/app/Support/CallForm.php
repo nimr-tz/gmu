@@ -31,7 +31,14 @@ final class CallForm
 
     public static function for(?SeedCall $call): self
     {
-        return new self(array_replace_recursive(self::defaults(), (array) ($call?->config ?? [])), (int) ($call?->equipment_cap_percent ?? 20));
+        $own = (array) ($call?->config ?? []);
+        $config = array_replace_recursive(self::defaults(), $own);
+        // A list the call sets replaces the default list whole: an emptied list stays empty.
+        if (isset($own['page']['priorities'])) {
+            $config['page']['priorities'] = (array) $own['page']['priorities'];
+        }
+
+        return new self($config, (int) ($call?->equipment_cap_percent ?? 20));
     }
 
     /** The seed grant's rules, as a full set of settings. */
@@ -62,7 +69,49 @@ final class CallForm
             'criteria'         => $criteria,
             'pass_mark'        => SeedGrant::PASS_TOTAL,
             'approval'         => ['drcp' => true, 'dg' => true],
+            // The call page's own words; GMU edits them per call, even once it is open.
+            'page'             => [
+                'about'            => "To build the research leadership and independence of early-career NIMR scientists. The grant helps you generate preliminary evidence, test implementation strategies, work with health-system partners and build a path to larger competitive funding.\n\nIt does not fund large effectiveness trials, routine service delivery, or descriptive studies without a clear implementation question.",
+                'who'              => 'NIMR research scientists, laboratory scientists and health laboratory officers, permanent or contract',
+                'priorities_intro' => 'Your study must address an identifiable implementation problem. Innovation is welcome but not required.',
+                'priorities'       => ['Primary health care and referral', 'Infectious disease prevention, diagnosis and care', 'Maternal, newborn, child and adolescent health', 'NCDs and mental health', 'Community engagement and health workforce', 'Outbreak preparedness and surveillance', 'Digital health and data use', 'Diagnostics and service-delivery innovation', 'MoH and PO-RALG priorities, Vision 2050'],
+            ],
         ];
+    }
+
+    // ── The call page ───────────────────────────────────────────────────────
+
+    /** "Why this call exists", as paragraphs. */
+    public function aboutParagraphs(): array
+    {
+        return array_values(array_filter(array_map('trim', preg_split("/\R\s*\R/", (string) ($this->config['page']['about'] ?? '')))));
+    }
+
+    /** Who can lead an application, built from the call's own rules. */
+    public function eligibilityLines(): array
+    {
+        $lines = array_filter([trim((string) ($this->config['page']['who'] ?? ''))]);
+        if ($years = $this->serviceYears()) {
+            $lines[] = 'Under ' . $years . ' years’ service at NIMR';
+        }
+        if ($prior = $this->priorGrant()) {
+            $lines[] = 'Never held a research grant above USD ' . number_format($prior['usd']) . ' as PI';
+        }
+        if ($this->mentorWords() !== null) {
+            $lines[] = 'An experienced NIMR scientist agrees to mentor you';
+        }
+
+        return array_values($lines);
+    }
+
+    public function prioritiesIntro(): string
+    {
+        return trim((string) ($this->config['page']['priorities_intro'] ?? ''));
+    }
+
+    public function priorities(): array
+    {
+        return array_values(array_filter(array_map('trim', (array) ($this->config['page']['priorities'] ?? []))));
     }
 
     public function config(): array

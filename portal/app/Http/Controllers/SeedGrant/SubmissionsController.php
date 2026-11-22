@@ -38,16 +38,69 @@ class SubmissionsController extends Controller implements HasMiddleware
 
     public function index(Request $request)
     {
-        $call = \App\Support\CallPicker::pick($request, self::FILTERS['action'][1]);
-        if (! $call) {
+        // ?call=all shows every call at once, grouped by call; otherwise one call.
+        $all = $request->query('call') === 'all';
+        $call = $all ? null : \App\Support\CallPicker::pick($request, self::FILTERS['action'][1]);
+        if (! $all && ! $call) {
             return redirect()->route('seed.calls.index');
         }
 
         $filter = $request->query('filter');
         $search = trim((string) $request->query('q', ''));
 
-        $query = SeedApplication::with(['pi', 'budgetItems', 'rounds.reviews', 'assignments'])
-            ->where('seed_call_id', $call->id);
+        $query = $this->scoped($call, $filter, $search)->with(['pi', 'budgetItems', 'rounds.reviews', 'assignments', 'call']);
+        $needs = "case when status in ('" . implode("','", self::FILTERS['action'][1]) . "') then 0 else 1 end";
+        // Grouped by call (newest first) when showing all; within a call, what needs GMU first, then the latest activity.
+        $query->when($all, fn ($q) => $q->orderByDesc('seed_call_id'))->orderByRaw($needs)->latest('updated_at');
+
+        $counts = SeedApplication::when($call, fn ($q) => $q->where('seed_call_id', $call->id))
+            ->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
+
+        return view('seed.submissions-index', [
+            'call'         => $call,
+            'all'          => $all,
+            'applications' => $query->paginate(25)->withQueryString(),
+            'filter'       => $filter,
+            'search'       => $search,
+            'counts'       => $counts,
+            'calls'        => \App\Support\CallPicker::options(),
+        ]);
+    }
+
+    /** The submissions as a spreadsheet (CSV): one call, or every call. */
+    public function export(Request $request)
+    {
+        $all = $request->query('call', 'all') === 'all';
+        $call = $all ? null : SeedCall::findOrFail($request->query('call'));
+
+        $rows = $this->scoped($call, $request->query('filter'), trim((string) $request->query('q', '')))
+            ->with(['pi', 'budgetItems', 'rounds.reviews', 'call'])
+            ->orderByDesc('seed_call_id')->orderBy('reference')->get();
+
+        $name = 'submissions-' . ($call ? $call->code : 'all-calls') . '-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // so Excel reads the file as UTF-8
+            fputcsv($out, ['Call code', 'Call', 'Reference', 'Title', 'Lead applicant', 'Centre', 'Status', 'Stage',
+                'Concept submitted', 'Proposal submitted', 'Requested (TZS)', 'Mean score', 'Approved (TZS)', 'Last activity']);
+            foreach ($rows as $a) {
+                $means = $a->meanScores();
+                fputcsv($out, [
+                    $a->call->code, $a->call->title, $a->reference, $a->title, $a->pi->name, $a->pi->research_center,
+                    $a->statusLabel(), $a->stage() === 'proposal' ? 'Full proposal' : 'Concept note',
+                    $a->concept_submitted_at?->format('Y-m-d H:i'), $a->proposal_submitted_at?->format('Y-m-d H:i'),
+                    $a->requestedAmount(), $means['total'] ?? '', $a->approved_amount ?? '', $a->updated_at->format('Y-m-d H:i'),
+                ]);
+            }
+            fclose($out);
+        }, $name, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+
+    /** Submissions in a call (or every call), filtered as the list is. Drafts stay with applicants unless asked for. */
+    private function scoped(?SeedCall $call, ?string $filter, string $search)
+    {
+        $query = SeedApplication::query()->when($call, fn ($q) => $q->where('seed_call_id', $call->id));
 
         if ($filter && isset(self::FILTERS[$filter])) {
             $query->whereIn('status', self::FILTERS[$filter][1]);
@@ -61,16 +114,7 @@ class SubmissionsController extends Controller implements HasMiddleware
                 ->orWhereHas('pi', fn ($p) => $p->where('name', 'like', "%{$search}%")));
         }
 
-        $counts = SeedApplication::where('seed_call_id', $call->id)->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
-
-        return view('seed.submissions-index', [
-            'call'         => $call,
-            'applications' => $query->latest('updated_at')->paginate(25)->withQueryString(),
-            'filter'       => $filter,
-            'search'       => $search,
-            'counts'       => $counts,
-            'calls'        => \App\Support\CallPicker::options(),
-        ]);
+        return $query;
     }
 
     public function show(Request $request, SeedApplication $application)

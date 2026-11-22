@@ -18,11 +18,12 @@ class SeedGrantNotice extends Mailable
         public string $body,
         public string $actionUrl,
         public string $reference,
+        public string $callTitle = '',
     ) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: $this->headline . ' · NIMR Seed Grant');
+        return new Envelope(subject: $this->headline . ' · NIMR Grants');
     }
 
     public function content(): Content

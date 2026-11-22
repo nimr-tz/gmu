@@ -743,7 +743,7 @@ class Workflow
             }
 
             try {
-                Mail::to($user->email)->send(new SeedGrantNotice($user->name, $title, $message, $this->linkFor($user, $application), $application->reference));
+                Mail::to($user->email)->send(new SeedGrantNotice($user->name, $title, $message, $this->linkFor($user, $application), $application->reference, (string) $application->call?->title));
             } catch (Throwable $e) {
                 Log::warning('Seed grant email not sent', ['type' => $type, 'user_id' => $user->id, 'reason' => $e->getMessage()]);
             }

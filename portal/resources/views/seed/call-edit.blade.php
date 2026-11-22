@@ -89,6 +89,27 @@
         </div>
     </section>
 
+    {{-- ── The call page's text ──────────────────────────────────────── --}}
+    <section class="card">
+        <div class="card-head"><div><div class="card-title">What the call page says</div><div class="card-note">Staff read this before applying. You can change it at any time.</div></div></div>
+        <div class="card-body">
+            <div class="form-grid">
+                <x-ui.field label="Why this call exists" name="features.page.about" wide help="Leave a blank line between paragraphs.">
+                    <textarea id="page-about" name="features[page][about]" class="textarea" rows="5">{{ $f('page.about') }}</textarea>
+                </x-ui.field>
+                <x-ui.field label="Who can lead an application" name="features.page.who" wide help="The rest (years at NIMR, prior grants, mentor) is added from the switches below.">
+                    <input id="page-who" name="features[page][who]" class="input" value="{{ $f('page.who') }}">
+                </x-ui.field>
+                <x-ui.field label="Priority areas: introduction" name="features.page.priorities_intro" wide>
+                    <input id="page-priorities-intro" name="features[page][priorities_intro]" class="input" value="{{ $f('page.priorities_intro') }}">
+                </x-ui.field>
+                <x-ui.field label="Priority areas" name="features.page.priorities" wide help="One per line. Leave empty for a call without priority areas.">
+                    <textarea id="page-priorities" name="features[page][priorities]" class="textarea" rows="6">{{ is_array($f('page.priorities')) ? implode("\n", $f('page.priorities')) : $f('page.priorities') }}</textarea>
+                </x-ui.field>
+            </div>
+        </div>
+    </section>
+
     {{-- ── Who can apply ─────────────────────────────────────────────── --}}
     <section class="card">
         <div class="card-head"><div><div class="card-title">Who can apply</div><div class="card-note">Rules on the lead applicant, checked before they can start.</div></div></div>

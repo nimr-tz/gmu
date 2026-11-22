@@ -59,7 +59,26 @@ class CallController extends Controller
             'call'        => $call,
             'application' => SeedApplication::where('seed_call_id', $call->id)->where('pi_id', $user->id)->first(),
             'problems'    => $workflow->eligibilityProblems($user, $call),
+            'summary'     => $user->can('manage-seed-grants') ? $this->summary($call) : null,
         ]);
+    }
+
+    /** GMU's figures for one call: where applications are, from which centres, and the money. */
+    private function summary(SeedCall $call): array
+    {
+        $applications = SeedApplication::with(['pi', 'budgetItems'])->where('seed_call_id', $call->id)->get();
+        $submitted = $applications->where('status', '!=', SeedGrant::DRAFT);
+        $approvedStatuses = [SeedGrant::APPROVED, SeedGrant::AGREEMENT_ISSUED, SeedGrant::AGREEMENT_ACCEPTED, SeedGrant::AWARDED];
+
+        return [
+            'stages'    => collect(SeedGrant::TRACK)->map(fn ($step) => ['label' => $step[0], 'count' => $submitted->whereIn('status', $step[2])->count()]),
+            'drafts'    => $applications->where('status', SeedGrant::DRAFT)->count(),
+            'submitted' => $submitted->count(),
+            'closed'    => $submitted->whereIn('status', SeedGrant::CLOSED_STATUSES)->count(),
+            'requested' => $submitted->whereNotIn('status', SeedGrant::CLOSED_STATUSES)->sum(fn ($a) => $a->requestedAmount()),
+            'approved'  => $submitted->whereIn('status', $approvedStatuses)->sum('approved_amount'),
+            'byCentre'  => $submitted->groupBy(fn ($a) => $a->pi->research_center ?: 'Not recorded')->map->count()->sortDesc(),
+        ];
     }
 
     // ── Creating and changing a call ────────────────────────────────────────
@@ -183,6 +202,14 @@ class CallController extends Controller
             if (! array_filter(array_column($c['questions'][$stage], 'on'))) {
                 $errors["features.questions.{$stage}"] = 'Keep at least one question in the ' . ($stage === 'concept' ? 'concept note' : 'full proposal') . '.';
             }
+        }
+
+        // The call page's words describe the call; they stay editable after it opens.
+        if (isset($in['page'])) {
+            $c['page']['about'] = trim((string) ($in['page']['about'] ?? ''));
+            $c['page']['who'] = trim((string) ($in['page']['who'] ?? ''));
+            $c['page']['priorities_intro'] = trim((string) ($in['page']['priorities_intro'] ?? ''));
+            $c['page']['priorities'] = array_values(array_filter(array_map('trim', preg_split('/\R/', (string) ($in['page']['priorities'] ?? '')))));
         }
 
         $c['title_words'] = $raise($current['title_words'], $int($in['title_words'] ?? null, 5, 200));
