@@ -95,14 +95,14 @@
 
                 @if($stage === 'proposal')
                     @php $form = $application->call->form(); $maxTotal = $form->maxTotal() ?: 100; @endphp
-                    <section class="rounded-xl bg-sidebar p-5 shadow-sm">
-                        <p class="text-xs font-medium uppercase tracking-wider text-blue-300">Your total</p>
-                        <div class="mt-2 flex items-baseline gap-1.5"><span class="font-mono text-5xl leading-none text-white" data-total>{{ $review?->total ?? '—' }}</span><span class="font-mono text-sidebar-muted">/ {{ S::trimNumber($maxTotal) }}</span></div>
-                        <div class="relative mt-4 h-2 rounded-full bg-sidebar-chip">
-                            <div data-total-bar class="absolute inset-y-0 left-0 rounded-full bg-blue-400 transition-[width]" style="width: {{ min(100, ($review?->total ?? 0) / $maxTotal * 100) }}%"></div>
-                            <div aria-hidden="true" class="absolute -inset-y-1.5 w-0.5 bg-white" style="left: {{ min(100, $form->passMark() / $maxTotal * 100) }}%"></div>
+                    <section class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5">
+                        <div class="flex items-center gap-2"><span class="size-2 rounded-full bg-primary" aria-hidden="true"></span><span class="text-[13.5px] font-medium">Your total</span></div>
+                        <div class="mt-1.5 flex items-baseline gap-1.5"><span class="text-[40px] font-semibold leading-none tracking-tight tabular-nums text-blue-700" data-total>{{ $review?->total ?? '—' }}</span><span class="text-muted-foreground">/ {{ S::trimNumber($maxTotal) }}</span></div>
+                        <div class="relative mt-3 h-1.5 rounded-full bg-blue-100">
+                            <div data-total-bar class="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width]" style="width: {{ min(100, ($review?->total ?? 0) / $maxTotal * 100) }}%"></div>
+                            <div aria-hidden="true" title="Pass mark" class="absolute -inset-y-1.5 w-0.5 rounded-full bg-foreground" style="left: {{ min(100, $form->passMark() / $maxTotal * 100) }}%"></div>
                         </div>
-                        <p class="mt-3 text-[13px] text-sidebar-foreground" data-verdict></p>
+                        <p class="mt-2.5 text-[13px] text-muted-foreground" data-verdict></p>
                     </section>
 
                     <x-card title="Score each criterion">
@@ -180,13 +180,13 @@
         document.querySelector('[data-total]').textContent = complete ? total : '—';
         document.querySelector('[data-total-bar]').style.width = Math.min(100, (complete ? total : 0) / maxTotal * 100) + '%';
         var verdict = document.querySelector('[data-verdict]');
-        verdict.classList.remove('text-blue-200', 'text-red-300');
+        verdict.classList.remove('text-ok-ink', 'text-danger-ink', 'font-medium');
         if (!complete) { verdict.textContent = 'Score every criterion to see the total.'; return; }
         var under = Object.keys(mins).filter(function (k) { return (scores[k] || 0) < mins[k].min; });
         var ok = total >= pass && under.length === 0;
         verdict.textContent = ok ? 'Fundable on your scores.'
             : (under.length ? mins[under[0]].name + ' below ' + mins[under[0]].min + ' of ' + mins[under[0]].max + ': not fundable.' : 'Below ' + pass + ': not fundable.');
-        verdict.classList.add(ok ? 'text-blue-200' : 'text-red-300');
+        verdict.classList.add(ok ? 'text-ok-ink' : 'text-danger-ink', 'font-medium');
     }
     inputs.forEach(function (i) { i.addEventListener('input', function () { i.removeAttribute('data-unset'); update(); }); });
     // Untouched sliders are not sent, so a criterion is never scored 0 by accident.

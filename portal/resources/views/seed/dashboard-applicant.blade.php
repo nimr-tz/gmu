@@ -22,11 +22,11 @@
 @if(! $call || ! $call->isVisible())
     <x-card><x-empty icon="megaphone" title="No call is open yet">When NIMR opens a call, it appears here with its deadlines and how to apply.</x-empty></x-card>
 @elseif(! $application)
-    <section class="relative overflow-hidden rounded-xl bg-sidebar p-6 text-sidebar-foreground shadow-sm sm:p-8">
+    <section class="{{ $call->tintClass() }} rounded-xl border border-tint-line bg-tint p-6 sm:p-8">
         <div class="max-w-2xl">
-            <x-badge :tone="$call->acceptingConceptNotes() ? 'primary' : 'neutral'" dot>{{ $call->acceptingConceptNotes() ? 'Open for concept notes' : 'Concept notes closed' }}</x-badge>
-            <h2 class="mt-4 text-2xl text-white">{{ $call->title }}</h2>
-            <p class="mt-2 text-[15px] leading-relaxed">
+            <x-badge :tone="$call->acceptingConceptNotes() ? 'ok' : 'neutral'" dot>{{ $call->acceptingConceptNotes() ? 'Open for concept notes' : 'Concept notes closed' }}</x-badge>
+            <h2 class="mt-4 text-2xl">{{ $call->title }}</h2>
+            <p class="mt-2 text-[15px] leading-relaxed text-gray-700">
                 TZS {{ number_format($call->min_amount / 1e6) }}M–{{ number_format($call->max_amount / 1e6) }}M for a {{ $call->duration_months }}-month study.
                 @if($call->concept_deadline) Concept notes {{ $closed($call->concept_deadline) ? 'closed' : 'close' }} {{ $call->concept_deadline->format('j M Y') }}.@endif
             </p>
@@ -87,16 +87,15 @@
         </div>
 
         <aside class="space-y-4">
-            <section class="rounded-xl bg-sidebar p-5 shadow-sm">
-                <p class="text-xs font-medium uppercase tracking-wider text-blue-300">Key dates</p>
-                <ul class="mt-4 space-y-3 text-sm">
-                    <li class="flex justify-between gap-3"><span class="text-sidebar-muted">Concept notes close</span><span class="font-mono text-white">{{ $call->concept_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
+            <x-card title="Key dates" icon="calendar">
+                <ul class="divide-y divide-border text-sm">
+                    <li class="flex justify-between gap-3 pb-2.5"><span class="text-muted-foreground">Concept notes close</span><span class="font-medium tabular-nums">{{ $call->concept_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
                     @if($application->isRevising() && $round?->response_due_at)
-                        <li class="flex justify-between gap-3"><span class="font-medium text-white">Your response is due</span><span class="font-mono font-medium text-amber-300">{{ $round->response_due_at->format('j M Y') }}</span></li>
+                        <li class="flex justify-between gap-3 py-2.5"><span class="font-medium text-warn-ink">Your response is due</span><span class="font-semibold tabular-nums text-warn-ink">{{ $round->response_due_at->format('j M Y') }}</span></li>
                     @endif
-                    <li class="flex justify-between gap-3"><span class="text-sidebar-muted">Full proposals due</span><span class="font-mono text-white">{{ $call->proposal_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
+                    <li class="flex justify-between gap-3 pt-2.5"><span class="text-muted-foreground">Full proposals due</span><span class="font-medium tabular-nums">{{ $call->proposal_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
                 </ul>
-            </section>
+            </x-card>
 
             @if($application->mentor_name)
                 <x-card title="Your mentor">

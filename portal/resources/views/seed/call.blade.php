@@ -107,7 +107,7 @@
             <div class="mt-4 space-y-3">
                 @foreach([
                     ['1', 'Concept note', 'bg-primary', [['You submit', 'Online form, ≤ 5 pages, simple budget'], ['GMU screens', 'Eligibility, completeness, budget range'], ['Reviewers respond', 'Accept, revise or reject'], ['Shortlist', 'Invited to stage 2']]],
-                    ['2', 'Full proposal', 'bg-sidebar', [
+                    ['2', 'Full proposal', 'bg-violet-500', [
                         ['You submit', '≤ 10 pages, detailed budget' . collect($form->documents())->filter(fn ($d) => $d[1])->map(fn ($d) => ', ' . mb_strtolower($d[0]))->implode('')],
                         $form->scored() ? ['Scored review', count($form->criteria()) . ' weighted criteria'] : ['Review', 'Accept, revise or reject'],
                         ['Approval', collect($form->approvalLevels())->map(fn ($l) => ['gmu' => 'GMU', 'drcp' => 'DRCP', 'dg' => 'DG'][$l])->implode(', then ')],
