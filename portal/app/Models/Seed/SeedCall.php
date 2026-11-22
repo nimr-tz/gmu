@@ -69,6 +69,12 @@ class SeedCall extends Model
         return $this->exists && $this->getOriginal('status') !== 'draft';
     }
 
+    /** The call's own pale tint (tint-1 … tint-5), so the same call looks the same in every list. */
+    public function tintClass(): string
+    {
+        return 'tint-' . ((((int) $this->id) - 1) % 5 + 1);
+    }
+
     public function isVisible(): bool
     {
         return $this->status !== 'draft';

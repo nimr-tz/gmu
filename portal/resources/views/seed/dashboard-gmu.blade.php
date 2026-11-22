@@ -36,7 +36,7 @@
 <div class="call-cards">
     @foreach($cards as $card)
         @php $c = $card['call']; @endphp
-        <section class="card call-card">
+        <section class="card call-card {{ $c->tintClass() }}">
             <div class="call-card-head">
                 <div class="call-card-name">
                     @include('seed.partials.call-tag', ['call' => $c])
