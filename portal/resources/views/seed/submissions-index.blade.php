@@ -1,4 +1,4 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 {{--
     GMU's list of submissions: one call, or every call grouped by call.
@@ -6,77 +6,84 @@
 --}}
 
 @php
-    use App\Support\SeedGrant;
     use App\Http\Controllers\SeedGrant\SubmissionsController as F;
     $scope = $all ? 'all' : $call->id;
     $lastCallId = null;
+    $tab = fn (bool $on) => 'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[13px] font-medium transition-colors '
+        . ($on ? 'bg-card text-foreground shadow-xs ring-1 ring-border' : 'text-muted-foreground hover:text-foreground');
 @endphp
 
 @section('title', 'Submissions')
 @section('context', $all ? 'Submissions · all calls' : 'Submissions · ' . $call->title)
 
 @section('content')
-<x-ui.page-head title="Submissions"
-    :lede="$all ? 'Every concept note and full proposal, across all calls, grouped by call. Drafts stay with applicants until they submit.'
-                : 'Every concept note and full proposal under ' . $call->title . '. Drafts stay with applicants until they submit.'">
+<x-page-header title="Submissions"
+    :description="$all ? 'Every concept note and full proposal, across all calls, grouped by call. Drafts stay with applicants until they submit.'
+                       : 'Every concept note and full proposal under ' . $call->title . '. Drafts stay with applicants until they submit.'">
     <x-slot:actions>
         @include('seed.partials.call-picker', ['allowAll' => true])
-        <a href="{{ route('seed.submissions.export', array_filter(['call' => $scope, 'filter' => $filter, 'q' => $search])) }}" class="btn">
-            <i class="fas fa-file-csv" aria-hidden="true"></i> Export</a>
+        <x-button :href="route('seed.submissions.export', array_filter(['call' => $scope, 'filter' => $filter, 'q' => $search]))" icon="download">Export</x-button>
         @unless($all)
-            <a href="{{ route('seed.ranking', ['call' => $call->id]) }}" class="btn"><i class="fas fa-list-ol" aria-hidden="true"></i> Ranking</a>
+            <x-button :href="route('seed.ranking', ['call' => $call->id])" icon="list-ordered">Ranking</x-button>
         @endunless
     </x-slot:actions>
-</x-ui.page-head>
+</x-page-header>
 
-<div class="row-between list-tools">
-    <nav class="chips" aria-label="Filter">
-        <a href="{{ route('seed.submissions.index', array_filter(['q' => $search, 'call' => $scope])) }}" class="chip {{ ! $filter ? 'is-active' : '' }}">All submitted</a>
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <nav class="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-muted p-1" aria-label="Filter">
+        <a href="{{ route('seed.submissions.index', array_filter(['q' => $search, 'call' => $scope])) }}" class="{{ $tab(! $filter) }}" @if(! $filter) aria-current="page" @endif>All submitted</a>
         @foreach(F::FILTERS as $key => [$label, $statuses])
             @php $n = collect($statuses)->sum(fn ($s) => $counts[$s] ?? 0); @endphp
-            <a href="{{ route('seed.submissions.index', array_filter(['filter' => $key, 'q' => $search, 'call' => $scope])) }}" class="chip {{ $filter === $key ? 'is-active' : '' }}">{{ $label }} <span class="mono chip-count">{{ $n }}</span></a>
+            <a href="{{ route('seed.submissions.index', array_filter(['filter' => $key, 'q' => $search, 'call' => $scope])) }}" class="{{ $tab($filter === $key) }}" @if($filter === $key) aria-current="page" @endif>
+                {{ $label }} <span class="font-mono text-xs {{ $filter === $key ? 'text-primary' : 'text-subtle' }}">{{ $n }}</span>
+            </a>
         @endforeach
     </nav>
-    <form method="GET" class="row" role="search">
+    <form method="GET" class="relative w-full sm:w-72" role="search">
         <input type="hidden" name="call" value="{{ $scope }}">
         @if($filter)<input type="hidden" name="filter" value="{{ $filter }}">@endif
         <label for="q" class="sr-only">Search</label>
-        <input id="q" type="search" name="q" value="{{ $search }}" class="input search-input" placeholder="Ref, title or applicant">
-        <button class="btn" type="submit" aria-label="Search"><i class="fas fa-search" aria-hidden="true"></i></button>
+        <x-icon name="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-subtle" />
+        <input id="q" type="search" name="q" value="{{ $search }}" class="input pl-9" placeholder="Ref, title or applicant">
     </form>
 </div>
 
-<div class="card">
-    <div class="table-wrap">
-        <table class="table table-wide">
-            <thead><tr><th>Ref</th><th>Application</th><th>Status</th><th class="num">Requested (TZS)</th><th>Last activity</th><th><span class="sr-only">Open</span></th></tr></thead>
+<x-card flush>
+    <div class="overflow-x-auto">
+        <table class="data-table min-w-[860px]">
+            <thead><tr><th>Ref</th><th>Application</th><th>Status</th><th class="text-right">Requested (TZS)</th><th>Last activity</th><th class="text-right"><span class="sr-only">Open</span></th></tr></thead>
             <tbody>
                 @forelse($applications as $a)
                     @if($all && $a->seed_call_id !== $lastCallId)
                         @php $lastCallId = $a->seed_call_id; @endphp
-                        <tr class="group-row"><td colspan="6">
-                            @include('seed.partials.call-tag', ['call' => $a->call])
-                            <a href="{{ route('seed.submissions.index', ['call' => $a->seed_call_id]) }}" class="group-link">Only this call</a>
+                        <tr class="group-row hover:bg-transparent"><td colspan="6">
+                            <div class="flex items-center justify-between gap-3">
+                                @include('seed.partials.call-tag', ['call' => $a->call])
+                                <a href="{{ route('seed.submissions.index', ['call' => $a->seed_call_id]) }}" class="shrink-0 text-xs font-medium text-primary hover:underline">Only this call</a>
+                            </div>
                         </td></tr>
                     @endif
                     <tr>
-                        <td class="mono sub nowrap">{{ $a->reference }}</td>
-                        <td>
-                            <div class="strong">{{ $a->title ?: 'Untitled' }}</div>
-                            <div class="sub">{{ $a->pi->name }}{{ $a->pi->research_center ? ' · ' . $a->pi->research_center : '' }}</div>
+                        <td class="whitespace-nowrap font-mono text-xs text-muted-foreground">{{ $a->reference }}</td>
+                        <td class="max-w-md">
+                            <a href="{{ route('seed.submissions.show', $a) }}" class="font-medium hover:text-primary">{{ $a->title ?: 'Untitled' }}</a>
+                            <div class="mt-0.5 text-[13px] text-muted-foreground">{{ $a->pi->name }}{{ $a->pi->research_center ? ' · ' . $a->pi->research_center : '' }}</div>
                         </td>
                         <td>@include('seed.partials.status', ['application' => $a])</td>
                         <td class="num">{{ number_format($a->requestedAmount()) }}</td>
-                        <td class="sub nowrap">{{ $a->updated_at->format('j M Y') }}<div class="tiny muted-3">{{ $a->updated_at->diffForHumans() }}</div></td>
-                        <td class="num"><a href="{{ route('seed.submissions.show', $a) }}" class="btn btn-sm">Open</a></td>
+                        <td class="whitespace-nowrap text-[13px]">{{ $a->updated_at->format('j M Y') }}<div class="text-xs text-muted-foreground">{{ $a->updated_at->diffForHumans() }}</div></td>
+                        <td class="text-right"><x-button size="sm" :href="route('seed.submissions.show', $a)">Open</x-button></td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="table-empty"><i class="fas fa-inbox" aria-hidden="true"></i>
-                        {{ $search || $filter ? 'Nothing matches. Try another filter or search.' : 'Nothing submitted yet. Concept notes appear here once applicants submit them.' }}</td></tr>
+                    <tr class="hover:bg-transparent"><td colspan="6">
+                        <x-empty icon="inbox" :title="$search || $filter ? 'Nothing matches' : 'Nothing submitted yet'" compact>
+                            {{ $search || $filter ? 'Try another filter or search.' : 'Concept notes appear here once applicants submit them.' }}
+                        </x-empty>
+                    </td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-</div>
-<div class="pagination-wrap">{{ $applications->links() }}</div>
+</x-card>
+@if($applications->hasPages())<div class="mt-4">{{ $applications->links() }}</div>@endif
 @endsection

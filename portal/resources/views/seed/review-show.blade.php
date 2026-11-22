@@ -1,4 +1,4 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 @php
     use App\Support\SeedGrant as S;
@@ -11,136 +11,144 @@
 @section('context', 'My reviews · ' . $application->reference)
 
 @section('content')
-<p class="crumbs"><a href="{{ route('seed.reviews.index') }}">My reviews</a> / <span class="mono">{{ $application->reference }}</span></p>
-
 @if($assignment->coi_status === 'pending')
-    <div style="max-width:720px;">
-        <x-ui.page-head title="Declare your interests" lede="Before you see the application, tell GMU whether you have any actual, potential or perceived conflict of interest." />
-        <section class="card">
-            <div class="card-body">
-                <dl class="form-grid" style="margin:0;">
-                    <div class="kv"><dt class="k">Application</dt><dd class="v" style="margin:0;">{{ $application->title }}</dd></div>
-                    <div class="kv"><dt class="k">Applicant</dt><dd class="v" style="margin:0;">{{ $application->pi->name }}{{ $application->pi->research_center ? ' · ' . $application->pi->research_center : '' }}</dd></div>
-                    <div class="kv"><dt class="k">Mentor</dt><dd class="v" style="margin:0;">{{ $application->mentor_name ?: '—' }}</dd></div>
-                    <div class="kv"><dt class="k">Stage</dt><dd class="v" style="margin:0;">{{ $stage === 'concept' ? 'Concept note' : 'Full proposal' }}</dd></div>
+    {{-- Before anything else: declare interests --}}
+    <div class="mx-auto max-w-2xl">
+        <x-page-header title="Declare your interests" :back="route('seed.reviews.index')" back-label="My reviews"
+            description="Before you see the application, tell GMU whether you have any actual, potential or perceived conflict of interest." />
+        <form method="POST" action="{{ route('seed.reviews.declare', $assignment) }}" x-data="{ conflict: '{{ old('conflict') }}' }">
+            @csrf
+            <x-card>
+                <dl class="grid gap-x-6 gap-y-4 pt-1 sm:grid-cols-2">
+                    <div class="sm:col-span-2"><dt class="text-xs text-muted-foreground">Application</dt><dd class="mt-1 font-medium">{{ $application->title }}</dd></div>
+                    <x-stat label="Applicant" :value="$application->pi->name . ($application->pi->research_center ? ' · ' . $application->pi->research_center : '')" />
+                    <x-stat label="Mentor" :value="$application->mentor_name ?: '—'" />
+                    <x-stat label="Stage" :value="$stage === 'concept' ? 'Concept note' : 'Full proposal'" />
                 </dl>
-                <p class="small muted" style="margin-top:18px;">A conflict includes working in the same section, supervising or being supervised by the applicant or mentor, a personal or financial interest, or co-authorship in the last three years.</p>
-                <form method="POST" action="{{ route('seed.reviews.declare', $assignment) }}" style="margin-top:16px;">
-                    @csrf
-                    <fieldset style="border:0; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;">
-                        <legend class="sr-only">Declaration</legend>
-                        <label class="opt"><input type="radio" name="conflict" value="0" required><span><strong>I have no conflict of interest</strong><span class="opt-sub">I will review this application impartially and keep it confidential.</span></span></label>
-                        <label class="opt"><input type="radio" name="conflict" value="1"><span><strong>I have a conflict of interest</strong><span class="opt-sub">GMU will give the review to someone else.</span></span></label>
-                    </fieldset>
-                    <x-ui.field label="Describe the conflict (if any)" name="coi_note">
-                        <textarea id="coi_note" name="coi_note" class="textarea" rows="3" style="margin-top:12px;">{{ old('coi_note') }}</textarea>
-                    </x-ui.field>
-                    <button class="btn btn-primary" type="submit" style="margin-top:14px;">Record declaration</button>
-                </form>
-            </div>
-        </section>
+                <p class="mt-5 border-t border-border pt-4 text-[13px] text-muted-foreground">A conflict includes working in the same section, supervising or being supervised by the applicant or mentor, a personal or financial interest, or co-authorship in the last three years.</p>
+                <fieldset class="mt-4 space-y-2">
+                    <legend class="sr-only">Declaration</legend>
+                    @foreach(['0' => ['I have no conflict of interest', 'I will review this application impartially and keep it confidential.'], '1' => ['I have a conflict of interest', 'GMU will give the review to someone else.']] as $value => [$label, $sub])
+                        <label class="flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors" :class="conflict === '{{ $value }}' ? 'border-primary bg-primary-soft/60 ring-1 ring-primary' : 'border-border hover:bg-muted/50'">
+                            <input type="radio" class="radio mt-0.5" name="conflict" value="{{ $value }}" x-model="conflict" required>
+                            <span><span class="block text-sm font-medium">{{ $label }}</span><span class="block text-xs text-muted-foreground">{{ $sub }}</span></span>
+                        </label>
+                    @endforeach
+                </fieldset>
+                <x-field class="mt-4" label="Describe the conflict" name="coi_note" optional>
+                    <textarea id="coi_note" name="coi_note" class="textarea" rows="3">{{ old('coi_note') }}</textarea>
+                </x-field>
+                <x-slot:footer class="flex justify-end"><x-button type="submit" variant="primary">Record declaration</x-button></x-slot:footer>
+            </x-card>
+        </form>
     </div>
 @else
-    <div class="page-head">
-        <div style="flex:1 1 520px; min-width:0;">
-            <div class="row" style="gap:8px;"><span class="pill">{{ $stage === 'concept' ? 'Concept note' : 'Full proposal' }}{{ $round ? ' · round ' . $round->number : '' }}</span><span class="pill pill-ok">No conflict declared</span></div>
-            <h1 style="margin-top:8px; font-size:clamp(20px,2vw,26px); line-height:1.3;">{{ $application->title }}</h1>
-        </div>
-        <span class="small muted">
-            @if($review?->isSubmitted()) Submitted {{ $review->submitted_at->format('j M Y') }}
-            @elseif($round?->isOpen()) Due {{ $round->due_at?->format('j M Y') }}{{ $review ? ' · draft saved' : '' }}
-            @else This round is closed @endif
-        </span>
-    </div>
+    <x-page-header :title="$application->title" :back="route('seed.reviews.index')" back-label="My reviews">
+        <x-slot:meta>
+            <div class="mt-3 flex flex-wrap items-center gap-2.5 text-[13px] text-muted-foreground">
+                <x-badge>{{ $stage === 'concept' ? 'Concept note' : 'Full proposal' }}{{ $round ? ' · round ' . $round->number : '' }}</x-badge>
+                <x-badge tone="ok" icon="check">No conflict declared</x-badge>
+                <span class="font-mono text-xs">{{ $application->reference }}</span>
+                <span>·</span>
+                <span>
+                    @if($review?->isSubmitted()) Submitted {{ $review->submitted_at->format('j M Y') }}
+                    @elseif($round?->isOpen()) Due {{ $round->due_at?->format('j M Y') }}{{ $review ? ' · draft saved' : '' }}
+                    @else This round is closed @endif
+                </span>
+            </div>
+        </x-slot:meta>
+    </x-page-header>
 
     @if($previousRound)
-        <section class="card accent-warn" style="margin-bottom:20px;">
-            <div class="card-body">
-                <h2 class="card-title">Since round {{ $previousRound->number }}</h2>
+        <x-card class="mb-6" tone="warn" :title="'Since round ' . $previousRound->number" icon="history">
+            <div class="space-y-4">
                 @if($previousReview)
-                    <p class="small muted" style="margin-top:8px;">You recommended <strong>{{ SeedReview::RECOMMENDATIONS[$previousReview->recommendation] ?? '—' }}</strong> and wrote:</p>
-                    <p class="doc-text" style="margin-top:4px; font-size:14px;">{{ $previousReview->comments }}</p>
+                    <div><p class="text-[13px] text-muted-foreground">You recommended <strong class="text-foreground">{{ SeedReview::RECOMMENDATIONS[$previousReview->recommendation] ?? '—' }}</strong> and wrote:</p>
+                        <p class="prose-text mt-1">{{ $previousReview->comments }}</p></div>
                 @endif
                 @if($previousRound->decision_note)
-                    <p class="small muted" style="margin-top:12px;">GMU asked the applicant:</p><p class="doc-text" style="margin-top:4px; font-size:14px;">{{ $previousRound->decision_note }}</p>
+                    <div><p class="text-[13px] text-muted-foreground">GMU asked the applicant:</p><p class="prose-text mt-1">{{ $previousRound->decision_note }}</p></div>
                 @endif
                 @if($previousRound->response)
-                    <p class="small muted" style="margin-top:12px;"><strong>The applicant’s response</strong></p><p class="doc-text" style="margin-top:4px; font-size:14px;">{{ $previousRound->response }}</p>
+                    <div><p class="text-[13px] font-medium">The applicant’s response</p><p class="prose-text mt-1">{{ $previousRound->response }}</p></div>
                 @endif
             </div>
-        </section>
+        </x-card>
     @endif
 
-    <div class="grid grid-wide">
-        <div class="stack" style="gap:16px;">
+    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
+        <div class="space-y-6">
             @if($stage === 'proposal')
-                <details class="card"><summary class="card-body" style="cursor:pointer; font-weight:600;">Read the concept note it grew from</summary>
-                    <div style="padding:0 22px 22px;" class="stack-sm">@include('seed.partials.content', ['stage' => 'concept'])</div></details>
+                <details class="group overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+                    <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-[15px] font-semibold hover:bg-muted/50 [&::-webkit-details-marker]:hidden">
+                        Read the concept note it grew from <x-icon name="chevron-down" class="text-subtle transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div class="border-t border-border bg-background p-5">@include('seed.partials.content', ['stage' => 'concept'])</div>
+                </details>
             @endif
             @include('seed.partials.content', ['stage' => $stage])
         </div>
 
-        <aside>
-            <form method="POST" action="{{ route('seed.reviews.save', $assignment) }}" class="stack-sm" style="gap:16px; position:sticky; top:84px;" data-review>
+        <aside class="xl:sticky xl:top-24">
+            <form method="POST" action="{{ route('seed.reviews.save', $assignment) }}" class="space-y-4" data-review>
                 @csrf @method('PUT')
 
                 @if($stage === 'proposal')
                     @php $form = $application->call->form(); $maxTotal = $form->maxTotal() ?: 100; @endphp
-                    <section class="card is-dark" style="padding:22px;">
-                        <p class="eyebrow" style="color:var(--blue-300);">Your total</p>
-                        <div class="row" style="gap:6px; align-items:baseline; margin-top:6px;"><span class="mono" style="font-size:48px; line-height:1; color:#fff;" data-total>{{ $review?->total ?? '—' }}</span><span class="mono" style="color:#A9B6D3;">/ {{ S::trimNumber($maxTotal) }}</span></div>
-                        <div style="position:relative; margin-top:16px; height:10px; border-radius:99px; background:#1C2B57;">
-                            <div data-total-bar style="position:absolute; left:0; top:0; bottom:0; border-radius:99px; width:{{ min(100, ($review?->total ?? 0) / $maxTotal * 100) }}%; background:var(--blue-400);"></div>
-                            <div aria-hidden="true" style="position:absolute; left:{{ min(100, $form->passMark() / $maxTotal * 100) }}%; top:-5px; bottom:-5px; width:2px; background:#fff;"></div>
+                    <section class="rounded-xl bg-sidebar p-5 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wider text-blue-300">Your total</p>
+                        <div class="mt-2 flex items-baseline gap-1.5"><span class="font-mono text-5xl leading-none text-white" data-total>{{ $review?->total ?? '—' }}</span><span class="font-mono text-sidebar-muted">/ {{ S::trimNumber($maxTotal) }}</span></div>
+                        <div class="relative mt-4 h-2 rounded-full bg-sidebar-chip">
+                            <div data-total-bar class="absolute inset-y-0 left-0 rounded-full bg-blue-400 transition-[width]" style="width: {{ min(100, ($review?->total ?? 0) / $maxTotal * 100) }}%"></div>
+                            <div aria-hidden="true" class="absolute -inset-y-1.5 w-0.5 bg-white" style="left: {{ min(100, $form->passMark() / $maxTotal * 100) }}%"></div>
                         </div>
-                        <p class="small" style="margin-top:12px; color:#C7D2EA;" data-verdict></p>
+                        <p class="mt-3 text-[13px] text-sidebar-foreground" data-verdict></p>
                     </section>
 
-                    <section class="card">
-                        <div class="card-body stack-sm">
-                            <h2 class="card-title">Score each criterion</h2>
+                    <x-card title="Score each criterion">
+                        <div class="space-y-5">
                             @foreach($form->criteria() as $key => [$name, $what, $max])
                                 @php $value = old("scores.$key", $review?->score($key)); @endphp
                                 <div>
-                                    <div class="row-between" style="flex-wrap:nowrap; align-items:flex-start;">
-                                        <label for="score-{{ $key }}" class="strong" style="font-size:14px;">{{ $name }}</label>
-                                        <span class="mono" style="white-space:nowrap;"><output data-out-for="score-{{ $key }}">{{ $value ?? '—' }}</output><span class="muted"> / {{ $max }}</span></span>
+                                    <div class="flex items-start justify-between gap-3">
+                                        <label for="score-{{ $key }}" class="text-sm font-medium">{{ $name }}</label>
+                                        <span class="whitespace-nowrap font-mono text-sm"><output data-out-for="score-{{ $key }}">{{ $value ?? '—' }}</output><span class="text-muted-foreground"> / {{ S::trimNumber($max) }}</span></span>
                                     </div>
-                                    <p class="tiny muted">{{ $what }}</p>
+                                    <p class="mt-0.5 text-xs text-muted-foreground">{{ $what }}</p>
                                     <input id="score-{{ $key }}" type="range" name="scores[{{ $key }}]" min="0" max="{{ $max }}" step="0.5"
                                            value="{{ $value ?? 0 }}" data-score="{{ $key }}" data-max="{{ $max }}" @if($value === null) data-unset @endif
-                                           style="width:100%; accent-color:var(--brand); height:32px;" @disabled(! $editable)>
+                                           class="mt-1 h-8 w-full cursor-pointer accent-primary disabled:cursor-not-allowed" @disabled(! $editable)>
                                 </div>
                             @endforeach
                         </div>
-                    </section>
+                    </x-card>
                 @endif
 
-                <section class="card">
-                    <div class="card-body">
-                        <fieldset style="border:0; margin:0; padding:0;">
-                            <legend class="label" style="margin-bottom:8px;">Your recommendation</legend>
-                            <div class="row" style="gap:8px;">
-                                @foreach(SeedReview::RECOMMENDATIONS as $value => $label)
-                                    <label class="opt" style="flex:1 1 90px; align-items:center;"><input type="radio" name="recommendation" value="{{ $value }}" @checked(old('recommendation', $review?->recommendation) === $value) @disabled(! $editable)><strong>{{ $label }}</strong></label>
-                                @endforeach
-                            </div>
-                        </fieldset>
-                        <x-ui.field label="Comments for the applicant" name="comments" help="Shared with the applicant without your name.">
-                            <textarea id="comments" name="comments" class="textarea" rows="6" style="margin-top:12px;" @readonly(! $editable)>{{ old('comments', $review?->comments) }}</textarea>
-                        </x-ui.field>
-                        <x-ui.field label="Confidential note to GMU" name="confidential_note" help="Optional. The applicant never sees this.">
-                            <textarea id="confidential_note" name="confidential_note" class="textarea" rows="2" style="margin-top:12px;" @readonly(! $editable)>{{ old('confidential_note', $review?->confidential_note) }}</textarea>
-                        </x-ui.field>
-                    </div>
-                </section>
-
-                @if($editable)
-                    <div class="row">
-                        <button type="submit" name="action" value="draft" class="btn">Save draft</button>
-                        <button type="submit" name="action" value="submit" class="btn btn-primary" style="flex:1;" onclick="return confirm('Submit your review? You cannot change it afterwards.')">Submit review</button>
-                    </div>
-                @endif
+                <x-card>
+                    <fieldset x-data="{ rec: '{{ old('recommendation', $review?->recommendation) }}' }">
+                        <legend class="label mb-2">Your recommendation</legend>
+                        <div class="grid grid-cols-3 gap-2">
+                            @foreach(SeedReview::RECOMMENDATIONS as $value => $label)
+                                <label class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-2 py-2.5 text-sm font-medium transition-colors has-[:disabled]:cursor-not-allowed"
+                                       :class="rec === '{{ $value }}' ? 'border-primary bg-primary-soft text-blue-800 ring-1 ring-primary' : 'border-border hover:bg-muted/50'">
+                                    <input type="radio" class="sr-only" name="recommendation" value="{{ $value }}" x-model="rec" @checked(old('recommendation', $review?->recommendation) === $value) @disabled(! $editable)>{{ $label }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                    <x-field class="mt-4" label="Comments for the applicant" name="comments" help="Shared with the applicant without your name.">
+                        <textarea id="comments" name="comments" class="textarea" rows="6" @readonly(! $editable)>{{ old('comments', $review?->comments) }}</textarea>
+                    </x-field>
+                    <x-field class="mt-4" label="Confidential note to GMU" name="confidential_note" help="The applicant never sees this." optional>
+                        <textarea id="confidential_note" name="confidential_note" class="textarea" rows="2" @readonly(! $editable)>{{ old('confidential_note', $review?->confidential_note) }}</textarea>
+                    </x-field>
+                    @if($editable)
+                        <x-slot:footer class="flex gap-2">
+                            <x-button type="submit" name="action" value="draft" icon="save">Save draft</x-button>
+                            <x-button type="submit" name="action" value="submit" variant="primary" class="flex-1" onclick="return confirm('Submit your review? You cannot change it afterwards.')">Submit review</x-button>
+                        </x-slot:footer>
+                    @endif
+                </x-card>
             </form>
         </aside>
     </div>
@@ -172,12 +180,13 @@
         document.querySelector('[data-total]').textContent = complete ? total : '—';
         document.querySelector('[data-total-bar]').style.width = Math.min(100, (complete ? total : 0) / maxTotal * 100) + '%';
         var verdict = document.querySelector('[data-verdict]');
+        verdict.classList.remove('text-blue-200', 'text-red-300');
         if (!complete) { verdict.textContent = 'Score every criterion to see the total.'; return; }
         var under = Object.keys(mins).filter(function (k) { return (scores[k] || 0) < mins[k].min; });
         var ok = total >= pass && under.length === 0;
         verdict.textContent = ok ? 'Fundable on your scores.'
             : (under.length ? mins[under[0]].name + ' below ' + mins[under[0]].min + ' of ' + mins[under[0]].max + ': not fundable.' : 'Below ' + pass + ': not fundable.');
-        verdict.style.color = ok ? '#BCD0FB' : '#F8B4A3';
+        verdict.classList.add(ok ? 'text-blue-200' : 'text-red-300');
     }
     inputs.forEach(function (i) { i.addEventListener('input', function () { i.removeAttribute('data-unset'); update(); }); });
     // Untouched sliders are not sent, so a criterion is never scored 0 by accident.

@@ -1,4 +1,4 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 @php
     use App\Support\SeedGrant;
@@ -8,84 +8,122 @@
     $pages     = $application->pageEstimate($stage);
     $lines     = $application->budgetLines($stage);
     $blankRows = max(3, 6 - $lines->count());
+    $count     = 'mt-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground';
+    $cell      = 'h-9 w-full rounded-md border-transparent bg-transparent px-2 text-sm shadow-none transition-colors hover:border-border focus:border-primary focus:bg-card focus:ring-2 focus:ring-primary/20';
+
+    // Section list: [anchor, label, state ok|no|over].
+    $nav = [];
+    if ($isConcept) {
+        $aDone = (! $form->priorGrant() || $application->priorLargeGrant() === 'no') && ($form->mentorWords() === null || ($application->mentor_name && $application->mentor_suitability));
+        $nav[] = ['project', 'A. Applicant', $aDone ? 'ok' : 'no'];
+        $nav[] = ['s-title', 'Title', $application->title ? 'ok' : 'no'];
+    }
+    foreach ($sections as $key => [$heading, , $limit]) {
+        $w = SeedGrant::wordCount($application->sectionText($stage, $key));
+        $needed = ! $isConcept || $form->sectionRequired($key, $application->choice($key));
+        $answered = ! $isConcept || ! isset($form->choices()[$key]) || $application->choice($key) !== null;
+        $nav[] = ['s-' . $key, $isConcept ? preg_replace('/^(\d+|[A-Z])\. /', '$1. ', \Illuminate\Support\Str::before($heading, ' and ')) : $heading,
+                  $w > $limit ? 'over' : (($w === 0 && $needed) || ! $answered ? 'no' : 'ok')];
+    }
+    $nav[] = ['budget', $isConcept ? 'D. Budget' : 'Budget', $lines->isEmpty() ? 'no' : 'ok'];
+    if ($isConcept && $form->declarations()) {
+        $nav[] = ['declaration', 'E. Declaration', count(array_intersect(array_keys($form->declarations()), $application->declarations())) === count($form->declarations()) ? 'ok' : 'no'];
+    }
+    if (! $isConcept) {
+        $nav[] = ['documents', 'Documents', $application->documents->isEmpty() ? 'no' : 'ok'];
+    }
+    $doneCount = collect($nav)->where(2, 'ok')->count();
 @endphp
 
 @section('title', $isConcept ? 'Concept note' : 'Full proposal')
 @section('context', $application->reference . ' · ' . ($isConcept ? 'Concept note' : 'Full proposal'))
 
 @section('content')
-<form id="app-form" method="POST" action="{{ route('seed.applications.update', $application) }}">
+<form id="app-form" method="POST" action="{{ route('seed.applications.update', $application) }}" data-draft-key="seed-draft-{{ $application->id }}-{{ $stage }}" data-saved-at="{{ $application->updated_at->timestamp }}">
     @csrf @method('PUT')
 
-    <div class="card" style="margin-bottom:20px;">
-        <div class="card-body row-between" style="gap:16px;">
-            <div style="flex:1 1 440px; min-width:0;">
-                <div class="row" style="gap:8px;">
-                    <span class="mono small muted">{{ $application->reference }}</span>
+    {{-- Save bar: stays in view while writing --}}
+    <div class="sticky top-16 z-20 -mx-4 mb-6 border-b border-border bg-background/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <div class="min-w-0 flex-[1_1_20rem]">
+                <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     @include('seed.partials.status')
-                    <span class="small muted">Last saved {{ $application->updated_at->diffForHumans() }}</span>
+                    <span class="font-mono">{{ $application->reference }}</span>
+                    <span>·</span>
+                    <span data-save-state>Saved {{ $application->updated_at->diffForHumans() }}</span>
                 </div>
-                <h1 style="margin-top:6px; font-size:20px; line-height:1.3;">{{ $application->title ?: ($isConcept ? 'Untitled concept note' : 'Full proposal') }}</h1>
+                <h1 class="mt-1 truncate text-lg font-semibold">{{ $application->title ?: ($isConcept ? 'Untitled concept note' : 'Full proposal') }}</h1>
             </div>
-            <div class="row" style="gap:16px;">
-                <div style="min-width:150px;">
-                    <div class="meter-label"><span>Length</span><b class="mono" data-pages>{{ $pages }} / {{ $maxPages }} pages</b></div>
-                    <div class="meter {{ $pages > $maxPages ? 'danger' : '' }}"><span data-pages-bar style="width:{{ min(100, $pages / $maxPages * 100) }}%"></span></div>
-                </div>
-                <button type="submit" class="btn">Save</button>
-                <button type="submit" class="btn btn-primary" formaction="{{ route('seed.applications.submit', $application) }}"
-                        onclick="return confirm('{{ $application->isRevising() ? 'Send your revised version and response to the reviewers?' : ($isConcept ? 'Submit your concept note? You cannot change it after it is submitted.' : 'Submit your full proposal? You cannot change it after it is submitted.') }}')">
+            <div class="w-40">
+                <div class="flex justify-between text-xs"><span class="text-muted-foreground">Length</span><b class="font-mono font-medium" data-pages>{{ $pages }} / {{ $maxPages }} pages</b></div>
+                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"><div data-pages-bar class="h-full rounded-full {{ $pages > $maxPages ? 'bg-danger' : 'bg-primary' }}" style="width: {{ min(100, $pages / $maxPages * 100) }}%"></div></div>
+            </div>
+            <div class="flex gap-2">
+                <x-button type="submit" icon="save" data-save>Save</x-button>
+                <x-button type="submit" variant="primary" formaction="{{ route('seed.applications.submit', $application) }}" icon="send"
+                          onclick="return confirm('{{ $application->isRevising() ? 'Send your revised version and response to the reviewers?' : ($isConcept ? 'Submit your concept note? You cannot change it after it is submitted.' : 'Submit your full proposal? You cannot change it after it is submitted.') }}')">
                     {{ $application->isRevising() ? 'Send response to reviewers' : ($isConcept ? 'Submit concept note' : 'Submit full proposal') }}
-                </button>
+                </x-button>
             </div>
         </div>
     </div>
 
+    <x-alert tone="info" class="mb-6 hidden" data-restored title="Unsaved text restored">
+        Text you typed on this device since your last save has been put back. Press Save to keep it.
+        <x-slot:actions><x-button size="sm" variant="ghost" data-discard>Discard it</x-button></x-slot:actions>
+    </x-alert>
+
     @if($isConcept && $application->status === SeedGrant::DRAFT && $application->screened_at && $application->screening_note)
-        <div class="banner banner-warn" style="margin-bottom:20px; padding:16px 18px;" role="status">
-            <span class="ico" style="width:32px; height:32px; flex-basis:32px; font-size:14px;"><i class="fas fa-undo" aria-hidden="true"></i></span>
-            <div><strong>GMU returned your concept note for correction</strong>
-                <p style="font-size:14px; margin-top:2px;">{{ $application->screening_note }}</p>
-                <p class="small muted" style="margin-top:4px;">Make the change, then submit again.</p></div>
-        </div>
+        <x-alert tone="warn" icon="rotate-ccw" title="GMU returned your concept note for correction" class="mb-6">
+            <p class="whitespace-pre-line">{{ $application->screening_note }}</p>
+            <p class="mt-1 text-[13px]">Make the change, then submit again.</p>
+        </x-alert>
     @endif
 
-    <nav class="section-nav" aria-label="Sections">
-        @if($isConcept)
-            @php $aDone = $application->priorLargeGrant() === 'no' && $application->mentor_name && $application->mentor_suitability; @endphp
-            <a href="#project"><span class="tick {{ $aDone ? 'ok' : 'no' }}"><i class="fas fa-check" aria-hidden="true"></i></span>A. Applicant</a>
-            <a href="#s-title"><span class="tick {{ $application->title ? 'ok' : 'no' }}"><i class="fas fa-check" aria-hidden="true"></i></span>Title</a>
-        @endif
-        @foreach($sections as $key => [$heading, , $limit])
-            @php
-                $w = SeedGrant::wordCount($application->sectionText($stage, $key));
-                $needed = ! $isConcept || $form->sectionRequired($key, $application->choice($key));
-                $answered = ! $isConcept || ! isset($form->choices()[$key]) || $application->choice($key) !== null;
-                $state = $w > $limit ? 'over' : (($w === 0 && $needed) || ! $answered ? 'no' : 'ok');
-                $short = $isConcept ? preg_replace('/^(\d+|[A-Z])\. /', '$1. ', \Illuminate\Support\Str::before($heading, ' and ')) : $heading;
-            @endphp
-            <a href="#s-{{ $key }}"><span class="tick {{ $state }}"><i class="fas {{ $state === 'over' ? 'fa-exclamation' : 'fa-check' }}" aria-hidden="true"></i></span>{{ $short }}</a>
-        @endforeach
-        <a href="#budget"><span class="tick {{ $lines->isEmpty() ? 'no' : 'ok' }}"><i class="fas fa-check" aria-hidden="true"></i></span>{{ $isConcept ? 'D. Budget' : 'Budget' }}</a>
-        @if($isConcept && $form->declarations())
-            <a href="#declaration"><span class="tick {{ count(array_intersect(array_keys($form->declarations()), $application->declarations())) === count($form->declarations()) ? 'ok' : 'no' }}"><i class="fas fa-check" aria-hidden="true"></i></span>E. Declaration</a>
-        @endif
-        @unless($isConcept)
-            <a href="#documents"><span class="tick {{ $application->documents->isEmpty() ? 'no' : 'ok' }}"><i class="fas fa-check" aria-hidden="true"></i></span>Documents</a>
-        @endunless
-    </nav>
+    <div class="grid items-start gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        {{-- Sections, with what is done --}}
+        <aside class="space-y-4 lg:sticky lg:top-40">
+            <nav aria-label="Sections" class="hidden lg:block">
+                <p class="mb-2 flex items-center justify-between px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Sections <span class="font-mono normal-case tracking-normal">{{ $doneCount }}/{{ count($nav) }}</span></p>
+                <ul class="space-y-0.5">
+                    @foreach($nav as [$anchor, $label, $state])
+                        <li>
+                            <a href="#{{ $anchor }}" class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">
+                                @if($state === 'ok')<span class="grid size-4 shrink-0 place-items-center rounded-full bg-primary text-white"><x-icon name="check" class="size-2.5" /></span>
+                                @elseif($state === 'over')<span class="grid size-4 shrink-0 place-items-center rounded-full bg-danger text-[10px] font-bold text-white">!</span>
+                                @else<span class="size-4 shrink-0 rounded-full border-[1.5px] border-input"></span>@endif
+                                <span class="truncate">{{ $label }}</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            </nav>
+            @if($problems)
+                <div class="rounded-xl border border-warn-line bg-warn-soft/60 p-4">
+                    <p class="text-[13px] font-semibold text-warn-ink">Before you can submit</p>
+                    <ul class="mt-2 list-disc space-y-1 pl-4 text-xs text-warn-ink">@foreach($problems as $p)<li>{{ $p }}</li>@endforeach</ul>
+                    <p class="mt-2 text-[11px] text-warn-ink/80">As of your last save.</p>
+                </div>
+            @else
+                <x-alert tone="ok" title="Ready to submit">Everything required is in place.</x-alert>
+            @endif
+        </aside>
 
-    <div class="grid grid-wide" style="margin-top:20px;">
-        <div class="stack" style="gap:16px;">
-
+        <div class="min-w-0 space-y-6">
             @if($round)
-                <section class="card accent-warn" id="response">
-                    <div class="card-body">
-                        <h2 class="card-title">Your response to the reviewers</h2>
-                        <p class="small muted" style="margin-top:4px;">Say what you changed for each comment, or why you did not. Due {{ $round->response_due_at?->format('j M Y') }}.</p>
-                        <textarea name="response" class="textarea" rows="6" style="margin-top:12px;" aria-label="Your response to the reviewers">{{ old('response') }}</textarea>
-                    </div>
-                </section>
+                <x-card tone="warn" id="response" title="Your response to the reviewers" icon="message-square"
+                        :description="'Say what you changed for each comment, or why you did not. Due ' . $round->response_due_at?->format('j M Y') . '.'">
+                    <textarea name="response" class="textarea" rows="6" aria-label="Your response to the reviewers" data-keep>{{ old('response') }}</textarea>
+                </x-card>
+            @endif
+
+            @if($application->rounds->whereNotNull('decision')->isNotEmpty())
+                <details class="group" @if($round) open @endif>
+                    <summary class="mb-3 flex cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+                        <x-icon name="chevron-right" class="text-subtle transition-transform group-open:rotate-90" /> Reviewer feedback
+                    </summary>
+                    @include('seed.partials.feedback', ['compact' => true])
+                </details>
             @endif
 
             @if($isConcept)
@@ -97,81 +135,71 @@
                     $expertise = old('mentor_suitability', $application->mentor_suitability);
                     $priorDetails = old('prior_grant_details', $application->conceptField('prior_grant_details'));
                 @endphp
-                <section class="card" id="project">
-                    <div class="card-body">
-                        <h2 class="card-title">A. Applicant and project information</h2>
-                        <p class="small muted" style="margin-top:4px;">Your details come from your profile. If any is wrong, ask GMU to correct it.</p>
+                <x-card id="project" class="scroll-mt-40" title="A. Applicant and project information" description="Your details come from your profile. If any is wrong, ask GMU to correct it.">
+                    <dl class="grid gap-x-6 gap-y-4 rounded-lg bg-muted/60 p-4 sm:grid-cols-2">
+                        <x-stat label="Lead applicant (PI)" :value="$pi->name" />
+                        <x-stat label="Current designation" :value="$pi->designation ?: '—'" />
+                        <x-stat label="NIMR centre" :value="$pi->research_center ?: '—'" />
+                        <x-stat label="Department or section" :value="$pi->department ?: '—'" />
+                        <x-stat label="Email" :value="$pi->email" />
+                        <x-stat label="Telephone" :value="$pi->phone ?: '—'" />
+                        <x-stat label="Employment" :value="\App\Models\User::EMPLOYMENT_TYPES[$pi->employment_type] ?? '—'" />
+                        <x-stat label="Date of first appointment" :value="$pi->first_appointment_date?->format('j M Y') ?? '—'"
+                                :note="$service ? $service['years'] . ' y ' . $service['months'] . ' m' . ($form->serviceYears() && $pi->withinServiceLimit($form->serviceYears()) ? ', under ' . $form->serviceYears() . ' years' : '') : null" />
+                    </dl>
 
-                        <div class="form-grid" style="margin-top:16px;">
-                            <div class="kv"><span class="k">Lead applicant (PI)</span><span class="v">{{ $pi->name }}</span></div>
-                            <div class="kv"><span class="k">Current designation</span><span class="v">{{ $pi->designation ?: '—' }}</span></div>
-                            <div class="kv"><span class="k">NIMR centre</span><span class="v">{{ $pi->research_center ?: '—' }}</span></div>
-                            <div class="kv"><span class="k">Department or section</span><span class="v">{{ $pi->department ?: '—' }}</span></div>
-                            <div class="kv"><span class="k">Email</span><span class="v">{{ $pi->email }}</span></div>
-                            <div class="kv"><span class="k">Telephone</span><span class="v">{{ $pi->phone ?: '—' }}</span></div>
-                            <div class="kv"><span class="k">Employment</span><span class="v">{{ \App\Models\User::EMPLOYMENT_TYPES[$pi->employment_type] ?? '—' }}</span></div>
-                            <div class="kv"><span class="k">Date of first appointment</span>
-                                <span class="v">{{ $pi->first_appointment_date?->format('j M Y') ?? '—' }}
-                                    @if($service)<span class="small muted"> · {{ $service['years'] }} y {{ $service['months'] }} m{{ $form->serviceYears() && $pi->withinServiceLimit($form->serviceYears()) ? ', under ' . $form->serviceYears() . ' years' : '' }}</span>@endif
-                                </span></div>
-                        </div>
-
-                        @if($priorRule = $form->priorGrant())
-                        <fieldset class="choice-group" style="margin-top:20px;">
+                    @if($priorRule = $form->priorGrant())
+                        <fieldset class="mt-6">
                             <legend class="label">Have you previously received a research grant exceeding USD {{ number_format($priorRule['usd']) }} as Principal Investigator?</legend>
-                            <div class="row" style="gap:20px; margin-top:8px;">
+                            <div class="mt-2 flex gap-6">
                                 @foreach(['no' => 'No', 'yes' => 'Yes'] as $value => $label)
-                                    <label class="check"><input type="radio" name="prior_grant" value="{{ $value }}" @checked($prior === $value) data-reveal="prior-details" data-reveal-on="yes"> <span>{{ $label }}</span></label>
+                                    <label class="flex items-center gap-2 text-sm"><input type="radio" class="radio" name="prior_grant" value="{{ $value }}" @checked($prior === $value) data-reveal="prior-details" data-reveal-on="yes">{{ $label }}</label>
                                 @endforeach
                             </div>
-                            <div id="prior-details" @if($prior !== 'yes') hidden @endif style="margin-top:12px;">
+                            <div id="prior-details" class="mt-3" @if($prior !== 'yes') hidden @endif>
                                 <label for="prior_grant_details" class="label">Grant title, funding organisation and amount awarded</label>
-                                <textarea id="prior_grant_details" name="prior_grant_details" class="textarea" rows="2" data-words data-limit="{{ $priorRule['words'] }}">{{ $priorDetails }}</textarea>
-                                <div class="wordcount" data-count-for="prior_grant_details">{{ SeedGrant::wordCount($priorDetails) }} / {{ $priorRule['words'] }} words</div>
-                                <p class="small" style="margin-top:6px; color:var(--danger-ink);">The call is open only to researchers who have not held a grant above USD {{ number_format($priorRule['usd']) }} as PI.</p>
+                                <textarea id="prior_grant_details" name="prior_grant_details" class="textarea mt-1.5" rows="2" data-words data-limit="{{ $priorRule['words'] }}">{{ $priorDetails }}</textarea>
+                                <div class="{{ $count }}" data-count-for="prior_grant_details">{{ SeedGrant::wordCount($priorDetails) }} / {{ $priorRule['words'] }} words</div>
+                                <p class="mt-1 text-[13px] text-danger-ink">The call is open only to researchers who have not held a grant above USD {{ number_format($priorRule['usd']) }} as PI.</p>
                             </div>
                         </fieldset>
-                        @endif
+                    @endif
 
-                        <div class="form-grid" style="margin-top:20px;">
-                            @if($form->mentorWords() !== null)
-                            <x-ui.field label="Proposed scientific mentor’s full name" name="mentor_name">
-                                <input id="mentor_name" name="mentor_name" class="input" value="{{ old('mentor_name', $application->mentor_name) }}">
-                            </x-ui.field>
-                            <x-ui.field label="Mentor’s designation" name="mentor_designation">
-                                <input id="mentor_designation" name="mentor_designation" class="input" value="{{ old('mentor_designation', $application->mentor_designation) }}">
-                            </x-ui.field>
-                            <x-ui.field label="Mentor’s NIMR centre or section" name="mentor_centre" wide>
-                                <input id="mentor_centre" name="mentor_centre" class="input" value="{{ old('mentor_centre', $application->mentor_centre) }}">
-                            </x-ui.field>
-                            <div class="field wide">
+                    <div class="mt-6 grid gap-x-4 gap-y-5 sm:grid-cols-2">
+                        @if($form->mentorWords() !== null)
+                            <x-field label="Proposed scientific mentor’s full name" name="mentor_name">
+                                <input id="mentor_name" name="mentor_name" class="input" value="{{ old('mentor_name', $application->mentor_name) }}" data-keep>
+                            </x-field>
+                            <x-field label="Mentor’s designation" name="mentor_designation">
+                                <input id="mentor_designation" name="mentor_designation" class="input" value="{{ old('mentor_designation', $application->mentor_designation) }}" data-keep>
+                            </x-field>
+                            <x-field class="sm:col-span-2" label="Mentor’s NIMR centre or section" name="mentor_centre">
+                                <input id="mentor_centre" name="mentor_centre" class="input" value="{{ old('mentor_centre', $application->mentor_centre) }}" data-keep>
+                            </x-field>
+                            <div class="sm:col-span-2">
                                 <label for="mentor_suitability" class="label">The mentor’s expertise relevant to the proposed study</label>
-                                <textarea id="mentor_suitability" name="mentor_suitability" class="textarea" rows="2" data-words data-limit="{{ $form->mentorWords() }}">{{ $expertise }}</textarea>
-                                <div class="wordcount" data-count-for="mentor_suitability">{{ SeedGrant::wordCount($expertise) }} / {{ $form->mentorWords() }} words</div>
+                                <textarea id="mentor_suitability" name="mentor_suitability" class="textarea mt-1.5" rows="3" data-words data-limit="{{ $form->mentorWords() }}">{{ $expertise }}</textarea>
+                                <div class="{{ $count }}" data-count-for="mentor_suitability">{{ SeedGrant::wordCount($expertise) }} / {{ $form->mentorWords() }} words</div>
                             </div>
-                            @endif
-                            @if($form->coInvestigatorWords() !== null)
-                            <div class="field wide">
-                                <label for="co_investigators" class="label">Proposed co-investigators or collaborators, if any</label>
-                                <p class="small muted">Names, designations and institutional affiliations.</p>
-                                <textarea id="co_investigators" name="co_investigators" class="textarea" rows="2" data-words data-limit="{{ $form->coInvestigatorWords() }}">{{ $coInv }}</textarea>
-                                <div class="wordcount" data-count-for="co_investigators">{{ SeedGrant::wordCount($coInv) }} / {{ $form->coInvestigatorWords() }} words</div>
+                        @endif
+                        @if($form->coInvestigatorWords() !== null)
+                            <div class="sm:col-span-2">
+                                <label for="co_investigators" class="label">Proposed co-investigators or collaborators <span class="font-normal text-muted-foreground">(if any)</span></label>
+                                <p class="text-xs text-muted-foreground">Names, designations and institutional affiliations.</p>
+                                <textarea id="co_investigators" name="co_investigators" class="textarea mt-1.5" rows="2" data-words data-limit="{{ $form->coInvestigatorWords() }}">{{ $coInv }}</textarea>
+                                <div class="{{ $count }}" data-count-for="co_investigators">{{ SeedGrant::wordCount($coInv) }} / {{ $form->coInvestigatorWords() }} words</div>
                             </div>
-                            @endif
-                        </div>
-                        <p class="small muted" style="margin-top:12px;">Total funding requested is taken from your budget below: TZS {{ number_format($call->min_amount) }} to {{ number_format($call->max_amount) }}.</p>
+                        @endif
                     </div>
-                </section>
+                    <p class="mt-5 text-[13px] text-muted-foreground">Total funding requested is taken from your budget below: TZS {{ number_format($call->min_amount) }} to {{ number_format($call->max_amount) }}.</p>
+                </x-card>
 
-                <section class="card" id="s-title">
-                    <div class="card-body">
-                        <h2 class="card-title">B. Concept note technical questions</h2>
-                        <label for="title" class="label" style="margin-top:16px; display:block;">Proposed project title</label>
-                        @php $titleText = old('title', $application->title); @endphp
-                        <input id="title" name="title" class="input" maxlength="255" value="{{ $titleText }}" data-words data-limit="{{ $form->titleWords() }}">
-                        <div class="wordcount" data-count-for="title">{{ SeedGrant::wordCount($titleText) }} / {{ $form->titleWords() }} words</div>
-                    </div>
-                </section>
+                <x-card id="s-title" class="scroll-mt-40" title="B. Concept note technical questions">
+                    @php $titleText = old('title', $application->title); @endphp
+                    <label for="title" class="label">Proposed project title</label>
+                    <input id="title" name="title" class="input mt-1.5 text-[15px] font-medium" maxlength="255" value="{{ $titleText }}" data-words data-limit="{{ $form->titleWords() }}">
+                    <div class="{{ $count }}" data-count-for="title">{{ SeedGrant::wordCount($titleText) }} / {{ $form->titleWords() }} words</div>
+                </x-card>
             @endif
 
             @foreach($sections as $key => [$heading, $guidance, $limit])
@@ -181,174 +209,143 @@
                     $answer = $choice ? old("choices.$key", $application->choice($key)) : null;
                     $showText = ! $choice || in_array($answer, $choice['describe'], true);
                 @endphp
-                <section class="card" id="s-{{ $key }}">
-                    <div class="card-body">
-                        @if($choice)
-                            <fieldset class="choice-group">
-                                <legend class="card-title">{{ $heading }}</legend>
-                                <p class="small" style="margin-top:4px;">{{ $choice['question'] }}</p>
-                                <div class="row" style="gap:20px; margin-top:8px;">
-                                    @foreach($choice['options'] as $value => $label)
-                                        <label class="check"><input type="radio" name="choices[{{ $key }}]" value="{{ $value }}" @checked($answer === $value)
-                                               data-reveal="describe-{{ $key }}" data-reveal-on="{{ implode(',', $choice['describe']) }}"> <span>{{ $label }}</span></label>
-                                    @endforeach
-                                </div>
-                            </fieldset>
-                            <div id="describe-{{ $key }}" @unless($showText) hidden @endunless style="margin-top:12px;">
-                                <label for="sec-{{ $key }}" class="label">{{ $guidance }}</label>
-                        @else
-                            <div>
-                                <label for="sec-{{ $key }}" class="card-title" style="display:block;">{{ $heading }}</label>
-                                @if($guidance)<p class="small muted" style="margin-top:4px;">{{ $guidance }}</p>@endif
-                        @endif
-                                <textarea id="sec-{{ $key }}" name="sections[{{ $key }}]" class="textarea" rows="{{ $limit <= 150 ? 4 : 7 }}" style="margin-top:12px;"
-                                          data-words data-page data-limit="{{ $limit }}">{{ $text }}</textarea>
-                                <div class="wordcount" data-count-for="sec-{{ $key }}">{{ SeedGrant::wordCount($text) }} / {{ $limit }} words</div>
+                <x-card id="s-{{ $key }}" class="scroll-mt-40">
+                    @if($choice)
+                        <fieldset>
+                            <legend class="text-[15px] font-semibold">{{ $heading }}</legend>
+                            <p class="mt-1 text-[13px] text-muted-foreground">{{ $choice['question'] }}</p>
+                            <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+                                @foreach($choice['options'] as $value => $label)
+                                    <label class="flex items-center gap-2 text-sm"><input type="radio" class="radio" name="choices[{{ $key }}]" value="{{ $value }}" @checked($answer === $value)
+                                           data-reveal="describe-{{ $key }}" data-reveal-on="{{ implode(',', $choice['describe']) }}">{{ $label }}</label>
+                                @endforeach
                             </div>
-                    </div>
-                </section>
+                        </fieldset>
+                        <div id="describe-{{ $key }}" class="mt-4" @unless($showText) hidden @endunless>
+                            <label for="sec-{{ $key }}" class="label">{{ $guidance }}</label>
+                    @else
+                        <div>
+                            <label for="sec-{{ $key }}" class="block text-[15px] font-semibold">{{ $heading }}</label>
+                            @if($guidance)<p class="mt-1 text-[13px] leading-relaxed text-muted-foreground">{{ $guidance }}</p>@endif
+                    @endif
+                            <textarea id="sec-{{ $key }}" name="sections[{{ $key }}]" class="textarea mt-3 text-[14.5px]" rows="{{ $limit <= 150 ? 5 : 9 }}"
+                                      data-words data-page data-limit="{{ $limit }}">{{ $text }}</textarea>
+                            <div class="{{ $count }}" data-count-for="sec-{{ $key }}">{{ SeedGrant::wordCount($text) }} / {{ $limit }} words</div>
+                        </div>
+                </x-card>
             @endforeach
 
-            <section class="card" id="budget">
-                <div class="card-body">
-                    <div class="row-between">
-                        <h2 class="card-title">{{ $isConcept ? 'D. Estimated budget' : 'Detailed budget' }}</h2>
-                        <span class="small muted">{{ $isConcept ? 'A detailed quarterly budget comes at stage 2.' : 'From the NIMR finance template: four categories by quarter.' }}</span>
-                    </div>
-                    <div class="table-wrap" style="margin-top:12px;">
-                        <table class="budget-table" style="min-width:{{ $isConcept ? 460 : 860 }}px;" data-budget>
-                            <thead>
-                                <tr>
-                                    @unless($isConcept)<th style="width:150px;">Category</th>@endunless
-                                    <th>Item</th>
+            <x-card id="budget" class="scroll-mt-40" :title="$isConcept ? 'D. Estimated budget' : 'Detailed budget'"
+                    :description="$isConcept ? 'A detailed quarterly budget comes at stage 2.' : 'From the NIMR finance template: four categories by quarter.'">
+                <div class="-mx-5 overflow-x-auto border-y border-border">
+                    <table class="w-full text-sm {{ $isConcept ? 'min-w-[460px]' : 'min-w-[860px]' }}" data-budget>
+                        <thead class="bg-muted/60 text-xs text-muted-foreground">
+                            <tr>
+                                @unless($isConcept)<th class="w-40 px-3 py-2 pl-5 text-left font-medium">Category</th>@endunless
+                                <th class="px-3 py-2 text-left font-medium {{ $isConcept ? 'pl-5' : '' }}">Item</th>
+                                @if($isConcept)
+                                    <th class="w-48 px-3 py-2 pr-5 text-right font-medium">Amount (TZS)</th>
+                                @else
+                                    @foreach(['q1', 'q2', 'q3', 'q4'] as $q)<th class="w-32 px-3 py-2 text-right font-medium last:pr-5">{{ strtoupper($q) }}</th>@endforeach
+                                @endif
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border/70">
+                            @foreach($lines->concat(array_fill(0, $blankRows, null)) as $i => $line)
+                                <tr data-row>
+                                    @unless($isConcept)
+                                        <td class="py-1 pl-3 pr-1">
+                                            <select name="budget[{{ $i }}][category]" class="select {{ $cell }} pr-7" aria-label="Category" data-category>
+                                                <option value="">—</option>
+                                                @foreach(SeedGrant::BUDGET_CATEGORIES as $value => $label)
+                                                    <option value="{{ $value }}" @selected($line?->category === $value)>{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                    @endunless
+                                    <td class="py-1 {{ $isConcept ? 'pl-3' : '' }} pr-1"><input name="budget[{{ $i }}][item]" class="input {{ $cell }}" aria-label="Item" value="{{ $line?->item }}" maxlength="255" placeholder="Describe the item"></td>
                                     @if($isConcept)
-                                        <th style="width:200px; text-align:right;">Amount (TZS)</th>
+                                        <td class="py-1 pr-3"><input name="budget[{{ $i }}][amount]" class="input {{ $cell }} text-right font-mono" aria-label="Amount" inputmode="numeric" value="{{ $line ? number_format($line->q1) : '' }}" data-amount placeholder="0"></td>
                                     @else
-                                        @foreach(['q1', 'q2', 'q3', 'q4'] as $q)<th style="width:120px; text-align:right;">{{ strtoupper($q) }}</th>@endforeach
+                                        @foreach(['q1', 'q2', 'q3', 'q4'] as $q)
+                                            <td class="py-1 pr-1 last:pr-3"><input name="budget[{{ $i }}][{{ $q }}]" class="input {{ $cell }} text-right font-mono" aria-label="{{ strtoupper($q) }}" inputmode="numeric" value="{{ $line && $line->$q ? number_format($line->$q) : '' }}" data-amount placeholder="0"></td>
+                                        @endforeach
                                     @endif
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($lines->concat(array_fill(0, $blankRows, null)) as $i => $line)
-                                    <tr data-row>
-                                        @unless($isConcept)
-                                            <td>
-                                                <select name="budget[{{ $i }}][category]" class="cell" aria-label="Category" data-category>
-                                                    <option value="">—</option>
-                                                    @foreach(SeedGrant::BUDGET_CATEGORIES as $value => $label)
-                                                        <option value="{{ $value }}" @selected($line?->category === $value)>{{ $label }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                        @endunless
-                                        <td><input name="budget[{{ $i }}][item]" class="cell" aria-label="Item" value="{{ $line?->item }}" maxlength="255"></td>
-                                        @if($isConcept)
-                                            <td><input name="budget[{{ $i }}][amount]" class="cell num" aria-label="Amount" inputmode="numeric" value="{{ $line ? number_format($line->q1) : '' }}" data-amount></td>
-                                        @else
-                                            @foreach(['q1', 'q2', 'q3', 'q4'] as $q)
-                                                <td><input name="budget[{{ $i }}][{{ $q }}]" class="cell num" aria-label="{{ strtoupper($q) }}" inputmode="numeric" value="{{ $line && $line->$q ? number_format($line->$q) : '' }}" data-amount></td>
-                                            @endforeach
-                                        @endif
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                    <button type="button" class="btn btn-sm" style="margin-top:12px;" data-add-row><i class="fas fa-plus" aria-hidden="true"></i> Add line</button>
-
-                    <div style="margin-top:20px; padding:18px; border-radius:12px; background:var(--canvas);">
-                        <div class="row-between"><strong>Total</strong><span class="mono" style="font-size:22px;" data-total>{{ SeedGrant::tzs($application->budgetTotal($stage)) }}</span></div>
-                        <div class="range-bar" style="margin-top:14px;" data-range><span style="width:0%"></span></div>
-                        <div class="row-between mono tiny muted" style="margin-top:6px;"><span>{{ number_format($call->min_amount) }} min</span><span>{{ number_format($call->max_amount) }} max</span></div>
-                        <p class="small" style="margin-top:10px;" data-range-note></p>
-                        @unless($isConcept)
-                            <p class="small" style="margin-top:4px;" data-equipment-note></p>
-                        @endunless
-                    </div>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
-            </section>
+                <x-button size="sm" variant="ghost" class="mt-3" icon="plus" data-add-row>Add line</x-button>
+
+                <div class="mt-4 rounded-lg bg-muted/70 p-4">
+                    <div class="flex items-baseline justify-between"><span class="text-sm font-semibold">Total</span><span class="font-mono text-xl font-semibold tabular-nums" data-total>{{ SeedGrant::tzs($application->budgetTotal($stage)) }}</span></div>
+                    <div class="mt-3 h-2 overflow-hidden rounded-full bg-card ring-1 ring-inset ring-border" data-range><div class="h-full rounded-full bg-primary transition-[width]" style="width: 0%"></div></div>
+                    <div class="mt-1.5 flex justify-between font-mono text-xs text-muted-foreground"><span>{{ number_format($call->min_amount) }} min</span><span>{{ number_format($call->max_amount) }} max</span></div>
+                    <p class="mt-2 text-[13px]" data-range-note></p>
+                    @unless($isConcept)<p class="mt-1 text-[13px]" data-equipment-note></p>@endunless
+                </div>
+            </x-card>
 
             @if($isConcept && $form->declarations())
                 @php $ticked = old('declarations', $application->declarations()); @endphp
-                <section class="card" id="declaration">
-                    <div class="card-body">
-                        <h2 class="card-title">E. Applicant declaration</h2>
-                        <p class="small muted" style="margin-top:4px;">Tick every statement. Submitting from your account stands as your signature and date.</p>
-                        <div class="stack-sm" style="margin-top:14px;">
-                            @foreach($form->declarations() as $value => $statement)
-                                <label class="check" style="align-items:flex-start;">
-                                    <input type="checkbox" name="declarations[]" value="{{ $value }}" style="margin-top:3px;" @checked(in_array($value, (array) $ticked, true))>
-                                    <span>{{ $statement }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-                        <p class="small muted" style="margin-top:14px;">Applicant: <strong>{{ $application->pi->name }}</strong></p>
+                <x-card id="declaration" class="scroll-mt-40" title="E. Applicant declaration" description="Tick every statement. Submitting from your account stands as your signature and date.">
+                    <div class="space-y-3">
+                        @foreach($form->declarations() as $value => $statement)
+                            <label class="flex items-start gap-3 text-sm">
+                                <input type="checkbox" class="checkbox mt-0.5" name="declarations[]" value="{{ $value }}" @checked(in_array($value, (array) $ticked, true))>
+                                <span>{{ $statement }}</span>
+                            </label>
+                        @endforeach
                     </div>
-                </section>
+                    <p class="mt-4 text-[13px] text-muted-foreground">Applicant: <strong class="text-foreground">{{ $application->pi->name }}</strong></p>
+                </x-card>
             @endif
         </div>
-
-        <aside class="stack-sm" style="gap:16px;">
-            @if($problems)
-                <section class="card">
-                    <div class="card-body">
-                        <h2 class="card-title">Before you can submit</h2>
-                        <p class="small muted" style="margin-top:4px;">As of your last save.</p>
-                        <ul style="margin:12px 0 0; padding-left:18px; display:flex; flex-direction:column; gap:6px; font-size:14px;">
-                            @foreach($problems as $p)<li>{{ $p }}</li>@endforeach
-                        </ul>
-                    </div>
-                </section>
-            @else
-                <div class="banner banner-ok" style="padding:16px 18px;">
-                    <span class="ico" style="width:32px; height:32px; flex-basis:32px; font-size:14px;"><i class="fas fa-check" aria-hidden="true"></i></span>
-                    <div><strong>Ready to submit</strong><p style="font-size:14px; margin-top:2px;">Everything required is in place.</p></div>
-                </div>
-            @endif
-
-            @if($application->rounds->whereNotNull('decision')->isNotEmpty())
-                <h2 class="card-title" style="margin-top:8px;">Reviewer feedback</h2>
-                @include('seed.partials.feedback', ['compact' => true])
-            @endif
-        </aside>
     </div>
 </form>
 
 @unless($isConcept)
-    <section class="card" id="documents" style="margin-top:24px; max-width:860px;">
-        <div class="card-body">
-            <h2 class="card-title">Supporting documents</h2>
-            <p class="small muted" style="margin-top:4px;">PDF or Word, up to 10 MB each. The mentor letter and CV are required.</p>
-            <div class="list" style="margin-top:12px; border:1px solid var(--line); border-radius:12px;">
+    <div class="mt-6 lg:ml-[calc(14rem+2rem)]">
+        <x-card id="documents" class="scroll-mt-40" title="Supporting documents" description="PDF or Word, up to 10 MB each." icon="paperclip">
+            <ul class="divide-y divide-border overflow-hidden rounded-lg border border-border">
                 @forelse($application->documents as $doc)
-                    <div class="list-row">
-                        <span class="list-main"><span class="list-title">{{ $doc->kindLabel() }}</span>
-                            <a href="{{ route('seed.applications.documents.download', [$application, $doc]) }}" class="list-sub">{{ $doc->file_name }}</a></span>
+                    <li class="flex items-center gap-3 px-4 py-3">
+                        <span class="grid size-9 shrink-0 place-items-center rounded-lg bg-muted font-mono text-[10px] font-medium text-muted-foreground">{{ strtoupper(pathinfo($doc->file_name, PATHINFO_EXTENSION)) }}</span>
+                        <span class="min-w-0 flex-1"><span class="block text-sm font-medium">{{ $doc->kindLabel() }}</span>
+                            <a href="{{ route('seed.applications.documents.download', [$application, $doc]) }}" class="block truncate text-[13px] text-primary hover:underline">{{ $doc->file_name }}</a></span>
                         <form method="POST" action="{{ route('seed.applications.documents.destroy', [$application, $doc]) }}" onsubmit="return confirm('Remove this document?')">
                             @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                            <x-button type="submit" size="sm" variant="danger" icon="trash">Remove</x-button>
                         </form>
-                    </div>
+                    </li>
                 @empty
-                    <div class="table-empty">Nothing uploaded yet.</div>
+                    <li class="px-4 py-6 text-center text-sm text-muted-foreground">Nothing uploaded yet.</li>
                 @endforelse
-            </div>
-            <form method="POST" action="{{ route('seed.applications.documents.store', $application) }}" enctype="multipart/form-data" class="row" style="margin-top:16px; align-items:flex-end;">
+            </ul>
+            <ul class="mt-3 flex flex-wrap gap-2 text-xs">
+                @foreach($form->documents() as $value => [$label, $required])
+                    @php $has = $application->documents->contains('kind', $value); @endphp
+                    <li><x-badge :tone="$has ? 'ok' : ($required ? 'warn' : 'neutral')" :icon="$has ? 'check' : null">{{ $label }}{{ $required ? '' : ' (optional)' }}</x-badge></li>
+                @endforeach
+            </ul>
+            <form method="POST" action="{{ route('seed.applications.documents.store', $application) }}" enctype="multipart/form-data" class="mt-5 grid items-end gap-3 border-t border-border pt-5 sm:grid-cols-[12rem_minmax(0,1fr)_auto]">
                 @csrf
-                <x-ui.field label="Document" name="kind">
+                <x-field label="Document" name="kind">
                     <select id="kind" name="kind" class="select">
                         @foreach($form->documents() as $value => [$label, $required])
                             <option value="{{ $value }}">{{ $label }}{{ $required ? '' : ' (optional)' }}</option>
                         @endforeach
                     </select>
-                </x-ui.field>
-                <x-ui.field label="File" name="file">
-                    <input id="file" type="file" name="file" class="input" accept=".pdf,.doc,.docx" required>
-                </x-ui.field>
-                <button type="submit" class="btn">Upload</button>
+                </x-field>
+                <x-field label="File" name="file">
+                    <input id="file" type="file" name="file" accept=".pdf,.doc,.docx" required
+                           class="block w-full text-sm text-muted-foreground file:mr-3 file:h-9 file:rounded-md file:border file:border-solid file:border-border file:bg-card file:px-3 file:text-sm file:font-medium file:text-foreground hover:file:bg-muted">
+                </x-field>
+                <x-button type="submit" icon="upload">Upload</x-button>
             </form>
-        </div>
-    </section>
+        </x-card>
+    </div>
 @endunless
 @endsection
 
@@ -357,25 +354,31 @@
 (function () {
     var min = {{ (int) $call->min_amount }}, max = {{ (int) $call->max_amount }};
     var cap = {{ (int) ($form->equipmentCap() ?? 100) }}, perPage = {{ SeedGrant::WORDS_PER_PAGE }}, maxPages = {{ $maxPages }};
+    var form = document.getElementById('app-form');
     function words(t) { t = t.trim(); return t ? t.split(/\s+/).length : 0; }
     function num(v) { return parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0; }
+    function tone(el, bad, good) { el.classList.remove('text-danger-ink', 'text-blue-700', 'text-muted-foreground', 'font-medium'); el.classList.add.apply(el.classList, bad ? ['text-danger-ink', 'font-medium'] : [good]); }
 
-    var areas = document.querySelectorAll('[data-words]');
+    // Word counts and the page estimate.
+    var areas = form.querySelectorAll('[data-words]');
     function updateWords() {
         var all = 0;
         areas.forEach(function (a) {
             var w = words(a.value), limit = +a.dataset.limit, out = document.querySelector('[data-count-for="' + a.id + '"]');
             if (a.hasAttribute('data-page')) all += w;
             out.textContent = w + ' / ' + limit + ' words';
-            out.classList.toggle('over', w > limit);
+            tone(out, w > limit, 'text-muted-foreground');
+            a.setAttribute('aria-invalid', w > limit ? 'true' : 'false');
         });
-        var pages = Math.round(all / perPage * 10) / 10;
+        var pages = Math.round(all / perPage * 10) / 10, bar = document.querySelector('[data-pages-bar]');
         document.querySelector('[data-pages]').textContent = pages + ' / ' + maxPages + ' pages';
-        document.querySelector('[data-pages-bar]').style.width = Math.min(100, pages / maxPages * 100) + '%';
+        bar.style.width = Math.min(100, pages / maxPages * 100) + '%';
+        bar.classList.toggle('bg-danger', pages > maxPages); bar.classList.toggle('bg-primary', pages <= maxPages);
     }
     areas.forEach(function (a) { a.addEventListener('input', updateWords); });
 
-    var table = document.querySelector('[data-budget]');
+    // Budget totals, the award range and the equipment limit.
+    var table = form.querySelector('[data-budget]');
     function updateBudget() {
         var total = 0, equipment = 0;
         table.querySelectorAll('[data-row]').forEach(function (row) {
@@ -386,17 +389,17 @@
             if (cat && cat.value === 'equipment') equipment += sum;
         });
         document.querySelector('[data-total]').textContent = 'TZS ' + total.toLocaleString('en-US');
-        var range = document.querySelector('[data-range]'), ok = total >= min && total <= max;
-        range.firstElementChild.style.width = Math.min(100, total / max * 100) + '%';
-        range.classList.toggle('is-bad', total > 0 && !ok);
+        var bar = document.querySelector('[data-range]').firstElementChild, ok = total >= min && total <= max;
+        bar.style.width = Math.min(100, total / max * 100) + '%';
+        bar.classList.toggle('bg-danger', total > 0 && !ok); bar.classList.toggle('bg-primary', !(total > 0 && !ok));
         var note = document.querySelector('[data-range-note]');
         note.textContent = total === 0 ? '' : ok ? 'Within the allowed range.' : (total < min ? 'Below the minimum award.' : 'Above the maximum award.');
-        note.style.color = ok ? 'var(--blue-700)' : 'var(--danger-ink)';
+        tone(note, !ok, 'text-blue-700');
         var eq = document.querySelector('[data-equipment-note]');
         if (eq && total > 0) {
             var pct = equipment / total * 100;
             eq.textContent = 'Equipment ' + pct.toFixed(1) + '% of the budget (limit ' + cap + '%).';
-            eq.style.color = pct > cap ? 'var(--danger-ink)' : 'var(--muted-2)';
+            tone(eq, pct > cap, 'text-muted-foreground');
         }
     }
     table.addEventListener('input', updateBudget);
@@ -412,13 +415,39 @@
         next.querySelector('input').focus();
     });
 
-    // Questions that ask for a description only for some answers (prior grant, 7 and 8).
-    document.querySelectorAll('[data-reveal]').forEach(function (radio) {
+    // Questions that ask for a description only for some answers.
+    form.querySelectorAll('[data-reveal]').forEach(function (radio) {
         radio.addEventListener('change', function () {
             var target = document.getElementById(radio.dataset.reveal);
             if (target && radio.checked) target.hidden = radio.dataset.revealOn.split(',').indexOf(radio.value) === -1;
         });
     });
+
+    // Nothing typed is lost: unsaved text is kept on this device until it is saved,
+    // and put back if the page is reopened after a dropped connection.
+    var key = form.dataset.draftKey, savedAt = +form.dataset.savedAt, dirty = false, state = document.querySelector('[data-save-state]');
+    var kept = form.querySelectorAll('textarea, [data-keep], input[name^="budget"], select[name^="budget"]');
+    function store() {
+        var data = {};
+        kept.forEach(function (el) { if (el.name) data[el.name + '#' + Array.prototype.indexOf.call(kept, el)] = el.value; });
+        try { localStorage.setItem(key, JSON.stringify({ savedAt: savedAt, data: data })); } catch (e) {}
+    }
+    try {
+        var draft = JSON.parse(localStorage.getItem(key) || 'null');
+        if (draft && draft.savedAt === savedAt) {
+            var changed = false;
+            kept.forEach(function (el, i) {
+                var v = draft.data[el.name + '#' + i];
+                if (typeof v === 'string' && v !== el.value) { el.value = v; changed = true; }
+            });
+            if (changed) { dirty = true; document.querySelector('[data-restored]').classList.remove('hidden'); state.textContent = 'Unsaved changes'; }
+        } else if (draft) { localStorage.removeItem(key); }
+    } catch (e) {}
+    form.addEventListener('input', function () { dirty = true; state.textContent = 'Unsaved changes'; store(); });
+    form.addEventListener('submit', function () { dirty = false; try { localStorage.removeItem(key); } catch (e) {} });
+    window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+    var discard = document.querySelector('[data-discard]');
+    if (discard) discard.addEventListener('click', function () { try { localStorage.removeItem(key); } catch (e) {} dirty = false; location.reload(); });
 
     updateWords();
     updateBudget();

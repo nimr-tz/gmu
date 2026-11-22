@@ -751,7 +751,7 @@ class Workflow
     }
 
     /** The page this person acts on for this application. */
-    private function linkFor(User $user, SeedApplication $application): string
+    public function linkFor(User $user, SeedApplication $application): string
     {
         return match (true) {
             $user->id === $application->pi_id            => route('seed.applications.show', $application),

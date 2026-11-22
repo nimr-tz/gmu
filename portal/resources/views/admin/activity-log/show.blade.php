@@ -1,71 +1,62 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 @section('title', 'Audit entry')
-@section('crumb', 'Administration')
+@section('context', 'Administration · Audit register')
 
 @section('content')
 @php
     $old  = $log->old_values ?? [];
     $new  = $log->new_values ?? [];
     $keys = collect(array_keys($old + $new))->sort()->values();
+    $show = fn ($v) => is_scalar($v) || $v === null ? ($v ?? '—') : json_encode($v);
 @endphp
 
-<div class="page-head">
-    <div style="min-width:0;">
-        <a href="{{ route('admin.activity-log.index') }}" class="small">&larr; Audit log</a>
-        <h1 style="margin-top:8px;">{{ $log->description }}</h1>
-        <div class="row" style="gap:12px; margin-top:10px;">
-            <x-ui.pill :tone="match($log->action) { 'created' => 'ok', 'deleted' => 'danger', 'restored' => 'info', default => null }">
-                {{ ucfirst($log->action) }}
-            </x-ui.pill>
-            <span class="small muted">{{ $log->created_at?->format('d M Y \a\t H:i') }}</span>
-            <span class="small muted-3">{{ $log->user?->name ?? 'System' }}</span>
+<x-page-header :title="$log->description" :back="route('admin.activity-log.index')" back-label="Audit register">
+    <x-slot:meta>
+        <div class="mt-3 flex flex-wrap items-center gap-2.5 text-[13px] text-muted-foreground">
+            <x-badge :tone="match ($log->action) { 'created' => 'ok', 'deleted' => 'danger', 'restored' => 'review', default => 'neutral' }">{{ ucfirst($log->action) }}</x-badge>
+            <span>{{ $log->created_at?->format('j M Y H:i') }}</span><span>·</span><span>{{ $log->user?->name ?? 'System' }}</span>
         </div>
-    </div>
-</div>
+    </x-slot:meta>
+</x-page-header>
 
-<div class="grid grid-wide">
-    <x-ui.card title="What changed" note="Field by field, before and after" :flush="true">
-        <div class="table-wrap">
-            <table class="table">
-                <thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead>
+<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <x-card title="What changed" description="Field by field, before and after" flush>
+        <div class="overflow-x-auto">
+            <table class="data-table min-w-[560px]">
+                <thead><tr><th class="w-48">Field</th><th>Before</th><th>After</th></tr></thead>
                 <tbody>
                     @forelse($keys as $key)
-                        @php
-                            $before = $old[$key] ?? null;
-                            $after  = $new[$key] ?? null;
-                        @endphp
-                        <tr>
-                            <td class="strong">{{ Str::headline($key) }}</td>
-                            <td class="small" style="color:var(--danger-ink);">
-                                {{ is_scalar($before) || $before === null ? ($before ?? '—') : json_encode($before) }}
-                            </td>
-                            <td class="small" style="color:var(--ok-ink);">
-                                {{ is_scalar($after) || $after === null ? ($after ?? '—') : json_encode($after) }}
-                            </td>
+                        @php $before = $old[$key] ?? null; $after = $new[$key] ?? null; @endphp
+                        <tr class="align-top">
+                            <td class="font-medium">{{ Str::headline($key) }}</td>
+                            <td class="break-words text-[13px] text-muted-foreground {{ array_key_exists($key, $new) && $before !== null ? 'line-through decoration-gray-400' : '' }}">{{ $show($before) }}</td>
+                            <td class="break-words text-[13px]">{{ $show($after) }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="3"><x-ui.empty icon="fa-equals">No field values were recorded for this entry.</x-ui.empty></td></tr>
+                        <tr class="hover:bg-transparent"><td colspan="3"><x-empty icon="file" compact>No field values were recorded for this entry.</x-empty></td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-    </x-ui.card>
+    </x-card>
 
-    <x-ui.card title="Context">
-        <div class="stack-sm small">
-            <div class="row-between"><span class="muted">Record</span><span>{{ class_basename($log->model_type) }} #{{ $log->model_id }}</span></div>
-            <div class="row-between"><span class="muted">Label</span><span>{{ Str::limit($log->model_label, 26) }}</span></div>
-            <div class="row-between"><span class="muted">Person</span><span>{{ $log->user?->name ?? 'System' }}</span></div>
-            <div class="row-between"><span class="muted">When</span><span>{{ $log->created_at?->format('d M Y H:i:s') }}</span></div>
-            <div class="row-between"><span class="muted">IP address</span><span class="mono">{{ $log->ip_address ?? '—' }}</span></div>
-        </div>
-
+    <x-card title="Context">
+        <dl class="divide-y divide-border text-[13px]">
+            @foreach([
+                'Record' => class_basename($log->model_type) . ' #' . $log->model_id,
+                'Label' => $log->model_label ?? '—',
+                'Person' => $log->user?->name ?? 'System',
+                'When' => $log->created_at?->format('j M Y H:i:s'),
+            ] as $k => $v)
+                <div class="flex justify-between gap-4 py-2 first:pt-0"><dt class="text-muted-foreground">{{ $k }}</dt><dd class="min-w-0 truncate text-right font-medium">{{ $v }}</dd></div>
+            @endforeach
+            <div class="flex justify-between gap-4 py-2"><dt class="text-muted-foreground">IP address</dt><dd class="font-mono">{{ $log->ip_address ?? '—' }}</dd></div>
+        </dl>
         @if($log->user_agent)
-            <div class="divider"></div>
-            <div class="eyebrow" style="margin-bottom:6px;">User agent</div>
-            <p class="tiny muted-3" style="line-height:1.6; word-break:break-word;">{{ $log->user_agent }}</p>
+            <p class="mt-4 border-t border-border pt-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">User agent</p>
+            <p class="mt-1 break-words text-xs text-muted-foreground">{{ $log->user_agent }}</p>
         @endif
-    </x-ui.card>
+    </x-card>
 </div>
 @endsection

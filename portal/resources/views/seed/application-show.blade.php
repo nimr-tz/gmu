@@ -1,81 +1,77 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 @php
     use App\Support\SeedGrant as S;
     $stage = $application->stage();
     $s = $application->status;
     $round = $application->latestRound();
-@endphp
+    $shown = $stage === 'proposal' && $application->proposal ? 'proposal' : 'concept';
 
-@section('title', $application->reference)
-@section('context', $application->reference)
-
-@section('content')
-<p class="crumbs"><a href="{{ route('dashboard') }}">Dashboard</a> / My application</p>
-
-<div class="page-head">
-    <div style="min-width:0; flex:1 1 520px;">
-        <div class="row" style="gap:8px;"><span class="mono small muted">{{ $application->reference }}</span>@include('seed.partials.status')</div>
-        <h1 style="margin-top:8px; font-size:clamp(22px,2.2vw,28px); line-height:1.25;">{{ $application->title ?: 'Untitled concept note' }}</h1>
-    </div>
-    <div class="page-actions">
-        @can('update', $application)
-            <a href="{{ route('seed.applications.edit', $application) }}" class="btn btn-primary">{{ $application->isRevising() ? 'Revise and respond' : ($s === S::SHORTLISTED ? 'Write full proposal' : 'Continue writing') }}</a>
-        @endcan
-        @if($application->agreement_issued_at)
-            <a href="{{ route('seed.applications.agreement', $application) }}" class="btn {{ $s === S::AGREEMENT_ISSUED ? 'btn-primary' : '' }}">Grant agreement</a>
-        @endif
-    </div>
-</div>
-
-@php
+    // What happened, and what happens next: [tone, icon, headline, detail].
     $banner = match ($s) {
-        S::SUBMITTED          => ['info', 'fa-hourglass-half', 'Submitted and waiting for GMU screening', 'GMU checks eligibility, completeness and the budget range before reviewers see it.'],
-        S::SCREENED           => ['info', 'fa-user-check', 'Passed screening', 'GMU is assigning reviewers.'],
-        S::INELIGIBLE         => ['danger', 'fa-times', 'Not eligible', $application->screening_note],
-        S::CONCEPT_REVIEW, S::PROPOSAL_REVIEW => ['info', 'fa-comments', 'With reviewers', 'Round ' . ($round?->number ?? 1) . ' is under review' . ($round?->due_at ? ', due ' . $round->due_at->format('j M Y') : '') . '. You will be told when GMU decides.'],
-        S::CONCEPT_REVISION, S::PROPOSAL_REVISION => ['warn', 'fa-comment-dots', 'Reviewers asked you to revise', 'Read their comments below, revise, and send your response' . ($round?->response_due_at ? ' by ' . $round->response_due_at->format('j M Y') : '') . '.'],
-        S::CONCEPT_DECLINED   => ['danger', 'fa-times', 'Not shortlisted', $round?->decision_note ?: 'Thank you for applying. The reviewers’ comments are below.'],
-        S::SHORTLISTED        => ['ok', 'fa-star', 'You are shortlisted', 'Write your full proposal, detailed budget and upload the mentor letter and CV' . ($application->call->proposal_deadline ? ' by ' . $application->call->proposal_deadline->format('j M Y') : '') . '. Shortlisting does not guarantee an award.'],
-        S::PROPOSAL_SUBMITTED => ['info', 'fa-hourglass-half', 'Full proposal submitted', 'GMU is assigning reviewers for the scored review.'],
-        S::NOT_RECOMMENDED    => ['danger', 'fa-times', 'Not recommended for funding', $round?->decision_note ?: 'The reviewers’ comments are below.'],
-        S::RECOMMENDED, S::WITH_DRCP, S::WITH_DG => ['ok', 'fa-award', 'Recommended for funding', 'Now going through institutional approval: GMU, the DRCP, then the Director General.'],
-        S::APPROVED           => ['ok', 'fa-check', 'Approved', 'GMU will issue your grant agreement.'],
-        S::AGREEMENT_ISSUED   => ['warn', 'fa-file-signature', 'Your grant agreement is ready', 'Read and accept it online.'],
-        S::AGREEMENT_ACCEPTED => ['ok', 'fa-check', 'Agreement accepted', 'GMU is collecting the remaining signatures.'],
-        S::AWARDED            => ['ok', 'fa-check-double', 'Awarded', 'The signed agreement is on file.'],
+        S::SUBMITTED          => ['info', 'hourglass', 'Submitted and waiting for GMU screening', 'GMU checks eligibility, completeness and the budget range before reviewers see it.'],
+        S::SCREENED           => ['info', 'users', 'Passed screening', 'GMU is assigning reviewers.'],
+        S::INELIGIBLE         => ['danger', 'x-circle', 'Not eligible', $application->screening_note],
+        S::CONCEPT_REVIEW, S::PROPOSAL_REVIEW => ['info', 'message-square', 'With reviewers', 'Round ' . ($round?->number ?? 1) . ' is under review' . ($round?->due_at ? ', due ' . $round->due_at->format('j M Y') : '') . '. You will be told when GMU decides.'],
+        S::CONCEPT_REVISION, S::PROPOSAL_REVISION => ['warn', 'pencil', 'Reviewers asked you to revise', 'Read their comments below, revise, and send your response' . ($round?->response_due_at ? ' by ' . $round->response_due_at->format('j M Y') : '') . '.'],
+        S::CONCEPT_DECLINED   => ['danger', 'x-circle', 'Not shortlisted', $round?->decision_note ?: 'Thank you for applying. The reviewers’ comments are below.'],
+        S::SHORTLISTED        => ['ok', 'star', 'You are shortlisted', 'Write your full proposal, detailed budget and upload the mentor letter and CV' . ($application->call->proposal_deadline ? ' by ' . $application->call->proposal_deadline->format('j M Y') : '') . '. Shortlisting does not guarantee an award.'],
+        S::PROPOSAL_SUBMITTED => ['info', 'hourglass', 'Full proposal submitted', 'GMU is assigning reviewers for the scored review.'],
+        S::NOT_RECOMMENDED    => ['danger', 'x-circle', 'Not recommended for funding', $round?->decision_note ?: 'The reviewers’ comments are below.'],
+        S::RECOMMENDED, S::WITH_DRCP, S::WITH_DG => ['ok', 'award', 'Recommended for funding', 'Now going through institutional approval: ' . collect($application->call->form()->approvalLevels())->map(fn ($l) => ['gmu' => 'GMU', 'drcp' => 'the DRCP', 'dg' => 'the Director General'][$l])->implode(', then ') . '.'],
+        S::APPROVED           => ['ok', 'check-circle', 'Approved', 'GMU will issue your grant agreement.'],
+        S::AGREEMENT_ISSUED   => ['warn', 'pen-line', 'Your grant agreement is ready', 'Read and accept it online.'],
+        S::AGREEMENT_ACCEPTED => ['ok', 'check-circle', 'Agreement accepted', 'GMU is collecting the remaining signatures.'],
+        S::AWARDED            => ['ok', 'award', 'Awarded', 'The signed agreement is on file.'],
         default               => null,
     };
 @endphp
 
+@section('title', $application->reference)
+@section('context', 'My application · ' . $application->reference)
+
+@section('content')
+<x-page-header :title="$application->title ?: 'Untitled concept note'" :back="route('dashboard')" back-label="Dashboard">
+    <x-slot:meta>
+        <div class="mt-2 flex flex-wrap items-center gap-2.5 text-[13px] text-muted-foreground">
+            @include('seed.partials.status')
+            @include('seed.partials.call-tag', ['call' => $application->call, 'short' => true])
+            <span class="font-mono text-xs">{{ $application->reference }}</span>
+        </div>
+    </x-slot:meta>
+    <x-slot:actions>
+        @if($application->agreement_issued_at)
+            <x-button :variant="$s === S::AGREEMENT_ISSUED ? 'primary' : 'secondary'" :href="route('seed.applications.agreement', $application)" icon="pen-line">Grant agreement</x-button>
+        @endif
+        @can('update', $application)
+            <x-button variant="primary" :href="route('seed.applications.edit', $application)" icon="pencil">{{ $application->isRevising() ? 'Revise and respond' : ($s === S::SHORTLISTED ? 'Write full proposal' : 'Continue writing') }}</x-button>
+        @endcan
+    </x-slot:actions>
+</x-page-header>
+
 @if($banner)
-    <div class="banner banner-{{ $banner[0] }}" style="margin-bottom:24px;">
-        <span class="ico"><i class="fas {{ $banner[1] }}" aria-hidden="true"></i></span>
-        <div style="flex:1 1 360px;"><h2>{{ $banner[2] }}</h2>@if($banner[3])<p>{{ $banner[3] }}</p>@endif</div>
-    </div>
+    <x-alert :tone="$banner[0]" :icon="$banner[1]" :title="$banner[2]" class="mb-6">{{ $banner[3] }}</x-alert>
 @endif
 
-<section class="card" style="margin-bottom:24px;">
-    <div class="card-body">
-        <dl class="form-grid" style="margin:0 0 20px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
-            <div class="kv"><dt class="k">Requested</dt><dd class="v mono" style="margin:0;">{{ S::tzs($application->requestedAmount()) }}</dd></div>
-            <div class="kv"><dt class="k">Concept submitted</dt><dd class="v" style="margin:0;">{{ $application->concept_submitted_at?->format('j M Y') ?? '—' }}</dd></div>
-            <div class="kv"><dt class="k">Mentor</dt><dd class="v" style="margin:0;">{{ $application->mentor_name ?: '—' }}</dd></div>
-            @if($application->approved_amount)
-                <div class="kv"><dt class="k">Approved</dt><dd class="v mono" style="margin:0;">{{ S::tzs($application->approved_amount) }}</dd></div>
-            @endif
-        </dl>
-        @include('seed.partials.track')
-    </div>
-</section>
+<x-card class="mb-6">
+    <dl class="mb-6 grid grid-cols-2 gap-x-6 gap-y-4 border-b border-border pb-5 pt-1 md:grid-cols-4">
+        <x-stat label="Requested" :value="S::tzs($application->requestedAmount())" mono />
+        <x-stat label="Concept submitted" :value="$application->concept_submitted_at?->format('j M Y') ?? '—'" />
+        <x-stat label="Mentor" :value="$application->mentor_name ?: '—'" />
+        @if($application->approved_amount)
+            <x-stat label="Approved" :value="S::tzs($application->approved_amount)" mono />
+        @endif
+    </dl>
+    @include('seed.partials.track')
+</x-card>
 
-<div class="grid grid-wide">
-    <div class="stack" style="gap:16px;">
-        <h2 style="font-size:18px;">{{ $stage === 'proposal' && $application->proposal ? 'Full proposal' : 'Concept note' }}</h2>
-        @include('seed.partials.content', ['stage' => $stage === 'proposal' && $application->proposal ? 'proposal' : 'concept'])
+<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <div>
+        <h2 class="mb-3 text-lg">{{ $shown === 'proposal' ? 'Full proposal' : 'Concept note' }}</h2>
+        @include('seed.partials.content', ['stage' => $shown])
     </div>
-    <aside class="stack-sm" style="gap:16px;">
-        <h2 style="font-size:18px;">Reviewer feedback</h2>
+    <aside>
+        <h2 class="mb-3 text-lg">Reviewer feedback</h2>
         @include('seed.partials.feedback')
     </aside>
 </div>

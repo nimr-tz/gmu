@@ -27,7 +27,7 @@ class SettingUpTheCallTest extends TestCase
         $this->assertNull(SeedCall::current());
 
         $this->actingAs($gmu)->get(route('dashboard'))->assertOk()
-            ->assertSee('No seed grant call is set up yet.')->assertSee(route('seed.calls.create'), false);
+            ->assertSee('No call is set up yet.')->assertSee(route('seed.calls.create'), false);
         $this->actingAs($gmu)->get(route('seed.call'))->assertRedirect(route('seed.calls.create'));
         $this->actingAs($gmu)->get(route('seed.calls.create'))->assertOk()
             ->assertSee('New call')->assertSee('Create the call');

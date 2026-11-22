@@ -1,55 +1,55 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 @section('title', 'Notifications')
-@section('crumb', 'Account')
+@section('context', 'Account · Notifications')
 
 @section('content')
 @php
     $icons = [
-        'new_call' => 'fa-bullhorn', 'selection_result' => 'fa-user-check', 'review_assigned' => 'fa-clipboard-check',
-        'proposal_status' => 'fa-file-alt', 'proposal_cleared' => 'fa-stamp', 'award_created' => 'fa-trophy',
-        'award_amended' => 'fa-file-signature', 'award_closed' => 'fa-flag-checkered', 'report_due' => 'fa-file-invoice',
-        'report_decision' => 'fa-check-double', 'compliance_due' => 'fa-calendar-check',
-        'compliance_overdue' => 'fa-exclamation-triangle', 'ethics_renewal' => 'fa-shield-alt',
-        'team_added' => 'fa-users', 'sub_award_created' => 'fa-handshake',
+        'seed_submitted' => 'send', 'seed_resubmitted' => 'send', 'seed_screened' => 'clipboard-check', 'seed_returned' => 'rotate-ccw',
+        'seed_review' => 'message-square', 'seed_reviews_in' => 'users', 'seed_conflict' => 'alert-triangle', 'seed_decision' => 'scale',
+        'seed_approval' => 'shield-check', 'seed_approved' => 'check-circle', 'seed_agreement' => 'pen-line',
+        'new_call' => 'megaphone', 'review_assigned' => 'clipboard-check', 'report_due' => 'calendar', 'compliance_overdue' => 'alert-triangle',
     ];
     $unread = $notifications->whereNull('read_at')->count();
 @endphp
 
-<x-ui.page-head
-    title="Notifications"
-    :lede="$unread > 0 ? $unread . ' unread on this page' : 'Everything here has been read'" />
+<x-page-header title="Notifications" :description="$unread > 0 ? $unread . ' unread on this page' : 'Everything here has been read'" />
 
-<x-ui.card :flush="true">
-    <div class="list">
-        @forelse($notifications as $notification)
-            <div class="list-row" style="align-items:flex-start; background: {{ $notification->read_at ? 'transparent' : 'var(--info-bg)' }};">
-                <span style="width:34px; height:34px; border-radius:9px; flex:0 0 34px; display:flex; align-items:center;
-                             justify-content:center; background:var(--line-soft); color:var(--navy-500);">
-                    <i class="fas {{ $icons[$notification->type] ?? 'fa-bell' }}"></i>
-                </span>
-
-                <div class="list-main">
-                    <span class="list-title">{{ $notification->title }}</span>
-                    <span class="list-sub" style="color:var(--muted); line-height:1.6;">{{ $notification->message }}</span>
-                    <span class="tiny muted-3" style="margin-top:4px;">{{ $notification->created_at?->diffForHumans() }}</span>
-                </div>
-
-                @unless($notification->read_at)
-                    <form method="POST" action="{{ route('notifications.read', $notification) }}" class="inline-form">
-                        @csrf @method('PATCH')
-                        <button class="btn btn-sm">Mark read</button>
-                    </form>
-                @endunless
-            </div>
-        @empty
-            <x-ui.empty icon="fa-bell" title="Nothing to read">
-                Notifications arrive when a call opens, a review is waiting on you, a report falls due, an award is
-                recorded, or a deadline slips.
-            </x-ui.empty>
-        @endforelse
-    </div>
-</x-ui.card>
-
-<div class="pagination-wrap">{{ $notifications->links() }}</div>
+<x-card flush class="mx-auto max-w-4xl">
+    @if($notifications->isEmpty())
+        <x-empty icon="bell" title="Nothing to read">
+            Notifications arrive when a call opens, something is waiting on you, a decision is made about your application, or a deadline is near. Each one is also sent by email.
+        </x-empty>
+    @else
+        <ul class="divide-y divide-border">
+            @foreach($notifications as $notification)
+                @php $url = $notification->actionUrl(); $new = ! $notification->read_at; @endphp
+                <li class="relative flex gap-4 px-5 py-4 {{ $new ? 'bg-primary-soft/40' : '' }}">
+                    @if($new)<span class="absolute inset-y-0 left-0 w-0.5 bg-primary" aria-hidden="true"></span>@endif
+                    <span class="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-gray-600 shadow-xs"><x-icon :name="$icons[$notification->type] ?? 'bell'" /></span>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-4">
+                            <p class="text-sm {{ $new ? 'font-semibold' : 'font-medium' }}">{{ $notification->title }}@if($new)<span class="sr-only"> (unread)</span>@endif</p>
+                            <time class="whitespace-nowrap text-xs text-muted-foreground" title="{{ $notification->created_at?->format('j M Y H:i') }}">{{ $notification->created_at?->format('j M Y H:i') }} · {{ $notification->created_at?->diffForHumans() }}</time>
+                        </div>
+                        <p class="mt-1 text-[13px] leading-relaxed text-gray-700">{{ $notification->message }}</p>
+                        @if($url || $new)
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                @if($url)<x-button size="sm" :variant="$new ? 'primary' : 'secondary'" :href="$url" icon-right="arrow-right">Open</x-button>@endif
+                                @if($new)
+                                    <form method="POST" action="{{ route('notifications.read', $notification) }}">
+                                        @csrf @method('PATCH')
+                                        <x-button type="submit" size="sm" variant="ghost" icon="check">Mark read</x-button>
+                                    </form>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                </li>
+            @endforeach
+        </ul>
+    @endif
+</x-card>
+@if($notifications->hasPages())<div class="mx-auto mt-4 max-w-4xl">{{ $notifications->links() }}</div>@endif
 @endsection

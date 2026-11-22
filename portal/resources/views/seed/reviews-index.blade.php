@@ -1,90 +1,94 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 @section('title', 'My reviews')
-@section('context', 'Seed Grant review panel')
+@section('context', 'Review panel')
 
 @php
+    use App\Support\SeedGrant as S;
     $tone = ['accept' => 'ok', 'revise' => 'warn', 'reject' => 'danger'];
+    $top = max(array_column($form->criteria(), 2) ?: [1]) ?: 1;
 @endphp
 
 @section('content')
-<x-ui.page-head title="Your reviews" lede="You review anonymously. Applicants read your comments, never your name." />
+<x-page-header title="Your reviews" description="You review anonymously. Applicants read your comments, never your name." />
 
-<div class="grid grid-wide">
-    <div class="stack">
-        <section class="card">
-            <div class="card-head"><div class="card-title">To do <span class="mono muted">· {{ $todo->count() }}</span></div></div>
-            <div class="list">
+<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="space-y-6">
+        <x-card title="To do" flush>
+            <x-slot:actions><x-badge tone="outline" class="font-mono">{{ $todo->count() }}</x-badge></x-slot:actions>
+            <ul class="divide-y divide-border">
                 @forelse($todo as $a)
                     @php
                         $app = $a->application;
                         $round = $app->openRound($a->stage);
                         $due = $round?->due_at;
+                        $soon = $due && $due->copy()->endOfDay()->diffInDays(now(), false) > -3;
                         $draft = $round?->reviews->firstWhere('seed_reviewer_assignment_id', $a->id);
                     @endphp
-                    <div class="list-row" style="flex-wrap:wrap;">
-                        <div style="flex:0 0 64px; text-align:center; border-radius:12px; padding:8px 0; background:{{ $due && $due->diffInDays(now(), false) > -3 ? 'var(--danger-bg)' : 'var(--canvas)' }};">
-                            <div class="mono" style="font-size:22px; line-height:1; {{ $due && $due->diffInDays(now(), false) > -3 ? 'color:var(--danger-ink);' : '' }}">{{ $due?->format('j') ?? '—' }}</div>
-                            <div class="tiny muted" style="text-transform:uppercase;">{{ $due?->format('M') }}</div>
+                    <li class="flex flex-wrap items-center gap-4 px-5 py-4">
+                        <div class="w-14 shrink-0 rounded-lg py-2 text-center {{ $soon ? 'bg-danger-soft text-danger-ink' : 'bg-muted' }}">
+                            <div class="font-mono text-xl leading-none tabular-nums">{{ $due?->format('j') ?? '—' }}</div>
+                            <div class="mt-1 text-[10px] font-medium uppercase tracking-wider {{ $soon ? '' : 'text-muted-foreground' }}">{{ $due?->format('M') }}</div>
                         </div>
-                        <div class="list-main" style="flex:1 1 300px;">
-                            <div class="row" style="gap:8px;">
+                        <div class="min-w-0 flex-[1_1_18rem]">
+                            <div class="flex flex-wrap items-center gap-2">
                                 @include('seed.partials.call-tag', ['call' => $app->call, 'short' => true])
-                                <span class="mono small muted">{{ $app->reference }}</span>
-                                <span class="pill">{{ $a->stage === 'concept' ? 'Concept note' : 'Full proposal' }}{{ $round ? ' · round ' . $round->number : '' }}</span>
-                                @if($a->coi_status === 'pending')<span class="pill pill-danger">Declare interests first</span>
-                                @elseif($draft)<span class="pill pill-warn">Draft saved</span>
-                                @elseif($round && $round->number > 1)<span class="pill pill-info">Applicant responded</span>@endif
+                                <span class="font-mono text-xs text-muted-foreground">{{ $app->reference }}</span>
+                                <x-badge>{{ $a->stage === 'concept' ? 'Concept note' : 'Full proposal' }}{{ $round ? ' · round ' . $round->number : '' }}</x-badge>
+                                @if($a->coi_status === 'pending')<x-badge tone="danger">Declare interests first</x-badge>
+                                @elseif($draft)<x-badge tone="warn">Draft saved</x-badge>
+                                @elseif($round && $round->number > 1)<x-badge tone="review">Applicant responded</x-badge>@endif
                             </div>
-                            <span class="list-title" style="font-size:15px; margin-top:4px;">{{ $a->coi_status === 'pending' ? 'Title hidden until you declare' : $app->title }}</span>
-                            @if($due)<span class="list-sub">Due {{ $due->format('j M Y') }} ({{ $due->diffForHumans() }})</span>@endif
+                            <p class="mt-1.5 font-medium">{{ $a->coi_status === 'pending' ? 'Title hidden until you declare' : $app->title }}</p>
+                            @if($due)<p class="mt-0.5 text-[13px] {{ $soon ? 'text-danger-ink' : 'text-muted-foreground' }}">Due {{ $due->format('j M Y') }} ({{ $due->copy()->endOfDay()->diffForHumans() }})</p>@endif
                         </div>
-                        <a href="{{ route('seed.reviews.show', $a) }}" class="btn {{ $a->coi_status === 'pending' ? '' : 'btn-primary' }}">
+                        <x-button :variant="$a->coi_status === 'pending' ? 'secondary' : 'primary'" :href="route('seed.reviews.show', $a)">
                             {{ $a->coi_status === 'pending' ? 'Declare' : ($draft ? 'Continue review' : 'Start review') }}
-                        </a>
-                    </div>
+                        </x-button>
+                    </li>
                 @empty
-                    <div class="empty"><i class="fas fa-check-circle" aria-hidden="true"></i><p>Nothing to review right now.</p></div>
+                    <li><x-empty icon="check-circle" title="Nothing to review right now" compact>When GMU assigns you a concept note or proposal, it appears here with its due date.</x-empty></li>
                 @endforelse
-            </div>
-        </section>
+            </ul>
+        </x-card>
 
         @if($done->isNotEmpty())
-            <section class="card">
-                <div class="card-head"><div class="card-title">Earlier reviews</div></div>
-                <div class="list">
+            <x-card title="Earlier reviews" flush>
+                <ul class="divide-y divide-border">
                     @foreach($done as $a)
                         @php $last = $a->application->rounds->where('stage', $a->stage)->flatMap->reviews->where('seed_reviewer_assignment_id', $a->id)->whereNotNull('submitted_at')->sortByDesc('submitted_at')->first(); @endphp
-                        <a href="{{ route('seed.reviews.show', $a) }}" class="list-row">
-                            @include('seed.partials.call-tag', ['call' => $a->application->call, 'short' => true])
-                            <span class="list-main"><span class="list-title">{{ $a->coi_status === 'conflict' ? 'Conflict declared' : $a->application->title }}</span>
-                                <span class="list-sub"><span class="mono">{{ $a->application->reference }}</span> · {{ $a->stage === 'proposal' ? 'Full proposal' : 'Concept note' }}</span></span>
-                            @if($last)<span class="pill pill-{{ $tone[$last->recommendation] ?? '' }}">{{ \App\Models\Seed\SeedReview::RECOMMENDATIONS[$last->recommendation] }}</span>
-                                <span class="small muted" style="width:60px; text-align:right;">{{ $last->submitted_at->format('j M') }}</span>@endif
-                        </a>
+                        <li>
+                            <a href="{{ route('seed.reviews.show', $a) }}" class="flex flex-wrap items-center gap-3 px-5 py-3.5 hover:bg-muted/50">
+                                @include('seed.partials.call-tag', ['call' => $a->application->call, 'short' => true])
+                                <span class="min-w-0 flex-1">
+                                    <span class="block truncate font-medium">{{ $a->coi_status === 'conflict' ? 'Conflict declared' : $a->application->title }}</span>
+                                    <span class="block text-[13px] text-muted-foreground"><span class="font-mono text-xs">{{ $a->application->reference }}</span> · {{ $a->stage === 'proposal' ? 'Full proposal' : 'Concept note' }}</span>
+                                </span>
+                                @if($last)
+                                    <x-badge :tone="$tone[$last->recommendation] ?? 'neutral'">{{ \App\Models\Seed\SeedReview::RECOMMENDATIONS[$last->recommendation] }}</x-badge>
+                                    <span class="w-14 text-right text-[13px] text-muted-foreground">{{ $last->submitted_at->format('j M') }}</span>
+                                @endif
+                            </a>
+                        </li>
                     @endforeach
-                </div>
-            </section>
+                </ul>
+            </x-card>
         @endif
     </div>
 
-    <aside>
-        <section class="card">
-            <div class="card-body">
-                <h2 class="card-title">How full proposals are scored</h2>
-                <p class="small muted" style="margin-top:4px;">Concept notes get accept, revise or reject only. Weighted scoring starts at stage 2.</p>
-                <ul style="list-style:none; margin:16px 0 0; padding:0; display:flex; flex-direction:column; gap:12px; font-size:13px;">
-                    @foreach($form->criteria() as $key => [$name, , $max])
-                        @php $hasMin = isset($form->minimums()[$key]); $top = max(array_column($form->criteria(), 2)) ?: 1; @endphp
-                        <li><div class="row-between"><span class="{{ $hasMin ? 'strong' : '' }}">{{ $name }}</span><span class="mono">{{ \App\Support\SeedGrant::trimNumber($max) }}</span></div>
-                            <div class="meter" style="margin-top:5px;"><span style="width:{{ $max / $top * 100 }}%; {{ $hasMin ? '' : 'background:var(--blue-300);' }}"></span></div></li>
-                    @endforeach
-                </ul>
-                <div style="margin-top:18px; padding:14px; border-radius:12px; background:var(--blue-50); font-size:13px; color:var(--blue-900);">
-                    Fundable at <strong class="mono">{{ \App\Support\SeedGrant::trimNumber($form->passMark()) }}/{{ \App\Support\SeedGrant::trimNumber($form->maxTotal()) }}</strong> or more{{ $form->minimumsPhrase(', and never below ', ' on ') }}. Don’t mark down a strong study for having no innovation.
-                </div>
-            </div>
-        </section>
-    </aside>
+    <x-card title="How full proposals are scored" description="Concept notes get accept, revise or reject only. Weighted scoring starts at stage 2." class="xl:sticky xl:top-24">
+        <ul class="space-y-3 text-[13px]">
+            @foreach($form->criteria() as $key => [$name, , $max])
+                @php $hasMin = isset($form->minimums()[$key]); @endphp
+                <li>
+                    <div class="flex justify-between gap-3"><span class="{{ $hasMin ? 'font-medium' : '' }}">{{ $name }}</span><span class="font-mono tabular-nums">{{ S::trimNumber($max) }}</span></div>
+                    <x-meter class="mt-1.5" :value="$max / $top * 100" :tone="$hasMin ? 'primary' : 'muted'" :label="$name" />
+                </li>
+            @endforeach
+        </ul>
+        <div class="mt-5 rounded-lg bg-primary-soft p-3.5 text-[13px] text-blue-900">
+            Fundable at <strong class="font-mono">{{ S::trimNumber($form->passMark()) }}/{{ S::trimNumber($form->maxTotal()) }}</strong> or more{{ $form->minimumsPhrase(', and never below ', ' on ') }}. Don’t mark down a strong study for having no innovation.
+        </div>
+    </x-card>
 </div>
 @endsection

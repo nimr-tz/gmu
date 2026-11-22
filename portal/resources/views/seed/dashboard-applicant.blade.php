@@ -1,4 +1,4 @@
-@extends('layouts.gmu')
+@extends('layouts.app')
 
 @php
     use App\Support\SeedGrant as S;
@@ -6,117 +6,112 @@
     $greeting = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good evening');
     $first = \Illuminate\Support\Str::of($user->name)->replaceMatches('/^(Dr\.?|Prof\.?|Mr\.?|Ms\.?|Mrs\.?)\s+/i', '')->before(' ');
     $round = $application?->latestRound();
+    $closed = fn ($date) => $date && $date->copy()->endOfDay()->isPast();
 @endphp
 
 @section('title', 'Dashboard')
-@section('context', $call ? 'Seed Grant · FY ' . $call->fiscal_year : 'NIMR Grants')
+@section('context', $call ? $call->title : 'NIMR Grants')
 
 @section('content')
-<div class="page-head">
-    <div>
-        <p class="eyebrow">{{ now()->format('l, j F Y') }}</p>
-        <h1 style="margin-top:6px;">{{ $greeting }}, {{ $first }}.</h1>
-    </div>
+<x-page-header :eyebrow="now()->format('l, j F Y')" :title="$greeting . ', ' . $first . '.'">
     @if($call && $call->isVisible())
-        <a href="{{ route('seed.calls.show', $call) }}" class="btn">Read the call</a>
+        <x-slot:actions><x-button :href="route('seed.calls.show', $call)" icon="megaphone">Read the call</x-button></x-slot:actions>
     @endif
-</div>
+</x-page-header>
 
 @if(! $call || ! $call->isVisible())
-    <div class="card"><div class="empty"><i class="fas fa-seedling" aria-hidden="true"></i><p>The seed grant call opens here soon.</p></div></div>
+    <x-card><x-empty icon="megaphone" title="No call is open yet">When NIMR opens a call, it appears here with its deadlines and how to apply.</x-empty></x-card>
 @elseif(! $application)
-    <section class="banner banner-ok" style="margin-bottom:24px;">
-        <span class="ico"><i class="fas fa-seedling" aria-hidden="true"></i></span>
-        <div style="flex:1 1 360px;">
-            <h2>{{ $call->acceptingConceptNotes() ? 'The seed grant call is open' : 'The seed grant call' }}</h2>
-            <p>TZS {{ number_format($call->min_amount / 1e6) }}M–{{ number_format($call->max_amount / 1e6) }}M for a {{ $call->duration_months }}-month implementation science study.
-                @if($call->concept_deadline) Concept notes {{ $call->concept_deadline->isPast() ? 'closed' : 'close' }} {{ $call->concept_deadline->format('j M Y') }}.@endif</p>
-            <div class="row" style="margin-top:14px;">
-                <a href="{{ route('seed.calls.show', $call) }}" class="btn btn-primary">{{ $call->acceptingConceptNotes() && ! $problems ? 'Read the call and apply' : 'Read the call' }}</a>
-                @if($reviewing)<a href="{{ route('seed.reviews.index') }}" class="btn">My reviews</a>@endif
+    <section class="relative overflow-hidden rounded-xl bg-sidebar p-6 text-sidebar-foreground shadow-sm sm:p-8">
+        <div class="max-w-2xl">
+            <x-badge :tone="$call->acceptingConceptNotes() ? 'primary' : 'neutral'" dot>{{ $call->acceptingConceptNotes() ? 'Open for concept notes' : 'Concept notes closed' }}</x-badge>
+            <h2 class="mt-4 text-2xl text-white">{{ $call->title }}</h2>
+            <p class="mt-2 text-[15px] leading-relaxed">
+                TZS {{ number_format($call->min_amount / 1e6) }}M–{{ number_format($call->max_amount / 1e6) }}M for a {{ $call->duration_months }}-month study.
+                @if($call->concept_deadline) Concept notes {{ $closed($call->concept_deadline) ? 'closed' : 'close' }} {{ $call->concept_deadline->format('j M Y') }}.@endif
+            </p>
+            <div class="mt-6 flex flex-wrap gap-2">
+                <x-button variant="primary" size="lg" :href="route('seed.calls.show', $call)" icon-right="arrow-right">{{ $call->acceptingConceptNotes() && ! $problems ? 'Read the call and apply' : 'Read the call' }}</x-button>
+                @if($reviewing)<x-button size="lg" :href="route('seed.reviews.index')" icon="message-square">My reviews</x-button>@endif
             </div>
         </div>
     </section>
 @else
-    <div class="grid grid-wide">
-        <div class="stack">
+    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div class="space-y-6">
             @if($application->isRevising() && $round)
-                <section class="banner banner-warn">
-                    <span class="ico"><i class="fas fa-comment-dots" aria-hidden="true"></i></span>
-                    <div style="flex:1 1 360px;">
-                        <div class="row" style="gap:8px 12px;"><h2>Reviewers asked you to revise</h2><span class="pill" style="background:#fff; color:var(--warn-ink);">Round {{ $round->number }} · due {{ $round->response_due_at?->format('j M Y') }}</span></div>
-                        <p>{{ $round->decision_note }}</p>
-                        <div class="row" style="margin-top:14px;">
-                            <a href="{{ route('seed.applications.edit', $application) }}" class="btn btn-primary">Respond to reviewers</a>
-                            <a href="{{ route('seed.applications.show', $application) }}" class="btn" style="background:transparent; border-color:#EBCB8B;">Read their comments</a>
-                        </div>
+                <x-alert tone="warn" icon="pencil" title="Reviewers asked you to revise">
+                    <p class="mb-1 font-medium">Round {{ $round->number }} · your response is due {{ $round->response_due_at?->format('j M Y') }}</p>
+                    @if($round->decision_note)<p class="whitespace-pre-line">{{ $round->decision_note }}</p>@endif
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <x-button variant="primary" size="sm" :href="route('seed.applications.edit', $application)">Respond to reviewers</x-button>
+                        <x-button size="sm" :href="route('seed.applications.show', $application)">Read their comments</x-button>
                     </div>
-                </section>
+                </x-alert>
             @elseif(in_array($application->status, [S::DRAFT, S::SHORTLISTED], true))
-                <section class="banner {{ $application->status === S::SHORTLISTED ? 'banner-ok' : 'banner-info' }}">
-                    <span class="ico"><i class="fas {{ $application->status === S::SHORTLISTED ? 'fa-star' : 'fa-pen' }}" aria-hidden="true"></i></span>
-                    <div style="flex:1 1 360px;">
-                        <h2>{{ $application->status === S::SHORTLISTED ? 'You are shortlisted: write your full proposal' : 'Finish and submit your concept note' }}</h2>
-                        <p>{{ $application->status === S::SHORTLISTED
-                            ? ($call->proposal_deadline ? 'Due ' . $call->proposal_deadline->format('j M Y') . '. ' : '') . 'You will also need the mentor’s commitment letter and your CV.'
-                            : ($call->concept_deadline ? 'Concept notes close ' . $call->concept_deadline->format('j M Y') . '.' : 'It saves when you press Save.') }}</p>
-                        <a href="{{ route('seed.applications.edit', $application) }}" class="btn btn-primary" style="margin-top:14px;">{{ $application->status === S::SHORTLISTED ? 'Write full proposal' : 'Continue writing' }}</a>
-                    </div>
-                </section>
+                @php $short = $application->status === S::SHORTLISTED; @endphp
+                <x-alert :tone="$short ? 'ok' : 'info'" :icon="$short ? 'star' : 'pencil'" :title="$short ? 'You are shortlisted: write your full proposal' : 'Finish and submit your concept note'">
+                    {{ $short
+                        ? ($call->proposal_deadline ? 'Due ' . $call->proposal_deadline->format('j M Y') . '. ' : '') . 'You will also need the mentor’s commitment letter and your CV.'
+                        : ($call->concept_deadline ? 'Concept notes close ' . $call->concept_deadline->format('j M Y') . '.' : 'It saves when you press Save.') }}
+                    <div class="mt-3"><x-button variant="primary" size="sm" :href="route('seed.applications.edit', $application)">{{ $short ? 'Write full proposal' : 'Continue writing' }}</x-button></div>
+                </x-alert>
             @elseif($application->status === S::AGREEMENT_ISSUED)
-                <section class="banner banner-warn">
-                    <span class="ico"><i class="fas fa-file-signature" aria-hidden="true"></i></span>
-                    <div style="flex:1 1 360px;"><h2>Your grant agreement is ready</h2><p>Read it and accept it online.</p>
-                        <a href="{{ route('seed.applications.agreement', $application) }}" class="btn btn-primary" style="margin-top:14px;">Open the agreement</a></div>
-                </section>
+                <x-alert tone="warn" icon="pen-line" title="Your grant agreement is ready">
+                    Read it and accept it online.
+                    <div class="mt-3"><x-button variant="primary" size="sm" :href="route('seed.applications.agreement', $application)">Open the agreement</x-button></div>
+                </x-alert>
             @endif
 
-            <section class="card"><div class="card-body">
-                <div class="row-between" style="align-items:flex-start;">
-                    <div style="min-width:0; flex:1 1 400px;">
-                        <div class="row" style="gap:10px;"><span class="mono small muted">{{ $application->reference }}</span>@include('seed.partials.status')</div>
-                        <h2 style="margin-top:8px; font-size:20px; line-height:1.3;">{{ $application->title ?: 'Untitled concept note' }}</h2>
+            <x-card>
+                <div class="flex flex-wrap items-start justify-between gap-4 pt-1">
+                    <div class="min-w-0 flex-[1_1_24rem]">
+                        <div class="flex flex-wrap items-center gap-2.5">
+                            @include('seed.partials.status')
+                            @include('seed.partials.call-tag', ['call' => $application->call, 'short' => true])
+                            <span class="font-mono text-xs text-muted-foreground">{{ $application->reference }}</span>
+                        </div>
+                        <h2 class="mt-3 text-xl leading-snug">{{ $application->title ?: 'Untitled concept note' }}</h2>
                     </div>
-                    <a href="{{ route('seed.applications.show', $application) }}" class="btn">Open</a>
+                    <x-button :href="route('seed.applications.show', $application)" icon-right="arrow-right">Open</x-button>
                 </div>
-                <dl class="form-grid" style="margin:20px 0; padding:16px 0; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft); grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
-                    <div class="kv"><dt class="k">Requested</dt><dd class="v mono" style="margin:0;">{{ S::tzs($application->requestedAmount()) }}</dd></div>
-                    <div class="kv"><dt class="k">Submitted</dt><dd class="v" style="margin:0;">{{ $application->concept_submitted_at?->format('j M Y') ?? 'Not yet' }}</dd></div>
-                    <div class="kv"><dt class="k">Mentor</dt><dd class="v" style="margin:0;">{{ $application->mentor_name ?: '—' }}</dd></div>
-                    <div class="kv"><dt class="k">Review round</dt><dd class="v" style="margin:0;">{{ $round ? $round->number . ($round->stage === 'proposal' ? ' (proposal)' : '') : '—' }}</dd></div>
+                <dl class="my-5 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border py-4 md:grid-cols-4">
+                    <x-stat label="Requested" :value="S::tzs($application->requestedAmount())" mono />
+                    <x-stat label="Submitted" :value="$application->concept_submitted_at?->format('j M Y') ?? 'Not yet'" />
+                    <x-stat label="Mentor" :value="$application->mentor_name ?: '—'" />
+                    <x-stat label="Review round" :value="$round ? $round->number . ($round->stage === 'proposal' ? ' (proposal)' : '') : '—'" />
                 </dl>
-                <h3 class="eyebrow" style="margin-bottom:14px;">Where your application is</h3>
+                <h3 class="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">Where your application is</h3>
                 @include('seed.partials.track')
-            </div></section>
+            </x-card>
         </div>
 
-        <aside class="stack" style="gap:24px;">
-            <section class="card is-dark"><div class="card-body">
-                <p class="eyebrow" style="color:var(--blue-300);">Key dates</p>
-                <ul style="list-style:none; margin:16px 0 0; padding:0; display:flex; flex-direction:column; gap:14px;">
-                    <li class="row-between"><span style="color:#A9B6D3;">Concept notes close</span><span class="mono" style="color:#fff;">{{ $call->concept_deadline?->format('j M') ?? 'TBA' }}</span></li>
+        <aside class="space-y-4">
+            <section class="rounded-xl bg-sidebar p-5 shadow-sm">
+                <p class="text-xs font-medium uppercase tracking-wider text-blue-300">Key dates</p>
+                <ul class="mt-4 space-y-3 text-sm">
+                    <li class="flex justify-between gap-3"><span class="text-sidebar-muted">Concept notes close</span><span class="font-mono text-white">{{ $call->concept_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
                     @if($application->isRevising() && $round?->response_due_at)
-                        <li class="row-between"><span style="color:#fff; font-weight:600;">Your response is due</span><span class="mono" style="color:#F8C45C; font-weight:600;">{{ $round->response_due_at->format('j M') }}</span></li>
+                        <li class="flex justify-between gap-3"><span class="font-medium text-white">Your response is due</span><span class="font-mono font-medium text-amber-300">{{ $round->response_due_at->format('j M Y') }}</span></li>
                     @endif
-                    <li class="row-between"><span style="color:#A9B6D3;">Full proposals due</span><span class="mono" style="color:#fff;">{{ $call->proposal_deadline?->format('j M') ?? 'TBA' }}</span></li>
+                    <li class="flex justify-between gap-3"><span class="text-sidebar-muted">Full proposals due</span><span class="font-mono text-white">{{ $call->proposal_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
                 </ul>
-            </div></section>
+            </section>
 
             @if($application->mentor_name)
-                <section class="card"><div class="card-body">
-                    <h2 class="card-title">Your mentor</h2>
-                    <div class="row" style="margin-top:14px; flex-wrap:nowrap;">
-                        <span class="avatar" style="width:44px; height:44px; flex-basis:44px;">{{ collect(explode(' ', preg_replace('/^(Dr\.?|Prof\.?)\s+/i', '', $application->mentor_name)))->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('') }}</span>
-                        <span style="line-height:1.35;"><strong>{{ $application->mentor_name }}</strong><br><span class="small muted">{{ collect([$application->mentor_designation, $application->mentor_centre])->filter()->implode(' · ') }}</span></span>
+                <x-card title="Your mentor">
+                    <div class="flex items-center gap-3">
+                        <span class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-blue-800">{{ collect(explode(' ', preg_replace('/^(Dr\.?|Prof\.?)\s+/i', '', $application->mentor_name)))->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('') }}</span>
+                        <span class="min-w-0 leading-snug"><span class="block font-medium">{{ $application->mentor_name }}</span><span class="block text-[13px] text-muted-foreground">{{ collect([$application->mentor_designation, $application->mentor_centre])->filter()->implode(' · ') }}</span></span>
                     </div>
                     @if(in_array($application->status, S::CONCEPT_STATUSES, true))
-                        <p class="small" style="margin-top:14px; color:var(--ink-2);">A signed commitment letter is needed only if you are shortlisted.</p>
+                        <p class="mt-4 text-[13px] text-muted-foreground">A signed commitment letter is needed only if you are shortlisted.</p>
                     @endif
-                </div></section>
+                </x-card>
             @endif
 
             @if($reviewing)
-                <a href="{{ route('seed.reviews.index') }}" class="btn btn-block"><i class="fas fa-comments" aria-hidden="true"></i> You also have reviews to do</a>
+                <x-button class="w-full" :href="route('seed.reviews.index')" icon="message-square">You also have reviews to do</x-button>
             @endif
         </aside>
     </div>
