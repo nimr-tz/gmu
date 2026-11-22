@@ -1,10 +1,18 @@
 @extends('layouts.gmu')
 
-@section('title', 'Call settings')
+@php $isNew = ! $call->exists; @endphp
+
+@section('title', $isNew ? 'Set up the call' : 'Call settings')
 
 @section('content')
-<p class="crumbs"><a href="{{ route('seed.call') }}">The call</a> / Settings</p>
-<x-ui.page-head title="Call settings" lede="What staff see on the call page, and the limits applications are checked against." />
+@if($isNew)
+    <p class="crumbs"><a href="{{ route('dashboard') }}">Dashboard</a> / Set up the call</p>
+    <x-ui.page-head title="Set up the call"
+                    lede="What staff see on the call page, and the limits applications are checked against. Keep the status at Draft until you are ready to open it." />
+@else
+    <p class="crumbs"><a href="{{ route('seed.call') }}">The call</a> / Settings</p>
+    <x-ui.page-head title="Call settings" lede="What staff see on the call page, and the limits applications are checked against." />
+@endif
 
 <form method="POST" action="{{ route('seed.call.update') }}" class="card">
     @csrf @method('PUT')
@@ -53,8 +61,8 @@
         </div>
     </div>
     <div class="card-foot form-actions">
-        <button class="btn btn-primary" type="submit">Save settings</button>
-        <a href="{{ route('seed.call') }}" class="btn">Cancel</a>
+        <button class="btn btn-primary" type="submit">{{ $isNew ? 'Create the call' : 'Save settings' }}</button>
+        <a href="{{ $isNew ? route('dashboard') : route('seed.call') }}" class="btn">Cancel</a>
     </div>
 </form>
 @endsection

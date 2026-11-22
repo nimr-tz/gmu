@@ -19,8 +19,8 @@ class DashboardController extends Controller
     {
         $call = SeedCall::current();
 
-        if ($call && $user->can('manage-seed-grants')) {
-            return $this->gmu($call);
+        if ($user->can('manage-seed-grants')) {
+            return $call ? $this->gmu($call) : view('seed.dashboard-no-call', ['user' => $user]);
         }
         if ($call && ApprovalsController::levelFor($user)) {
             return redirect()->route('seed.approvals.index');

@@ -14,6 +14,9 @@ class CallController extends Controller
     public function show(Request $request, Workflow $workflow)
     {
         $call = SeedCall::current();
+        if (! $call && $request->user()->can('manage-seed-grants')) {
+            return redirect()->route('seed.call.edit');
+        }
         abort_if(! $call || (! $call->isVisible() && $request->user()->cannot('manage-seed-grants')), 404);
 
         $user = $request->user();

@@ -18,7 +18,10 @@ final class SeedNav
     {
         $call = SeedCall::current();
         if (! $call) {
-            return [];
+            // GMU still needs a way in before the first call exists.
+            return $user->can('manage-seed-grants')
+                ? ['Seed grant' => [['Set up the call', route('seed.call.edit'), 'fa-bullhorn', 'seed.call*', null, false]]]
+                : [];
         }
 
         if ($user->can('manage-seed-grants')) {
