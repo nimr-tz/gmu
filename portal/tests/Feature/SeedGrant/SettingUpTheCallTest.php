@@ -27,19 +27,20 @@ class SettingUpTheCallTest extends TestCase
         $this->assertNull(SeedCall::current());
 
         $this->actingAs($gmu)->get(route('dashboard'))->assertOk()
-            ->assertSee('No seed grant call is set up yet.')->assertSee(route('seed.call.edit'), false);
-        $this->actingAs($gmu)->get(route('seed.call'))->assertRedirect(route('seed.call.edit'));
-        $this->actingAs($gmu)->get(route('seed.call.edit'))->assertOk()
-            ->assertSee('Set up the call')->assertSee('Create the call');
+            ->assertSee('No seed grant call is set up yet.')->assertSee(route('seed.calls.create'), false);
+        $this->actingAs($gmu)->get(route('seed.call'))->assertRedirect(route('seed.calls.create'));
+        $this->actingAs($gmu)->get(route('seed.calls.create'))->assertOk()
+            ->assertSee('New call')->assertSee('Create the call');
 
-        $this->actingAs($gmu)->put(route('seed.call.update'), [
+        $this->actingAs($gmu)->post(route('seed.calls.store'), [
             'title' => 'Early-Career Researchers’ Implementation Science Seed Grant', 'code' => '2627', 'fiscal_year' => '2026/27',
             'min_amount' => 2_000_000, 'max_amount' => 10_000_000, 'duration_months' => 12, 'equipment_cap_percent' => 20,
             'status' => 'draft',
-        ])->assertRedirect(route('seed.call'))->assertSessionHasNoErrors();
+        ])->assertSessionHasNoErrors();
 
-        $this->assertSame('2627', SeedCall::current()?->code);
-        $this->actingAs($gmu)->get(route('seed.call.edit'))->assertOk()->assertSee('Call settings');
+        $call = SeedCall::current();
+        $this->assertSame('2627', $call?->code);
+        $this->actingAs($gmu)->get(route('seed.calls.edit', $call))->assertOk()->assertSee('Call settings');
     }
 
     public function test_others_see_no_call_page_and_cannot_create_one(): void
@@ -47,7 +48,7 @@ class SettingUpTheCallTest extends TestCase
         $researcher = $this->user('pi');
 
         $this->actingAs($researcher)->get(route('seed.call'))->assertNotFound();
-        $this->actingAs($researcher)->get(route('seed.call.edit'))->assertForbidden();
+        $this->actingAs($researcher)->get(route('seed.calls.create'))->assertForbidden();
         $this->actingAs($researcher)->get(route('dashboard'))->assertOk()->assertDontSee('Set up the call');
     }
 }

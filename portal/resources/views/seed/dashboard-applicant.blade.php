@@ -18,7 +18,7 @@
         <h1 style="margin-top:6px;">{{ $greeting }}, {{ $first }}.</h1>
     </div>
     @if($call && $call->isVisible())
-        <a href="{{ route('seed.call') }}" class="btn">Read the call</a>
+        <a href="{{ route('seed.calls.show', $call) }}" class="btn">Read the call</a>
     @endif
 </div>
 
@@ -32,7 +32,7 @@
             <p>TZS {{ number_format($call->min_amount / 1e6) }}M–{{ number_format($call->max_amount / 1e6) }}M for a {{ $call->duration_months }}-month implementation science study.
                 @if($call->concept_deadline) Concept notes {{ $call->concept_deadline->isPast() ? 'closed' : 'close' }} {{ $call->concept_deadline->format('j M Y') }}.@endif</p>
             <div class="row" style="margin-top:14px;">
-                <a href="{{ route('seed.call') }}" class="btn btn-primary">{{ $call->acceptingConceptNotes() && ! $problems ? 'Read the call and apply' : 'Read the call' }}</a>
+                <a href="{{ route('seed.calls.show', $call) }}" class="btn btn-primary">{{ $call->acceptingConceptNotes() && ! $problems ? 'Read the call and apply' : 'Read the call' }}</a>
                 @if($reviewing)<a href="{{ route('seed.reviews.index') }}" class="btn">My reviews</a>@endif
             </div>
         </div>

@@ -88,7 +88,8 @@ New pages should follow one of these:
 ## Code rules for the seed grant
 
 - **`App\Services\SeedGrant\Workflow` owns every status change.** Controllers call it; they never set `status` themselves. Notifications go out from there.
-- **`App\Support\SeedGrant` holds the call's rules**: statuses, the track, sections, word and page limits, budget caps, criteria and weights, and the thresholds (total ≥ 70, science ≥ 50% of its weight). Change a rule there, never in a view.
+- **There are many calls, each with its own form.** A call switches features on and sets their numbers (questions and word limits, Section A items, years-at-NIMR limit, equipment cap, documents, scoring criteria and pass mark, DRCP/DG approval). Read a call's rules only through `$call->form()` (`App\Support\CallForm`), never from constants. Its settings lock once the call opens; only raising word limits stays allowed. A small variance between calls is a setting on an existing feature, not a new feature.
+- **`App\Support\SeedGrant` holds the defaults and the fixed parts**: statuses, the track, the seed grant's sections, limits, criteria and thresholds that new calls start from. Change a default there, never in a view.
 - `App\Support\SeedNav` builds the side-panel entries by role, with counts for "needs action".
 - Use permissions through gates and roles (`manage-seed-grants`, approval levels). Hiding a button is not access control.
 - Uploads are allowed only where the call allows them: mentor letter, CV and support letters at stage 2.

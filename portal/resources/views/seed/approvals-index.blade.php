@@ -11,9 +11,9 @@
 @section('context', 'Seed Grant · FY ' . $call->fiscal_year)
 
 @section('content')
-<p class="eyebrow">Implementation Science Seed Grant · FY {{ $call->fiscal_year }}</p>
+<div class="row-between"><p class="eyebrow">{{ $call->title }} · FY {{ $call->fiscal_year }}</p>@include('seed.partials.call-picker')</div>
 <x-ui.page-head :title="$queue->count() === 0 ? 'Nothing is waiting for ' . $who : ($queue->count() === 1 ? 'One project is waiting for ' . $who : $queue->count() . ' projects are waiting for ' . $who)"
-    lede="Each was scored by the review panel and recommended. Approval runs GMU, then the DRCP, then the Director General." />
+    :lede="'Each was scored by the review panel and recommended. Approval runs ' . collect($call->form()->approvalLevels())->map(fn ($l) => ['gmu' => 'GMU', 'drcp' => 'the DRCP', 'dg' => 'the Director General'][$l])->implode(', then ') . '.'" />
 
 <section class="card is-dark" style="padding:24px; display:flex; flex-wrap:wrap; gap:24px 48px; align-items:center; margin-bottom:24px;">
     <div style="flex:1 1 340px; min-width:0;">

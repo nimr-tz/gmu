@@ -16,53 +16,46 @@ final class SeedNav
 {
     public static function groups(User $user): array
     {
-        $call = SeedCall::current();
-        if (! $call) {
-            // GMU still needs a way in before the first call exists.
-            return $user->can('manage-seed-grants')
-                ? ['Seed grant' => [['Set up the call', route('seed.call.edit'), 'fa-bullhorn', 'seed.call*', null, false]]]
-                : [];
-        }
-
+        // Counts run across every call: GMU, the approvers and applicants may have work in several.
         if ($user->can('manage-seed-grants')) {
-            $needs = SeedApplication::where('seed_call_id', $call->id)
-                ->whereIn('status', [SeedGrant::SUBMITTED, SeedGrant::SCREENED, SeedGrant::PROPOSAL_SUBMITTED, SeedGrant::APPROVED, SeedGrant::AGREEMENT_ACCEPTED])
-                ->count();
-            $recommended = SeedApplication::where('seed_call_id', $call->id)->where('status', SeedGrant::RECOMMENDED)->count();
+            $needs = SeedApplication::whereIn('status', [SeedGrant::SUBMITTED, SeedGrant::SCREENED, SeedGrant::PROPOSAL_SUBMITTED, SeedGrant::APPROVED, SeedGrant::AGREEMENT_ACCEPTED])->count();
+            $recommended = SeedApplication::where('status', SeedGrant::RECOMMENDED)->count();
 
-            return ['Seed grant' => [
-                ['Submissions', route('seed.submissions.index'), 'fa-file-alt', 'seed.submissions.*', $needs ?: null, false],
-                ['Ranking', route('seed.ranking'), 'fa-list-ol', 'seed.ranking', null, false],
-                ['Approvals', route('seed.approvals.index'), 'fa-shield-alt', 'seed.approvals.*', $recommended ?: null, false],
-                ['The call', route('seed.call'), 'fa-bullhorn', 'seed.call*', null, false],
-            ]] + self::reviewing($user);
+            $items = [['Calls', route('seed.calls.index'), 'fa-bullhorn', 'seed.calls.*|seed.call*', null, false]];
+            if (SeedCall::exists()) {
+                $items[] = ['Submissions', route('seed.submissions.index'), 'fa-file-alt', 'seed.submissions.*', $needs ?: null, false];
+                $items[] = ['Ranking', route('seed.ranking'), 'fa-list-ol', 'seed.ranking', null, false];
+                $items[] = ['Approvals', route('seed.approvals.index'), 'fa-shield-alt', 'seed.approvals.*', $recommended ?: null, false];
+            }
+
+            return ['Grants' => $items] + self::reviewing($user);
         }
 
         if ($level = ApprovalsController::levelFor($user)) {
-            $waiting = SeedApplication::where('seed_call_id', $call->id)->where('status', ApprovalsController::QUEUE_STATUS[$level])->count();
+            $waiting = SeedApplication::where('status', ApprovalsController::QUEUE_STATUS[$level])->count();
 
             return ['Decisions' => [
                 ['Awaiting decision', route('seed.approvals.index'), 'fa-shield-alt', 'seed.approvals.*', $waiting ?: null, false],
                 ['Full ranking', route('seed.ranking'), 'fa-list-ol', 'seed.ranking', null, false],
-                ['The call', route('seed.call'), 'fa-bullhorn', 'seed.call', null, false],
+                ['Calls', route('seed.calls.index'), 'fa-bullhorn', 'seed.calls.*|seed.call', null, false],
             ]] + self::reviewing($user);
         }
 
-        $application = SeedApplication::where('seed_call_id', $call->id)->where('pi_id', $user->id)->first();
+        $applications = SeedApplication::where('pi_id', $user->id)->latest('id')->get();
         $items = [];
-        if ($call->isVisible()) {
-            $items[] = ['The call', route('seed.call'), 'fa-bullhorn', 'seed.call', null, false];
+        if (SeedCall::where('status', '!=', 'draft')->exists()) {
+            $items[] = ['Calls', route('seed.calls.index'), 'fa-bullhorn', 'seed.calls.*|seed.call', null, false];
         }
-        if ($application) {
-            $items[] = ['My application', route('seed.mine'), 'fa-file-alt', 'seed.applications.show|seed.applications.edit',
-                $application->isRevising() ? 'Revise' : null, false];
-            if ($application->agreement_issued_at) {
-                $items[] = ['Grant agreement', route('seed.applications.agreement', $application), 'fa-file-signature', 'seed.applications.agreement',
-                    $application->status === SeedGrant::AGREEMENT_ISSUED ? 1 : null, false];
+        if ($applications->isNotEmpty()) {
+            $items[] = [$applications->count() === 1 ? 'My application' : 'My applications', route('seed.mine'), 'fa-file-alt',
+                'seed.mine|seed.applications.show|seed.applications.edit', $applications->contains->isRevising() ? 'Revise' : null, false];
+            foreach ($applications->whereNotNull('agreement_issued_at') as $application) {
+                $items[] = ['Grant agreement · ' . $application->reference, route('seed.applications.agreement', $application), 'fa-file-signature',
+                    'seed.applications.agreement', $application->status === SeedGrant::AGREEMENT_ISSUED ? 1 : null, false];
             }
         }
 
-        return ($items ? ['My grant' => $items] : []) + self::reviewing($user);
+        return ($items ? ['My grants' => $items] : []) + self::reviewing($user);
     }
 
     private static function reviewing(User $user): array

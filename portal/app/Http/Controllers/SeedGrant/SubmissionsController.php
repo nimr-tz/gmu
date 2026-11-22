@@ -38,8 +38,10 @@ class SubmissionsController extends Controller implements HasMiddleware
 
     public function index(Request $request)
     {
-        $call = SeedCall::current();
-        abort_unless($call, 404);
+        $call = \App\Support\CallPicker::pick($request, self::FILTERS['action'][1]);
+        if (! $call) {
+            return redirect()->route('seed.calls.index');
+        }
 
         $filter = $request->query('filter');
         $search = trim((string) $request->query('q', ''));
@@ -67,6 +69,7 @@ class SubmissionsController extends Controller implements HasMiddleware
             'filter'       => $filter,
             'search'       => $search,
             'counts'       => $counts,
+            'calls'        => \App\Support\CallPicker::options(),
         ]);
     }
 

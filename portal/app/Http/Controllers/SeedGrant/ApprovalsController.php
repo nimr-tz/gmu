@@ -32,8 +32,9 @@ class ApprovalsController extends Controller
     {
         $level = self::levelFor($request->user());
         abort_unless($level, 403);
-        $call = SeedCall::current();
+        $call = \App\Support\CallPicker::pick($request, [self::QUEUE_STATUS[$level]], $level === 'gmu');
         abort_unless($call, 404);
+        $calls = \App\Support\CallPicker::options($level === 'gmu');
 
         $base = SeedApplication::with(['pi', 'budgetItems', 'rounds.reviews', 'approvals'])->where('seed_call_id', $call->id);
 
@@ -43,7 +44,7 @@ class ApprovalsController extends Controller
         $inProgress = (clone $base)->whereIn('status', [SeedGrant::RECOMMENDED, SeedGrant::WITH_DRCP, SeedGrant::WITH_DG])
             ->where('status', '!=', self::QUEUE_STATUS[$level])->get();
 
-        return view('seed.approvals-index', compact('call', 'level', 'queue', 'decided', 'notRecommended', 'inProgress'));
+        return view('seed.approvals-index', compact('call', 'calls', 'level', 'queue', 'decided', 'notRecommended', 'inProgress'));
     }
 
     public function show(Request $request, SeedApplication $application)

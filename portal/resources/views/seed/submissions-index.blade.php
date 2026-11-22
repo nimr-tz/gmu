@@ -6,18 +6,19 @@
 @section('context', 'Seed Grant · FY ' . $call->fiscal_year)
 
 @section('content')
-<x-ui.page-head title="Submissions" lede="Every concept note and full proposal under this call. Drafts stay with applicants until they submit.">
+<x-ui.page-head title="Submissions" :lede="'Every concept note and full proposal under ' . $call->title . '. Drafts stay with applicants until they submit.'">
     <x-slot:actions>
-        <a href="{{ route('seed.ranking') }}" class="btn"><i class="fas fa-list-ol" aria-hidden="true"></i> Ranking</a>
+        @include('seed.partials.call-picker')
+        <a href="{{ route('seed.ranking', ['call' => $call->id]) }}" class="btn"><i class="fas fa-list-ol" aria-hidden="true"></i> Ranking</a>
     </x-slot:actions>
 </x-ui.page-head>
 
 <div class="row-between" style="margin-bottom:16px;">
     <nav class="chips" aria-label="Filter">
-        <a href="{{ route('seed.submissions.index', array_filter(['q' => $search])) }}" class="chip {{ ! $filter ? 'is-active' : '' }}">All submitted</a>
+        <a href="{{ route('seed.submissions.index', array_filter(['q' => $search, 'call' => $call->id])) }}" class="chip {{ ! $filter ? 'is-active' : '' }}">All submitted</a>
         @foreach(F::FILTERS as $key => [$label, $statuses])
             @php $n = collect($statuses)->sum(fn ($s) => $counts[$s] ?? 0); @endphp
-            <a href="{{ route('seed.submissions.index', array_filter(['filter' => $key, 'q' => $search])) }}" class="chip {{ $filter === $key ? 'is-active' : '' }}">{{ $label }} <span class="mono" style="margin-left:6px;">{{ $n }}</span></a>
+            <a href="{{ route('seed.submissions.index', array_filter(['filter' => $key, 'q' => $search, 'call' => $call->id])) }}" class="chip {{ $filter === $key ? 'is-active' : '' }}">{{ $label }} <span class="mono" style="margin-left:6px;">{{ $n }}</span></a>
         @endforeach
     </nav>
     <form method="GET" class="row" role="search">

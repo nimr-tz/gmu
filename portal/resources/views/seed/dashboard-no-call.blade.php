@@ -12,7 +12,7 @@
     <x-ui.empty icon="fa-bullhorn" title="Set up the call to begin">
         Enter the call’s title, award range, deadlines and status. Researchers see it once you set the status to Open.
         <x-slot:action>
-            <a href="{{ route('seed.call.edit') }}" class="btn btn-primary">Set up the call</a>
+            <a href="{{ route('seed.calls.create') }}" class="btn btn-primary">Set up the call</a>
         </x-slot:action>
     </x-ui.empty>
 </div>

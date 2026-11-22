@@ -533,3 +533,24 @@ fieldset.wl-fieldset legend { padding:0; margin-bottom:8px; }
   .wl-go { flex:1 1 100%; justify-content:center; }
 }
 @media (prefers-reduced-motion:reduce) { .wl-body { animation:none; } }
+
+/* ---- call settings: feature switches (seed/call-edit) --------------------- */
+.call-lock { margin-bottom:20px; }
+.feature-list { display:flex; flex-direction:column; }
+.feature { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 24px; padding:14px 0; border-top:1px solid var(--line-soft); }
+.feature:first-child { border-top:0; padding-top:0; }
+.feature:last-child { padding-bottom:0; }
+.feature-name { display:flex; align-items:flex-start; gap:12px; flex:1 1 320px; min-width:0; }
+.feature-name strong { display:block; font-size:14px; }
+.feature-name .help { display:block; margin-top:2px; }
+.feature-set { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; font-size:13px; color:var(--muted-2); }
+.feature-set label { display:flex; align-items:center; gap:8px; }
+.input-num { width:96px; min-height:40px; text-align:right; font-family:var(--mono); }
+.select-sm { width:auto; min-width:150px; min-height:40px; }
+.switch-box { width:18px; height:18px; margin-top:2px; accent-color:var(--brand); flex:0 0 auto; }
+.settings-table td { vertical-align:top; }
+.settings-question { min-width:320px; }
+.settings-question .input { font-weight:600; }
+.settings-question .textarea { margin-top:6px; font-size:13px; min-height:0; }
+.call-picker { display:flex; align-items:center; gap:8px; }
+.call-picker .select-sm { max-width:360px; }

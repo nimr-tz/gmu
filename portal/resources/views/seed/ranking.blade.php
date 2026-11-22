@@ -9,11 +9,12 @@
 <form method="POST" action="{{ route('seed.ranking.send') }}">
     @csrf
     <x-ui.page-head title="Rank and recommend" lede="Full proposals ranked by the reviewers’ mean score. The panel can change its recommendation, never the scores.">
-        @if($canManage && $awaitingCount)
-            <x-slot:actions>
-                <button type="submit" class="btn btn-primary">Send ticked to DRCP <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
-            </x-slot:actions>
-        @endif
+        <x-slot:actions>
+            @include('seed.partials.call-picker')
+            @if($canManage && $awaitingCount)
+                <button type="submit" class="btn btn-primary">{{ ['drcp' => 'Send ticked to DRCP', 'dg' => 'Send ticked to the DG'][$nextAfterGmu] ?? 'Approve ticked' }} <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+            @endif
+        </x-slot:actions>
     </x-ui.page-head>
 
     <div class="stats" style="margin-bottom:24px;">

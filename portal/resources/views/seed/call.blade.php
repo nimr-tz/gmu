@@ -1,7 +1,7 @@
 @extends('layouts.gmu')
 
 @section('title', 'The call')
-@section('context', 'Seed Grant · FY ' . $call->fiscal_year)
+@section('context', 'Calls · ' . $call->title)
 
 @php use App\Support\SeedGrant; @endphp
 
@@ -13,7 +13,7 @@
         </span>
         <span style="font-size:13px; color:var(--blue-50);">Internal call · DRCP in coordination with GMU</span>
         @can('manage-seed-grants')
-            <a href="{{ route('seed.call.edit') }}" class="btn btn-sm" style="margin-left:auto; background:transparent; color:#fff; border-color:rgba(255,255,255,.5);">
+            <a href="{{ route('seed.calls.edit', $call) }}" class="btn btn-sm" style="margin-left:auto; background:transparent; color:#fff; border-color:rgba(255,255,255,.5);">
                 <i class="fas fa-cog" aria-hidden="true"></i> Call settings
             </a>
         @endcan
@@ -109,7 +109,7 @@
                 @if($application)
                     <p style="margin-top:10px;">You have an application: <span class="mono">{{ $application->reference }}</span></p>
                     <div style="margin-top:8px;">@include('seed.partials.status')</div>
-                    <a href="{{ route('seed.mine') }}" class="btn btn-primary btn-block" style="margin-top:16px;">Open my application</a>
+                    <a href="{{ route($application->isEditableByApplicant() ? 'seed.applications.edit' : 'seed.applications.show', $application) }}" class="btn btn-primary btn-block" style="margin-top:16px;">Open my application</a>
                 @elseif(! $call->acceptingConceptNotes())
                     <p class="muted" style="margin-top:10px;">This call is not accepting concept notes.</p>
                 @elseif($problems)
@@ -122,7 +122,7 @@
                     @endif
                 @else
                     <div class="alert alert-success" style="margin:14px 0 0;"><i class="fas fa-check" aria-hidden="true"></i><span>Your profile meets the eligibility rules.</span></div>
-                    <form method="POST" action="{{ route('seed.apply') }}">
+                    <form method="POST" action="{{ route('seed.calls.apply', $call) }}">
                         @csrf
                         <button type="submit" class="btn btn-primary btn-block" style="margin-top:12px;">Start your concept note</button>
                     </form>

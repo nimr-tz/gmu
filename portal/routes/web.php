@@ -43,12 +43,20 @@ Route::middleware(['auth'])->group(function () {
 
     // ── Seed grant ─────────────────────────────────────────────────────────
     Route::prefix('seed-grant')->name('seed.')->group(function () {
-        Route::get('call',      [SeedGrant\CallController::class, 'show'])->name('call');
-        Route::get('call/edit', [SeedGrant\CallController::class, 'edit'])->name('call.edit');
-        Route::put('call',      [SeedGrant\CallController::class, 'update'])->name('call.update');
+        // Calls: as many as NIMR runs, each with its own features and settings.
+        Route::get('calls',                [SeedGrant\CallController::class, 'index'])->name('calls.index');
+        Route::get('calls/new',            [SeedGrant\CallController::class, 'create'])->name('calls.create');
+        Route::post('calls',               [SeedGrant\CallController::class, 'store'])->name('calls.store');
+        Route::get('calls/{call}',         [SeedGrant\CallController::class, 'show'])->name('calls.show');
+        Route::get('calls/{call}/settings',[SeedGrant\CallController::class, 'edit'])->name('calls.edit');
+        Route::put('calls/{call}',         [SeedGrant\CallController::class, 'update'])->name('calls.update');
+        Route::post('calls/{call}/apply',  [SeedGrant\ApplicationController::class, 'start'])->name('calls.apply');
+        // The earlier single-call addresses, kept so old links still land somewhere sensible.
+        Route::get('call',      [SeedGrant\CallController::class, 'current'])->name('call');
+        Route::get('call/edit', [SeedGrant\CallController::class, 'editCurrent'])->name('call.edit');
 
         // Applicant
-        Route::post('apply',          [SeedGrant\ApplicationController::class, 'start'])->name('apply');
+        Route::post('apply',          [SeedGrant\ApplicationController::class, 'start'])->name('apply');   // the default call
         Route::get('my-application',  [SeedGrant\ApplicationController::class, 'mine'])->name('mine');
         Route::scopeBindings()->prefix('applications/{application}')->name('applications.')->group(function () {
             Route::get('/',                      [SeedGrant\ApplicationController::class, 'show'])->name('show');

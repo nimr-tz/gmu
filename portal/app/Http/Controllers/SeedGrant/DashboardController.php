@@ -26,8 +26,12 @@ class DashboardController extends Controller
             return redirect()->route('seed.approvals.index');
         }
 
-        $application = $call ? SeedApplication::with(['rounds.reviews.assignment', 'budgetItems', 'call'])
-            ->where('seed_call_id', $call->id)->where('pi_id', $user->id)->first() : null;
+        // An applicant's dashboard follows their own latest application, in whichever call it is.
+        $application = SeedApplication::with(['rounds.reviews.assignment', 'budgetItems', 'call'])
+            ->where('pi_id', $user->id)->latest('id')->first();
+        if ($application) {
+            $call = $application->call;
+        }
 
         $reviewing = SeedReviewerAssignment::where('reviewer_id', $user->id)->whereNull('removed_at')->exists();
         if (! $application && $reviewing) {

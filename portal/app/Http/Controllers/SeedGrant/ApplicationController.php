@@ -21,27 +21,31 @@ class ApplicationController extends Controller
 {
     public function __construct(private Workflow $workflow) {}
 
-    public function start(Request $request)
+    public function start(Request $request, ?SeedCall $call = null)
     {
-        $call = SeedCall::current();
-        abort_unless($call, 404);
+        $call ??= SeedCall::current();
+        abort_unless($call && $call->isVisible(), 404);
 
         $application = $this->workflow->start($request->user(), $call);
 
         return redirect()->route('seed.applications.edit', $application);
     }
 
-    /** "My application" in the menu. */
+    /** "My applications" in the menu: straight to the one, or a list of several. */
     public function mine(Request $request)
     {
-        $call = SeedCall::current();
-        $application = $call ? SeedApplication::where('seed_call_id', $call->id)->where('pi_id', $request->user()->id)->first() : null;
+        $applications = SeedApplication::with('call')->where('pi_id', $request->user()->id)->latest('id')->get();
 
-        if (! $application) {
-            return redirect()->route('seed.call');
+        if ($applications->isEmpty()) {
+            return redirect()->route('seed.calls.index');
+        }
+        if ($applications->count() === 1) {
+            $application = $applications->first();
+
+            return redirect()->route($application->isEditableByApplicant() ? 'seed.applications.edit' : 'seed.applications.show', $application);
         }
 
-        return redirect()->route($application->isEditableByApplicant() ? 'seed.applications.edit' : 'seed.applications.show', $application);
+        return view('seed.my-applications', ['applications' => $applications]);
     }
 
     public function show(Request $request, SeedApplication $application)

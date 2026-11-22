@@ -20,7 +20,8 @@ class RankingController extends Controller
     {
         abort_unless($request->user()->can('manage-seed-grants') || $request->user()->can('approve-seed-grants'), 403);
 
-        $call = SeedCall::current();
+        $manage = $request->user()->can('manage-seed-grants');
+        $call = \App\Support\CallPicker::pick($request, [SeedGrant::RECOMMENDED, SeedGrant::PROPOSAL_REVIEW], $manage);
         abort_unless($call, 404);
 
         $ranked = self::rank(SeedApplication::with(['pi', 'budgetItems', 'rounds.reviews'])
@@ -37,6 +38,8 @@ class RankingController extends Controller
             'recommendedTotal' => $recommended->sum(fn ($r) => $r['application']->budgetTotal('proposal')),
             'recommendedCount' => $recommended->count(),
             'awaitingCount'    => $ranked->where('application.status', SeedGrant::RECOMMENDED)->count(),
+            'calls'            => \App\Support\CallPicker::options($manage),
+            'nextAfterGmu'     => $call->form()->nextApprovalLevel('gmu'),
         ]);
     }
 
