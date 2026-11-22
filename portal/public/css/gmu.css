@@ -604,3 +604,4 @@ fieldset.wl-fieldset legend { padding:0; margin-bottom:8px; }
 .call-summary-grid { display:grid; grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); gap:24px; align-items:start; }
 .call-summary-grid .call-card-facts { grid-template-columns:repeat(2, minmax(0, 1fr)); }
 @media (max-width:900px) { .call-summary-grid { grid-template-columns:1fr; } }
+.col-main { min-width:240px; }

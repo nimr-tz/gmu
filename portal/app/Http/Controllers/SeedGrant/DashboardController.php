@@ -114,7 +114,10 @@ class DashboardController extends Controller
                     'requested' => $mine->sum(fn ($a) => $a->requestedAmount()),
                     'approved'  => $mine->whereIn('status', [S::APPROVED, S::AGREEMENT_ISSUED, S::AGREEMENT_ACCEPTED, S::AWARDED])->sum('approved_amount'),
                 ];
-            })->values();
+            })
+            // Open calls first, then drafts, then closed calls still finishing; newest first within each.
+            ->sortBy(fn ($card) => [['open' => 0, 'draft' => 1, 'closed' => 2][$card['call']->status] ?? 3, -$card['call']->id])
+            ->values();
 
         return view('seed.dashboard-gmu', [
             'cards'          => $cards,

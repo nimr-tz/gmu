@@ -80,7 +80,7 @@
                         @php $a = $n['application']; @endphp
                         <tr>
                             <td>@include('seed.partials.call-tag', ['call' => $a->call, 'short' => true])</td>
-                            <td><div class="strong">{{ \Illuminate\Support\Str::limit($a->title, 70) }}</div>
+                            <td class="col-main"><div class="strong">{{ \Illuminate\Support\Str::limit($a->title, 70) }}</div>
                                 <div class="sub"><span class="mono nowrap">{{ $a->reference }}</span> · {{ $a->pi->name }}{{ $a->pi->research_center ? ' · ' . $a->pi->research_center : '' }}</div></td>
                             <td>@include('seed.partials.status', ['application' => $a])</td>
                             <td class="sub nowrap">{{ $a->updated_at->format('j M Y') }}<div class="tiny muted-3">{{ $a->updated_at->diffForHumans() }}</div></td>
