@@ -10,7 +10,7 @@
 @endphp
 
 @section('title', 'Dashboard')
-@section('context', $call ? $call->title : 'NIMR Grants')
+@section('context', 'Home · Dashboard')
 
 @section('content')
 <x-page-header :eyebrow="now()->format('l, j F Y')" :title="$greeting . ', ' . $first . '.'">
@@ -37,8 +37,8 @@
         </div>
     </section>
 @else
-    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div class="space-y-6">
+    <div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div class="space-y-5">
             @if($application->isRevising() && $round)
                 <x-alert tone="warn" icon="pencil" title="Reviewers asked you to revise">
                     <p class="mb-1 font-medium">Round {{ $round->number }} · your response is due {{ $round->response_due_at?->format('j M Y') }}</p>
@@ -63,25 +63,14 @@
                 </x-alert>
             @endif
 
-            <x-card>
-                <div class="flex flex-wrap items-start justify-between gap-4 pt-1">
-                    <div class="min-w-0 flex-[1_1_24rem]">
-                        <div class="flex flex-wrap items-center gap-2.5">
-                            @include('seed.partials.status')
-                            @include('seed.partials.call-tag', ['call' => $application->call, 'short' => true])
-                            <span class="font-mono text-xs text-muted-foreground">{{ $application->reference }}</span>
-                        </div>
-                        <h2 class="mt-3 text-xl leading-snug">{{ $application->title ?: 'Untitled concept note' }}</h2>
-                    </div>
-                    <x-button :href="route('seed.applications.show', $application)" icon-right="arrow-right">Open</x-button>
+            @include('seed.partials.applicant-figures')
+
+            <x-card title="Where your application is" :description="$application->reference . ' · ' . $application->call->title">
+                <x-slot:actions><x-button size="sm" :href="route('seed.applications.show', $application)" icon-right="arrow-right">Open my application</x-button></x-slot:actions>
+                <div class="mb-5 flex flex-wrap items-center gap-2.5">
+                    @include('seed.partials.call-tag', ['call' => $application->call, 'short' => true])
+                    <h2 class="min-w-0 text-[17px] font-semibold leading-snug">{{ $application->title ?: 'Untitled concept note' }}</h2>
                 </div>
-                <dl class="my-5 grid grid-cols-2 gap-x-6 gap-y-4 border-y border-border py-4 md:grid-cols-4">
-                    <x-stat label="Requested" :value="S::tzs($application->requestedAmount())" mono />
-                    <x-stat label="Submitted" :value="$application->concept_submitted_at?->format('j M Y') ?? 'Not yet'" />
-                    <x-stat label="Mentor" :value="$application->mentor_name ?: '—'" />
-                    <x-stat label="Review round" :value="$round ? $round->number . ($round->stage === 'proposal' ? ' (proposal)' : '') : '—'" />
-                </dl>
-                <h3 class="mb-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">Where your application is</h3>
                 @include('seed.partials.track')
             </x-card>
         </div>

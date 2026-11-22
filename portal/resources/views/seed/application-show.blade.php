@@ -50,22 +50,16 @@
 </x-page-header>
 
 @if($banner)
-    <x-alert :tone="$banner[0]" :icon="$banner[1]" :title="$banner[2]" class="mb-6">{{ $banner[3] }}</x-alert>
+    <x-alert :tone="$banner[0]" :icon="$banner[1]" :title="$banner[2]" class="mb-5">{{ $banner[3] }}</x-alert>
 @endif
 
-<x-card class="mb-6">
-    <dl class="mb-6 grid grid-cols-2 gap-x-6 gap-y-4 border-b border-border pb-5 pt-1 md:grid-cols-4">
-        <x-stat label="Requested" :value="S::tzs($application->requestedAmount())" mono />
-        <x-stat label="Concept submitted" :value="$application->concept_submitted_at?->format('j M Y') ?? '—'" />
-        <x-stat label="Mentor" :value="$application->mentor_name ?: '—'" />
-        @if($application->approved_amount)
-            <x-stat label="Approved" :value="S::tzs($application->approved_amount)" mono />
-        @endif
-    </dl>
+@include('seed.partials.applicant-figures')
+
+<x-card class="my-5" title="Where your application is" description="Eight steps from concept note to award">
     @include('seed.partials.track')
 </x-card>
 
-<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+<div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
     <div>
         <h2 class="mb-3 text-lg">{{ $shown === 'proposal' ? 'Full proposal' : 'Concept note' }}</h2>
         @include('seed.partials.content', ['stage' => $shown])

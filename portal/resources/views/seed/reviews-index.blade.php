@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', 'My reviews')
-@section('context', 'Review panel')
+@section('context', 'Review panel · My reviews')
 
 @php
     use App\Support\SeedGrant as S;
@@ -10,25 +10,40 @@
 @endphp
 
 @section('content')
-<x-page-header title="Your reviews" description="You review anonymously. Applicants read your comments, never your name." />
+<x-page-header title="My reviews" description="You review anonymously. Applicants read your comments, never your name." />
 
-<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <div class="space-y-6">
+@php
+    $nextDue = $todo->map(fn ($a) => $a->application->openRound($a->stage)?->due_at)->filter()->sort()->first();
+    $nextDays = $nextDue ? (int) now()->startOfDay()->diffInDays($nextDue->copy()->startOfDay(), false) : null;
+@endphp
+<div class="mb-5 grid gap-3 sm:grid-cols-3">
+    <x-kpi :tone="$todo->isEmpty() ? 'neutral' : 'amber'" title="To do" :value="$todo->count()"
+        :note="$todo->isEmpty() ? 'Nothing is waiting on you' : str('Review')->plural($todo->count()) . ' waiting on you'" />
+    <x-kpi :tone="$nextDue && $nextDays < 0 ? 'rose' : 'sky'" title="Next due" :value="$nextDue ? $nextDue->format('j M Y') : '—'"
+        :badge="$nextDue ? ($nextDays < 0 ? 'Late' : ($nextDays === 0 ? 'Today' : 'In ' . $nextDays . ' ' . str('day')->plural($nextDays))) : null"
+        :note="$nextDue ? 'The end of that day, East Africa Time' : 'No review has a due date yet'" />
+    <x-kpi tone="blue" title="Done" :value="$done->count()" :note="str('Review')->plural($done->count()) . ' you have submitted'" />
+</div>
+
+<div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="space-y-5">
         <x-card title="To do" flush>
-            <x-slot:actions><x-badge tone="outline" class="font-mono">{{ $todo->count() }}</x-badge></x-slot:actions>
             <ul class="divide-y divide-border">
                 @forelse($todo as $a)
                     @php
                         $app = $a->application;
                         $round = $app->openRound($a->stage);
                         $due = $round?->due_at;
-                        $soon = $due && $due->copy()->endOfDay()->diffInDays(now(), false) > -3;
+                        // Late (red) only once the due day has ended; amber in the last three days before.
+                        $late = $due && $due->copy()->endOfDay()->isPast();
+                        $soon = ! $late && $due && now()->diffInDays($due->copy()->endOfDay(), false) < 3;
+                        $dueTone = $late ? 'bg-danger-soft text-danger-ink' : ($soon ? 'bg-warn-soft text-warn-ink' : 'bg-muted');
                         $draft = $round?->reviews->firstWhere('seed_reviewer_assignment_id', $a->id);
                     @endphp
                     <li class="flex flex-wrap items-center gap-4 px-5 py-4">
-                        <div class="w-14 shrink-0 rounded-lg py-2 text-center {{ $soon ? 'bg-danger-soft text-danger-ink' : 'bg-muted' }}">
-                            <div class="font-mono text-xl leading-none tabular-nums">{{ $due?->format('j') ?? '—' }}</div>
-                            <div class="mt-1 text-[10px] font-medium uppercase tracking-wider {{ $soon ? '' : 'text-muted-foreground' }}">{{ $due?->format('M') }}</div>
+                        <div class="w-14 shrink-0 rounded-lg py-2 text-center {{ $dueTone }}">
+                            <div class="text-xl font-semibold leading-none tabular-nums">{{ $due?->format('j') ?? '—' }}</div>
+                            <div class="mt-1 text-[10px] font-medium uppercase tracking-wider {{ $late || $soon ? '' : 'text-muted-foreground' }}">{{ $due?->format('M') }}</div>
                         </div>
                         <div class="min-w-0 flex-[1_1_18rem]">
                             <div class="flex flex-wrap items-center gap-2">
@@ -40,7 +55,7 @@
                                 @elseif($round && $round->number > 1)<x-badge tone="review">Applicant responded</x-badge>@endif
                             </div>
                             <p class="mt-1.5 font-medium">{{ $a->coi_status === 'pending' ? 'Title hidden until you declare' : $app->title }}</p>
-                            @if($due)<p class="mt-0.5 text-[13px] {{ $soon ? 'text-danger-ink' : 'text-muted-foreground' }}">Due {{ $due->format('j M Y') }} ({{ $due->copy()->endOfDay()->diffForHumans() }})</p>@endif
+                            @if($due)<p class="mt-0.5 text-[13px] {{ $late ? 'text-danger-ink' : ($soon ? 'text-warn-ink' : 'text-muted-foreground') }}">Due {{ $due->format('j M Y') }} ({{ $due->copy()->endOfDay()->diffForHumans() }})</p>@endif
                         </div>
                         <x-button :variant="$a->coi_status === 'pending' ? 'secondary' : 'primary'" :href="route('seed.reviews.show', $a)">
                             {{ $a->coi_status === 'pending' ? 'Declare' : ($draft ? 'Continue review' : 'Start review') }}

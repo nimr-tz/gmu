@@ -36,7 +36,7 @@
 @endphp
 
 @section('title', $isConcept ? 'Concept note' : 'Full proposal')
-@section('context', $application->reference . ' · ' . ($isConcept ? 'Concept note' : 'Full proposal'))
+@section('context', 'My application · ' . $application->reference . ' · ' . ($isConcept ? 'Concept note' : 'Full proposal'))
 
 @section('content')
 <form id="app-form" method="POST" action="{{ route('seed.applications.update', $application) }}" data-draft-key="seed-draft-{{ $application->id }}-{{ $stage }}" data-saved-at="{{ $application->updated_at->timestamp }}">
@@ -56,7 +56,7 @@
             </div>
             <div class="w-40">
                 <div class="flex justify-between text-xs"><span class="text-muted-foreground">Length</span><b class="font-mono font-medium" data-pages>{{ $pages }} / {{ $maxPages }} pages</b></div>
-                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"><div data-pages-bar class="h-full rounded-full {{ $pages > $maxPages ? 'bg-danger' : 'bg-primary' }}" style="width: {{ min(100, $pages / $maxPages * 100) }}%"></div></div>
+                <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-gray-100"><div data-pages-bar class="h-full rounded-full {{ $pages > $maxPages ? 'bg-danger' : 'bg-primary' }}" style="width: {{ min(100, $pages / $maxPages * 100) }}%"></div></div>
             </div>
             <div class="flex gap-2">
                 <x-button type="submit" icon="save" data-save>Save</x-button>
@@ -84,13 +84,16 @@
         {{-- Sections, with what is done --}}
         <aside class="space-y-4 lg:sticky lg:top-32">
             <nav aria-label="Sections" class="hidden lg:block">
-                <p class="mb-2 flex items-center justify-between px-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Sections <span class="font-mono normal-case tracking-normal">{{ $doneCount }}/{{ count($nav) }}</span></p>
+                <div class="mb-3 rounded-xl border border-border bg-muted px-3 py-2.5">
+                    <p class="flex items-center justify-between text-[13px]"><span class="font-medium">Sections done</span><span class="font-semibold tabular-nums">{{ $doneCount }} of {{ count($nav) }}</span></p>
+                    <x-meter class="mt-2" :value="$doneCount / max(1, count($nav)) * 100" label="Sections done" />
+                </div>
                 <ul class="space-y-0.5">
                     @foreach($nav as [$anchor, $label, $state])
                         <li>
                             <a href="#{{ $anchor }}" class="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-muted hover:text-foreground">
-                                @if($state === 'ok')<span class="grid size-4 shrink-0 place-items-center rounded-full bg-primary text-white"><x-icon name="check" class="size-2.5" /></span>
-                                @elseif($state === 'over')<span class="grid size-4 shrink-0 place-items-center rounded-full bg-danger text-[10px] font-bold text-white">!</span>
+                                @if($state === 'ok')<span class="grid size-4 shrink-0 place-items-center rounded-full bg-ok-soft text-ok-ink"><x-icon name="check" class="size-2.5" /></span>
+                                @elseif($state === 'over')<span class="grid size-4 shrink-0 place-items-center rounded-full bg-danger-soft text-[10px] font-bold text-danger-ink">!</span>
                                 @else<span class="size-4 shrink-0 rounded-full border-[1.5px] border-input"></span>@endif
                                 <span class="truncate">{{ $label }}</span>
                             </a>
@@ -99,7 +102,7 @@
                 </ul>
             </nav>
             @if($problems)
-                <div class="rounded-xl border border-warn-line bg-warn-soft/60 p-4">
+                <div class="rounded-xl border border-warn-line bg-warn-soft p-4">
                     <p class="text-[13px] font-semibold text-warn-ink">Before you can submit</p>
                     <ul class="mt-2 list-disc space-y-1 pl-4 text-xs text-warn-ink">@foreach($problems as $p)<li>{{ $p }}</li>@endforeach</ul>
                     <p class="mt-2 text-[11px] text-warn-ink/80">As of your last save.</p>

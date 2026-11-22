@@ -85,12 +85,11 @@ class CallController extends Controller
         ]);
     }
 
-    /** GMU's figures for one call: where applications are, from which centres, and the money. */
+    /** GMU's figures for one call: where applications are, and the money. */
     private function summary(SeedCall $call): array
     {
-        $applications = SeedApplication::with(['pi', 'budgetItems'])->where('seed_call_id', $call->id)->get();
+        $applications = SeedApplication::with('budgetItems')->where('seed_call_id', $call->id)->get();
         $submitted = $applications->where('status', '!=', SeedGrant::DRAFT);
-        $approvedStatuses = [SeedGrant::APPROVED, SeedGrant::AGREEMENT_ISSUED, SeedGrant::AGREEMENT_ACCEPTED, SeedGrant::AWARDED];
 
         return [
             'stages'    => collect(SeedGrant::TRACK)->map(fn ($step) => ['label' => $step[0], 'count' => $submitted->whereIn('status', $step[2])->count()]),
@@ -98,8 +97,7 @@ class CallController extends Controller
             'submitted' => $submitted->count(),
             'closed'    => $submitted->whereIn('status', SeedGrant::CLOSED_STATUSES)->count(),
             'requested' => $submitted->whereNotIn('status', SeedGrant::CLOSED_STATUSES)->sum(fn ($a) => $a->requestedAmount()),
-            'approved'  => $submitted->whereIn('status', $approvedStatuses)->sum('approved_amount'),
-            'byCentre'  => $submitted->groupBy(fn ($a) => $a->pi->research_center ?: 'Not recorded')->map->count()->sortDesc(),
+            'approved'  => $submitted->whereIn('status', SeedGrant::APPROVED_STATUSES)->sum('approved_amount'),
         ];
     }
 

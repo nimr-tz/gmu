@@ -21,15 +21,21 @@
     <x-slot:meta>
         <div class="mt-3 flex flex-wrap items-center gap-2.5">
             @include('seed.partials.status')
-            @if($means)<x-badge tone="outline" class="font-mono">Mean score {{ $means['total'] }}</x-badge>@endif
             @include('seed.partials.call-tag', ['call' => $application->call, 'short' => true])
             <span class="font-mono text-xs text-muted-foreground">{{ $application->reference }}</span>
         </div>
     </x-slot:meta>
-    <x-slot:actions>
-        <div class="text-right"><p class="text-xs text-muted-foreground">Award requested</p><p class="font-mono text-2xl font-semibold tabular-nums">{{ S::tzs($total) }}</p></div>
-    </x-slot:actions>
 </x-page-header>
+
+{{-- Three plain answers: is it my turn, how much, how it scored --}}
+<div class="mb-5 grid gap-3 sm:grid-cols-3">
+    <x-kpi :tone="$myTurn ? 'amber' : 'neutral'" title="Your decision" :value="$myTurn ? 'Waiting for you' : 'Not needed'"
+        :note="$myTurn ? 'You are the ' . ['gmu' => 'GMU sign-off', 'drcp' => 'DRCP clearance', 'dg' => 'final decision'][$level] : 'This application is “' . $application->statusLabel() . '”'" />
+    <x-kpi tone="blue" title="Award requested" :value="'TZS ' . number_format($total / 1e6, 1) . 'M'" :note="S::tzs($total) . ' in the detailed budget'" />
+    <x-kpi tone="neutral" title="Panel score" :value="$means ? $means['total'] . ' / ' . S::trimNumber($form->maxTotal()) : 'Not scored'"
+        :meter="$means && $form->maxTotal() ? $means['total'] / $form->maxTotal() * 100 : null"
+        :note="$means ? 'Mean of ' . $means['count'] . ' ' . str('reviewer')->plural($means['count']) . ' · fundable at ' . S::trimNumber($form->passMark()) : 'No scores yet'" />
+</div>
 
 {{-- The approval chain --}}
 <ol class="mb-6 grid gap-3 {{ [1 => '', 2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3'][count($steps)] }}" aria-label="Approval chain">
@@ -51,8 +57,8 @@
     @endforeach
 </ol>
 
-<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-    <div class="space-y-6">
+<div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_24rem]">
+    <div class="space-y-5">
         @if($means)
             <x-card title="How the panel scored it" :description="$means['count'] . ' ' . str('reviewer')->plural($means['count'])">
                 <ul class="divide-y divide-border">
@@ -81,7 +87,7 @@
                         <dt class="flex items-center gap-2 text-xs text-muted-foreground"><span class="size-2.5 rounded-sm {{ $shades[$k] }}"></span>{{ S::BUDGET_CATEGORIES[$k] }}</dt>
                         <dd class="mt-1 font-mono text-[15px] tabular-nums">{{ number_format($v) }}</dd>
                         @if($k === 'equipment' && $total > 0 && $cap !== null)
-                            <dd class="mt-0.5 text-xs {{ $v / $total * 100 > $cap ? 'font-medium text-danger-ink' : 'text-blue-700' }}">{{ number_format($v / $total * 100, 1) }}%, limit {{ $cap }}%</dd>
+                            <dd class="mt-0.5 text-xs {{ $v / $total * 100 > $cap ? 'font-medium text-danger-ink' : 'text-muted-foreground' }}">{{ number_format($v / $total * 100, 1) }}%, limit {{ $cap }}%</dd>
                         @endif
                     </div>
                 @endforeach
@@ -93,7 +99,7 @@
             </div>
         </x-card>
 
-        <details class="group overflow-hidden rounded-xl border border-border bg-card shadow-xs">
+        <details class="group overflow-hidden rounded-xl border border-border bg-card">
             <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-[15px] font-semibold hover:bg-muted/50 [&::-webkit-details-marker]:hidden">
                 Read the full proposal <x-icon name="chevron-down" class="text-subtle transition-transform group-open:rotate-180" />
             </summary>
@@ -105,7 +111,7 @@
         @if($myTurn)
             <form method="POST" action="{{ route('seed.approvals.decide', $application) }}" x-data="{ decision: 'approved' }">
                 @csrf
-                <x-card title="Your decision" icon="scale">
+                <x-card tone="warn" title="Your decision" description="The consequence is stated before you press">
                     <fieldset class="space-y-2">
                         <legend class="sr-only">Decision</legend>
                         @foreach(array_filter([
@@ -119,6 +125,19 @@
                             </label>
                         @endforeach
                     </fieldset>
+                    @php
+                        $after = [
+                            'approved'   => $level === 'dg'
+                                ? 'The PI is told in the portal, and GMU issues the grant agreement.'
+                                : 'It moves to ' . (($level === 'gmu' ? $form->nextApprovalLevel('gmu') : 'dg') === 'dg' ? 'the Director General' : 'the DRCP') . '. The PI is not told until the final decision.',
+                            'conditions' => 'The PI is told in the portal, and your conditions go into the grant agreement.',
+                            'returned'   => 'It goes back to GMU with your reason. Nothing is sent to the PI.',
+                        ];
+                    @endphp
+                    <p class="mt-3 rounded-lg bg-muted px-3 py-2.5 text-[13px] text-gray-700">
+                        <span class="font-medium text-foreground">What happens next:</span>
+                        @foreach($after as $value => $text)<span x-show="decision === '{{ $value }}'" @if(! $loop->first) x-cloak @endif>{{ $text }}</span>@endforeach
+                    </p>
                     <x-field class="mt-4" :label="$level === 'dg' ? 'Conditions or note' : 'Note'" name="note" optional>
                         <textarea id="note" name="note" class="textarea" rows="3">{{ old('note') }}</textarea>
                     </x-field>

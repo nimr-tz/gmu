@@ -10,10 +10,10 @@
 @endphp
 
 @section('title', 'Grant agreement')
-@section('context', 'Grant agreement · ' . $application->reference)
+@section('context', 'My application · ' . $application->reference . ' · Grant agreement')
 
 @section('content')
-<x-page-header title="Grant agreement" class="print:hidden">
+<x-page-header title="Grant agreement" class="print:hidden" :back="auth()->user()->can('manage-seed-grants') ? route('seed.submissions.show', $application) : route('seed.applications.show', $application)" back-label="The application">
     <x-slot:meta>
         <div class="mt-2 flex flex-wrap items-center gap-2.5">
             @include('seed.partials.status')
@@ -28,10 +28,10 @@
     </x-slot:actions>
 </x-page-header>
 
-<div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+<div class="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
     {{-- The agreement, laid out as paper --}}
-    <article class="rounded-xl border border-border bg-card px-6 py-8 text-[14px] leading-relaxed text-gray-700 shadow-sm sm:px-12 sm:py-12 print:border-0 print:p-0 print:shadow-none">
-        <div class="flex items-start justify-between gap-6 border-b-[3px] border-primary pb-5">
+    <article class="rounded-xl border border-border bg-card px-6 py-8 text-[14px] leading-relaxed text-gray-700 sm:px-12 sm:py-12 print:border-0 print:p-0">
+        <div class="flex items-start justify-between gap-6 border-b border-foreground pb-5">
             <div class="flex items-center gap-4">
                 <img src="{{ asset('images/nimr-logo.png') }}" alt="" class="size-14 object-contain">
                 <div>
@@ -100,7 +100,7 @@
 
         <div class="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2">
             <div>
-                <div class="flex h-10 items-end border-b border-foreground pb-1.5 font-mono text-xs {{ $application->agreement_accepted_at ? 'text-blue-700' : 'text-danger-ink' }}">
+                <div class="flex h-10 items-end border-b border-foreground pb-1.5 font-mono text-xs {{ $application->agreement_accepted_at ? 'text-ok-ink' : 'text-warn-ink' }}">
                     {{ $application->agreement_accepted_at ? 'Accepted online ' . $application->agreement_accepted_at->format('j M Y H:i') : 'awaiting acceptance' }}</div>
                 <p class="mt-1.5 text-[13px]"><strong class="text-foreground">Principal Investigator</strong><br><span class="text-muted-foreground">{{ $pi->name }}</span></p>
             </div>
@@ -114,7 +114,7 @@
         @if($isPi && $application->status === S::AGREEMENT_ISSUED)
             <form method="POST" action="{{ route('seed.applications.agreement.accept', $application) }}">
                 @csrf
-                <x-card title="Accept the agreement" description="Accepting here is your signature as PI. GMU then collects the other signatures." icon="pen-line">
+                <x-card tone="warn" title="Accept the agreement" description="Accepting here is your signature as PI. GMU then collects the other signatures." icon="pen-line">
                     <div class="space-y-3">
                         @foreach(['read' => 'I have read the whole agreement, including the approved proposal and budget.', 'ethics' => 'No data collection will start before ethics approval.', 'reporting' => 'I will submit quarterly progress and financial reports.'] as $name => $text)
                             <label class="flex items-start gap-2.5 text-sm"><input type="checkbox" class="checkbox mt-0.5" name="{{ $name }}" value="1">{{ $text }}</label>
@@ -140,7 +140,7 @@
                     ['Signed copy on file', (bool) $application->signed_agreement_uploaded_at],
                 ] as [$label, $done])
                     <li class="flex items-center gap-2.5">
-                        <span class="grid size-5 shrink-0 place-items-center rounded-full {{ $done ? 'bg-primary text-white' : 'border-2 border-input' }}">@if($done)<x-icon name="check" class="size-3" />@endif</span>
+                        <span class="grid size-5 shrink-0 place-items-center rounded-full {{ $done ? 'bg-ok-soft text-ok-ink' : 'border-2 border-input' }}">@if($done)<x-icon name="check" class="size-3" />@endif</span>
                         <span class="{{ $done ? '' : 'text-muted-foreground' }}">{{ $label }}</span>
                     </li>
                 @endforeach
