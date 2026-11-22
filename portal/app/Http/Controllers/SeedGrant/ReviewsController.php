@@ -28,10 +28,13 @@ class ReviewsController extends Controller
 
         [$todo, $done] = $assignments->partition(fn ($a) => $this->needsAction($a));
 
-        // The scoring guide follows the call the reviewer has work in, else the default call.
-        $call = $todo->first()?->application->call ?? $done->first()?->application->call ?? \App\Models\Seed\SeedCall::current();
+        // A scoring guide for each call the reviewer has work in (to do first), else the default call.
+        $guideCalls = ($todo->isNotEmpty() ? $todo : $assignments)->map(fn ($a) => $a->application->call)->filter()->unique('id')->values();
+        if ($guideCalls->isEmpty() && ($current = \App\Models\Seed\SeedCall::current())) {
+            $guideCalls = collect([$current]);
+        }
 
-        return view('seed.reviews-index', ['todo' => $todo, 'done' => $done, 'form' => \App\Support\CallForm::for($call)]);
+        return view('seed.reviews-index', ['todo' => $todo, 'done' => $done, 'guideCalls' => $guideCalls]);
     }
 
     public function show(Request $request, SeedReviewerAssignment $assignment)

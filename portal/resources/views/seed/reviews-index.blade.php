@@ -6,7 +6,6 @@
 @php
     use App\Support\SeedGrant as S;
     $tone = ['accept' => 'ok', 'revise' => 'warn', 'reject' => 'danger'];
-    $top = max(array_column($form->criteria(), 2) ?: [1]) ?: 1;
 @endphp
 
 @section('content')
@@ -68,42 +67,78 @@
         </x-card>
 
         @if($done->isNotEmpty())
-            <x-card title="Earlier reviews" flush>
-                <ul class="divide-y divide-border">
-                    @foreach($done as $a)
-                        @php $last = $a->application->rounds->where('stage', $a->stage)->flatMap->reviews->where('seed_reviewer_assignment_id', $a->id)->whereNotNull('submitted_at')->sortByDesc('submitted_at')->first(); @endphp
-                        <li>
-                            <a href="{{ route('seed.reviews.show', $a) }}" class="flex flex-wrap items-center gap-3 px-5 py-3.5 hover:bg-muted/50">
-                                @include('seed.partials.call-tag', ['call' => $a->application->call, 'short' => true])
-                                <span class="min-w-0 flex-1">
-                                    <span class="block truncate font-medium">{{ $a->coi_status === 'conflict' ? 'Conflict declared' : $a->application->title }}</span>
-                                    <span class="block text-[13px] text-muted-foreground"><span class="font-mono text-xs">{{ $a->application->reference }}</span> · {{ $a->stage === 'proposal' ? 'Full proposal' : 'Concept note' }}</span>
-                                </span>
-                                @if($last)
-                                    <x-badge :tone="$tone[$last->recommendation] ?? 'neutral'">{{ \App\Models\Seed\SeedReview::RECOMMENDATIONS[$last->recommendation] }}</x-badge>
-                                    <span class="w-14 text-right text-[13px] text-muted-foreground">{{ $last->submitted_at->format('j M') }}</span>
-                                @endif
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
+            @php $byCall = $done->groupBy(fn ($a) => $a->application->seed_call_id); @endphp
+            <x-card title="Earlier reviews" :description="$done->count() . ' submitted, by call'" flush>
+                @foreach($byCall as $callId => $items)
+                    @php $c = $items->first()->application->call; @endphp
+                    <div x-data="{ all: false }" class="border-t border-border first:border-t-0">
+                        <div class="{{ $c->tintClass() }} flex items-center justify-between gap-3 border-b border-tint-line bg-tint px-5 py-2">
+                            @include('seed.partials.call-tag', ['call' => $c])
+                            <span class="shrink-0 text-xs text-muted-foreground">{{ $items->count() }} {{ str('review')->plural($items->count()) }}</span>
+                        </div>
+                        <ul class="divide-y divide-border">
+                            @foreach($items as $a)
+                                @php $last = $a->application->rounds->where('stage', $a->stage)->flatMap->reviews->where('seed_reviewer_assignment_id', $a->id)->whereNotNull('submitted_at')->sortByDesc('submitted_at')->first(); @endphp
+                                <li @if($loop->index >= 5) x-show="all" x-cloak @endif>
+                                    <a href="{{ route('seed.reviews.show', $a) }}" class="flex flex-wrap items-center gap-3 px-5 py-3 hover:bg-muted/50">
+                                        <span class="min-w-0 flex-1">
+                                            <span class="block truncate font-medium">{{ $a->coi_status === 'conflict' ? 'Conflict declared' : $a->application->title }}</span>
+                                            <span class="block text-[13px] text-muted-foreground"><span class="font-mono text-xs">{{ $a->application->reference }}</span> · {{ $a->stage === 'proposal' ? 'Full proposal' : 'Concept note' }}</span>
+                                        </span>
+                                        @if($last)
+                                            <x-badge :tone="$tone[$last->recommendation] ?? 'neutral'">{{ \App\Models\Seed\SeedReview::RECOMMENDATIONS[$last->recommendation] }}</x-badge>
+                                            <span class="w-20 text-right text-[13px] text-muted-foreground">{{ $last->submitted_at->format('j M Y') }}</span>
+                                        @endif
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                        @if($items->count() > 5)
+                            <button type="button" class="w-full border-t border-border px-5 py-2 text-left text-[13px] font-medium text-primary hover:bg-muted/50" @click="all = ! all"
+                                    x-text="all ? 'Show fewer' : 'Show all {{ $items->count() }}'">Show all {{ $items->count() }}</button>
+                        @endif
+                    </div>
+                @endforeach
             </x-card>
         @endif
     </div>
 
-    <x-card title="How full proposals are scored" description="Concept notes get accept, revise or reject only. Weighted scoring starts at stage 2." class="xl:sticky xl:top-24">
-        <ul class="space-y-3 text-[13px]">
-            @foreach($form->criteria() as $key => [$name, , $max])
-                @php $hasMin = isset($form->minimums()[$key]); @endphp
-                <li>
-                    <div class="flex justify-between gap-3"><span class="{{ $hasMin ? 'font-medium' : '' }}">{{ $name }}</span><span class="font-mono tabular-nums">{{ S::trimNumber($max) }}</span></div>
-                    <x-meter class="mt-1.5" :value="$max / $top * 100" :tone="$hasMin ? 'primary' : 'muted'" :label="$name" />
-                </li>
+    {{-- How full proposals are scored, for each call this reviewer works in --}}
+    @if($guideCalls->isNotEmpty())
+        <x-card title="How full proposals are scored" description="Concept notes get accept, revise or reject only. Weighted scoring starts at stage 2." class="xl:sticky xl:top-20"
+                x-data="{ shown: {{ $guideCalls->first()->id }} }">
+            @if($guideCalls->count() > 1)
+                <div class="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Call">
+                    @foreach($guideCalls as $c)
+                        <button type="button" role="tab" class="{{ $c->tintClass() }} rounded-md px-2 py-1 font-mono text-xs font-medium ring-1 ring-inset transition-colors"
+                                :class="shown === {{ $c->id }} ? 'bg-tint-chip text-tint-ink ring-tint-line' : 'text-muted-foreground ring-border hover:text-foreground'"
+                                :aria-selected="shown === {{ $c->id }}" @click="shown = {{ $c->id }}" title="{{ $c->title }}">{{ $c->code }}</button>
+                    @endforeach
+                </div>
+            @endif
+            @foreach($guideCalls as $c)
+                @php $form = $c->form(); $top = max(array_column($form->criteria(), 2) ?: [1]) ?: 1; @endphp
+                <div x-show="shown === {{ $c->id }}" @unless($loop->first) x-cloak @endunless>
+                    <p class="mb-3 text-[13px] font-medium">{{ $c->title }}</p>
+                    @if($form->scored())
+                        <ul class="space-y-3 text-[13px]">
+                            @foreach($form->criteria() as $key => [$name, , $max])
+                                @php $hasMin = isset($form->minimums()[$key]); @endphp
+                                <li>
+                                    <div class="flex justify-between gap-3"><span class="{{ $hasMin ? 'font-medium' : '' }}">{{ $name }}</span><span class="font-mono tabular-nums">{{ S::trimNumber($max) }}</span></div>
+                                    <x-meter class="mt-1.5" :value="$max / $top * 100" :tone="$hasMin ? 'primary' : 'muted'" :label="$name" />
+                                </li>
+                            @endforeach
+                        </ul>
+                        <div class="mt-5 rounded-lg bg-primary-soft p-3.5 text-[13px] text-foreground">
+                            Fundable at <strong class="font-mono">{{ S::trimNumber($form->passMark()) }}/{{ S::trimNumber($form->maxTotal()) }}</strong> or more{{ $form->minimumsPhrase(', and never below ', ' on ') }}. Don’t mark down a strong study for having no innovation.
+                        </div>
+                    @else
+                        <p class="text-[13px] text-muted-foreground">This call has no scored review: full proposals get accept, revise or reject.</p>
+                    @endif
+                </div>
             @endforeach
-        </ul>
-        <div class="mt-5 rounded-lg bg-primary-soft p-3.5 text-[13px] text-foreground">
-            Fundable at <strong class="font-mono">{{ S::trimNumber($form->passMark()) }}/{{ S::trimNumber($form->maxTotal()) }}</strong> or more{{ $form->minimumsPhrase(', and never below ', ' on ') }}. Don’t mark down a strong study for having no innovation.
-        </div>
-    </x-card>
+        </x-card>
+    @endif
 </div>
 @endsection

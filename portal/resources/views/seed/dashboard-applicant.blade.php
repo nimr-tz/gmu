@@ -79,9 +79,6 @@
             <x-card title="Key dates" icon="calendar">
                 <ul class="divide-y divide-border text-sm">
                     <li class="flex justify-between gap-3 pb-2.5"><span class="text-muted-foreground">Concept notes close</span><span class="font-medium tabular-nums">{{ $call->concept_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
-                    @if($application->isRevising() && $round?->response_due_at)
-                        <li class="flex justify-between gap-3 py-2.5"><span class="font-medium text-warn-ink">Your response is due</span><span class="font-semibold tabular-nums text-warn-ink">{{ $round->response_due_at->format('j M Y') }}</span></li>
-                    @endif
                     <li class="flex justify-between gap-3 pt-2.5"><span class="text-muted-foreground">Full proposals due</span><span class="font-medium tabular-nums">{{ $call->proposal_deadline?->format('j M Y') ?? 'To be announced' }}</span></li>
                 </ul>
             </x-card>

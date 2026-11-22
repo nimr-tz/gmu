@@ -452,6 +452,29 @@ class SeedGrantWorkflowTest extends TestCase
         $this->assertFalse($round->isOverdue(), 'A decided round is never overdue.');
     }
 
+    public function test_the_applicant_sees_a_missed_response_date_as_late_never_as_today(): void
+    {
+        $this->travelTo(Carbon::parse('2026-12-01 09:00', 'Africa/Dar_es_Salaam'));
+        $application = $this->applyAndSubmitConcept();
+        $this->actingAs($this->gmu)->post(route('seed.submissions.screen', $application), ['result' => 'eligible'])->assertSessionHasNoErrors();
+        $this->sendToReviewers($application);
+        $this->review($this->reviewerA, $application, 'revise');
+        $this->review($this->reviewerB, $application, 'revise');
+        $this->actingAs($this->gmu)->post(route('seed.submissions.decide', $application), [
+            'decision' => 'revise', 'decision_note' => 'Name a framework.', 'response_due_at' => '2026-12-10',
+        ])->assertSessionHasNoErrors();
+
+        // On the due day itself the response is not late yet.
+        $this->travelTo(Carbon::parse('2026-12-10 16:00', 'Africa/Dar_es_Salaam'));
+        $this->actingAs($this->pi)->get(route('dashboard'))->assertOk()
+            ->assertSee('Your response is due')->assertSee('Today')->assertDontSee('This date has passed');
+
+        // The day after, it says so plainly.
+        $this->travelTo(Carbon::parse('2026-12-11 08:00', 'Africa/Dar_es_Salaam'));
+        $this->actingAs($this->pi)->get(route('dashboard'))->assertOk()
+            ->assertSee('Late')->assertSee('This date has passed');
+    }
+
     public function test_applicants_in_the_call_and_the_approvers_cannot_review(): void
     {
         $application = $this->applyAndSubmitConcept();
