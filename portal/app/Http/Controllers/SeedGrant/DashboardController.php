@@ -121,7 +121,6 @@ class DashboardController extends Controller
 
         // ── Key figures: only what GMU needs to act on and where money stands ──
         $running = $cards->pluck('call');
-        $approvedStatuses = [S::APPROVED, S::AGREEMENT_ISSUED, S::AGREEMENT_ACCEPTED, S::AWARDED];
 
         $openRounds = $submitted->map->openRound()->filter();
         $pendingReviews = $openRounds->sum(fn ($r) => $r->application->activeAssignments($r->stage)->count()
@@ -135,7 +134,7 @@ class DashboardController extends Controller
         $kpi = [
             'needs'     => $needs->count(),
             'screen'    => $needs->where('action', 'Screen')->count(),
-            'approved'  => $submitted->whereIn('status', $approvedStatuses)->sum('approved_amount'),
+            'approved'  => $submitted->whereIn('status', S::APPROVED_STATUSES)->sum('approved_amount'),
             'available' => (int) $running->sum('envelope'),
             'pending'   => max(0, $pendingReviews),
             'late'      => $overdue,

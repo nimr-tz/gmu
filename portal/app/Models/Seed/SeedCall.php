@@ -76,8 +76,8 @@ class SeedCall extends Model
      */
     public function tintClass(): string
     {
-        static $order = null;
-        $order ??= static::orderBy('id')->pluck('id')->flip();
+        // Looked up once per request (once() is cleared between requests and tests).
+        $order = once(fn () => static::orderBy('id')->pluck('id')->flip());
         $position = $order[$this->id] ?? (((int) $this->id) - 1);
 
         // Full class names, so the Tailwind build sees each one.

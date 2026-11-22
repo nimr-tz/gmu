@@ -9,7 +9,7 @@
         @php [$text, $count] = is_array($item) ? $item + [1 => null] : [$item, null]; $on = $url === $active; @endphp
         <a href="{{ $url }}" @if($on) aria-current="page" @endif
            class="inline-flex h-7 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-[13px] transition-colors {{ $on ? 'bg-card font-medium text-foreground shadow-xs ring-1 ring-inset ring-border' : 'text-gray-700 hover:text-foreground' }}">
-            {{ $text }}@if($count !== null)<span class="text-xs tabular-nums {{ $on ? 'text-muted-foreground' : 'text-subtle' }}">{{ $count }}</span>@endif
+            {{ $text }}@if($count !== null)<span class="text-xs tabular-nums text-muted-foreground">{{ $count }}</span>@endif
         </a>
     @endforeach
 </nav>

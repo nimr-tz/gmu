@@ -49,11 +49,12 @@
         --review: 139 92 246;   --review-soft: 244 240 254; --review-ink: 109 40 217; --review-line: 224 214 253;
         --neutral: 161 161 170; --neutral-soft: 244 244 245; --neutral-ink: 63 63 70; --neutral-line: 228 228 231;
 
-        /* Charts, in the order an application moves: sky, violet, blue, pink; grey for closed. */
+        /* Charts, in the order an application moves: sky, violet, blue, indigo; grey for closed.
+           No pink in stages: it reads too close to rose (stopped or late). */
         --chart-1: 56 189 248;
         --chart-2: 167 139 250;
         --chart-3: 38 100 235;
-        --chart-4: 244 114 182;
+        --chart-4: 99 102 241;
         --chart-5: 212 212 216;
 
         /* Call tints default to blue. */

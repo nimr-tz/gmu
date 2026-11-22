@@ -17,7 +17,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 const css = getComputedStyle(document.documentElement);
 const color = (name, alpha = 1) => `rgb(${css.getPropertyValue(`--${name}`).trim()} / ${alpha})`;
 
-Chart.defaults.font.family = 'Geist, ui-sans-serif, system-ui, sans-serif';
+Chart.defaults.font.family = '"Geist Sans", ui-sans-serif, system-ui, sans-serif';
 Chart.defaults.font.size = 12;
 Chart.defaults.color = color('muted-foreground');
 

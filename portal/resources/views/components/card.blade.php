@@ -16,8 +16,8 @@
 @endphp
 <section {{ $attributes->merge(['class' => "flex flex-col overflow-hidden rounded-xl border {$edge}"]) }}>
     @if($head)
-        <header class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
-            <div class="flex min-w-0 items-center gap-2.5">
+        <header class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap">
+            <div class="flex min-w-0 flex-1 items-center gap-2.5">
                 @if($icon)
                     <span class="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-gray-600"><x-icon :name="$icon" class="size-4" /></span>
                 @endif
@@ -26,7 +26,7 @@
                     @if($description)<p class="text-[13px] leading-5 text-muted-foreground">{{ $description }}</p>@endif
                 </div>
             </div>
-            @isset($actions)<div class="flex shrink-0 flex-wrap items-center gap-1.5">{{ $actions }}</div>@endisset
+            @isset($actions)<div class="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">{{ $actions }}</div>@endisset
         </header>
     @endif
 
