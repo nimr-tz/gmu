@@ -5,8 +5,8 @@
 @props(['tone' => 'info', 'title' => null, 'icon' => null])
 @php
     $tones = [
-        'info'    => ['border-blue-200 bg-blue-50 text-blue-950', 'text-primary', 'info'],
-        'ok'      => ['border-ok-line bg-ok-soft text-blue-950', 'text-ok', 'check-circle'],
+        'info'    => ['border-ok-line bg-ok-soft text-foreground', 'text-primary', 'info'],
+        'ok'      => ['border-ok-line bg-ok-soft text-foreground', 'text-ok', 'check-circle'],
         'warn'    => ['border-warn-line bg-warn-soft text-warn-ink', 'text-warn', 'clock'],
         'danger'  => ['border-danger-line bg-danger-soft text-danger-ink', 'text-danger', 'alert-triangle'],
         'neutral' => ['border-border bg-card text-foreground', 'text-subtle', 'info'],

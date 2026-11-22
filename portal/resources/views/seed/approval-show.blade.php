@@ -7,7 +7,7 @@
     $myTurn = $application->status === A::QUEUE_STATUS[$level];
     $total  = $application->budgetTotal('proposal');
     $cats   = $application->budgetByCategory();
-    $shades = ['personnel' => 'bg-blue-900', 'equipment' => 'bg-blue-400', 'research' => 'bg-primary', 'indirect' => 'bg-blue-200'];
+    $shades = ['personnel' => 'bg-chart-3', 'equipment' => 'bg-chart-1', 'research' => 'bg-chart-2', 'indirect' => 'bg-chart-4'];
     $steps  = array_intersect_key(['gmu' => 'GMU sign-off', 'drcp' => 'DRCP clearance', 'dg' => 'Director General'], array_flip($form->approvalLevels()));
     $cap    = $form->equipmentCap();
 @endphp
@@ -35,13 +35,13 @@
 <ol class="mb-6 grid gap-3 {{ [1 => '', 2 => 'md:grid-cols-2', 3 => 'md:grid-cols-3'][count($steps)] }}" aria-label="Approval chain">
     @foreach($steps as $l => $label)
         @php $ap = $application->approvalAt($l); $done = $ap && $ap->decision !== 'returned'; $now = ! $done && $application->status === A::QUEUE_STATUS[$l]; @endphp
-        <li class="flex gap-3 rounded-xl border p-4 shadow-xs {{ $now ? 'border-sidebar bg-sidebar text-white' : 'border-border bg-card' }}">
-            <span class="grid size-7 shrink-0 place-items-center rounded-full {{ $done ? 'bg-primary text-white' : ($now ? 'bg-white text-sidebar' : 'bg-muted text-muted-foreground') }}">
+        <li class="flex gap-3 rounded-xl border p-4 {{ $now ? 'border-warn-line bg-warn-soft' : 'border-border bg-card' }}">
+            <span class="grid size-7 shrink-0 place-items-center rounded-full {{ $done ? 'bg-primary text-white' : ($now ? 'bg-warn text-white' : 'bg-muted text-muted-foreground') }}">
                 @if($done)<x-icon name="check" class="size-3.5" />@else<span class="font-mono text-xs">{{ $loop->iteration }}</span>@endif
             </span>
             <span class="min-w-0">
                 <span class="block text-sm font-semibold">{{ $label }}</span>
-                <span class="block text-[13px] {{ $now ? 'text-sidebar-foreground' : 'text-muted-foreground' }}">
+                <span class="block text-[13px] {{ $now ? 'text-warn-ink' : 'text-muted-foreground' }}">
                     @if($done){{ $ap->decider?->name }} · {{ $ap->created_at->format('j M Y') }}{{ $ap->note ? ' — “' . \Illuminate\Support\Str::limit($ap->note, 70) . '”' : '' }}
                     @elseif($now){{ $l === $level ? 'Your decision' : 'Waiting' }}
                     @else Not yet @endif

@@ -13,10 +13,10 @@
         @endif
         @if($eyebrow)<p class="mb-1 text-[13px] text-muted-foreground">{{ $eyebrow }}</p>@endif
         <div class="flex flex-wrap items-center gap-2.5">
-            <h1 class="text-xl font-semibold leading-7 tracking-tight">{{ $title }}</h1>
+            <h1 class="text-[22px] font-semibold leading-[30px] tracking-tight">{{ $title }}</h1>
             {{ $badge ?? '' }}
         </div>
-        @if($description)<p class="mt-0.5 max-w-3xl text-[13px] text-muted-foreground">{{ $description }}</p>@endif
+        @if($description)<p class="mt-0.5 max-w-3xl text-[13.5px] text-muted-foreground">{{ $description }}</p>@endif
         {{ $meta ?? '' }}
     </div>
     @isset($actions)<div class="flex flex-wrap items-center gap-1.5">{{ $actions }}</div>@endisset

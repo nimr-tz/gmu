@@ -1,43 +1,43 @@
 {{--
-    A key figure: the card frame with the title in it, a white panel with the
-    figure, and two supporting figures in the frame below.
-      icon, title, caption   the head
-      value, badge           the figure and a small badge beside it (badgeTone: ok | warn | danger | neutral)
-      note                   one line of context
-      foot                   [label => figure, label => figure]
-      href                   makes the head a link
+    A key figure as a tinted tile: a dot and a title, a small chip on the right,
+    the figure in the tile's colour, and one plain line of context.
+      title           what the figure is ("Needs you")
+      value           the figure
+      note            one line that says what it means
+      badge           a short chip on the right ("2 to screen")
+      tone            blue | violet | sky | pink | amber | neutral
+                      Amber only when the figure is something waiting on someone.
+      meter           optional percentage, drawn as a thin bar under the figure
+      href            makes the whole tile a link
+    Keep it to what people need: no ratios or medians that need explaining.
 --}}
 @props([
-    'icon', 'title', 'caption' => null, 'value',
-    'badge' => null, 'badgeTone' => 'neutral', 'badgeIcon' => null,
-    'note' => null, 'foot' => [], 'href' => null,
+    'title', 'value', 'note' => null, 'badge' => null,
+    'tone' => 'blue', 'meter' => null, 'href' => null,
 ])
-<section {{ $attributes->merge(['class' => 'flex flex-col rounded-xl border border-border bg-muted p-1']) }}>
-    <div class="flex items-center gap-2.5 px-2.5 pb-2 pt-1.5">
-        <span class="grid size-8 shrink-0 place-items-center rounded-lg border border-border bg-card text-gray-600 shadow-xs"><x-icon :name="$icon" class="size-4" /></span>
-        <div class="min-w-0 flex-1 leading-tight">
-            <div class="text-sm font-semibold">{{ $title }}</div>
-            @if($caption)<div class="truncate text-xs text-muted-foreground">{{ $caption }}</div>@endif
-        </div>
-        @if($href)
-            <a href="{{ $href }}" class="grid size-7 place-items-center rounded-md border border-border bg-card text-subtle shadow-xs hover:text-foreground" aria-label="Open {{ $title }}"><x-icon name="chevron-right" class="size-3.5" /></a>
-        @endif
+@php
+    $tones = [
+        'blue'    => ['tile' => 'border-blue-100 bg-blue-50',     'dot' => 'bg-primary',   'chip' => 'bg-blue-100 text-blue-700',     'value' => 'text-blue-700',   'track' => 'bg-blue-100',   'bar' => 'bg-primary'],
+        'violet'  => ['tile' => 'border-violet-100 bg-violet-50', 'dot' => 'bg-violet-500', 'chip' => 'bg-violet-100 text-violet-700', 'value' => 'text-violet-700', 'track' => 'bg-violet-100', 'bar' => 'bg-violet-500'],
+        'sky'     => ['tile' => 'border-sky-100 bg-sky-50',       'dot' => 'bg-sky-500',    'chip' => 'bg-sky-100 text-sky-700',       'value' => 'text-sky-700',    'track' => 'bg-sky-100',    'bar' => 'bg-sky-500'],
+        'pink'    => ['tile' => 'border-pink-100 bg-pink-50',     'dot' => 'bg-pink-500',   'chip' => 'bg-pink-100 text-pink-700',     'value' => 'text-pink-700',   'track' => 'bg-pink-100',   'bar' => 'bg-pink-500'],
+        'amber'   => ['tile' => 'border-amber-200 bg-amber-50',   'dot' => 'bg-amber-500',  'chip' => 'bg-amber-100 text-amber-800',   'value' => 'text-amber-800',  'track' => 'bg-amber-100',  'bar' => 'bg-amber-500'],
+        'neutral' => ['tile' => 'border-border bg-muted',         'dot' => 'bg-gray-400',   'chip' => 'bg-gray-100 text-gray-700',     'value' => 'text-foreground', 'track' => 'bg-gray-200',   'bar' => 'bg-gray-500'],
+    ];
+    $t = $tones[$tone] ?? $tones['blue'];
+    $tag = $href ? 'a' : 'div';
+@endphp
+<{{ $tag }} @if($href) href="{{ $href }}" @endif {{ $attributes->merge(['class' => "flex flex-col gap-1.5 rounded-xl border px-4 py-3.5 {$t['tile']}" . ($href ? ' transition-shadow hover:shadow-sm' : '')]) }}>
+    <div class="flex items-center gap-2">
+        <span class="size-2 shrink-0 rounded-full {{ $t['dot'] }}" aria-hidden="true"></span>
+        <span class="min-w-0 flex-1 truncate text-[13.5px] font-medium text-foreground">{{ $title }}</span>
+        @if($badge !== null)<span class="inline-flex h-[22px] shrink-0 items-center rounded-md px-2 text-xs font-medium {{ $t['chip'] }}">{{ $badge }}</span>@endif
     </div>
-    <div class="flex-1 rounded-lg border border-border bg-card px-4 py-4 shadow-xs">
-        <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-            <span class="text-[26px] font-semibold leading-none tracking-tight tabular-nums">{{ $value }}</span>
-            @if($badge !== null)<x-badge :tone="$badgeTone" :icon="$badgeIcon">{{ $badge }}</x-badge>@endif
+    <span class="truncate text-[28px] font-semibold leading-9 tracking-tight tabular-nums {{ $t['value'] }}">{{ $value }}</span>
+    @if($meter !== null)
+        <div class="h-1.5 w-full overflow-hidden rounded-full {{ $t['track'] }}" role="progressbar" aria-valuenow="{{ round($meter) }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ $title }}">
+            <div class="h-full rounded-full {{ $t['bar'] }}" style="width: {{ max(0, min(100, $meter)) }}%"></div>
         </div>
-        @if($note)<p class="mt-2.5 text-[13px] text-muted-foreground">{{ $note }}</p>@endif
-    </div>
-    @if($foot)
-        <dl class="flex flex-wrap justify-between gap-x-4 px-3 pb-1 pt-2 text-[13px]">
-            @foreach($foot as $label => $figure)
-                <div class="flex items-baseline gap-1.5">
-                    <dt class="text-muted-foreground">{{ $label }}</dt>
-                    <dd class="font-mono font-medium tabular-nums">{{ $figure }}</dd>
-                </div>
-            @endforeach
-        </dl>
     @endif
-</section>
+    @if($note)<span class="text-[13px] text-muted-foreground">{{ $note }}</span>@endif
+</{{ $tag }}>

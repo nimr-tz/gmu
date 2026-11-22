@@ -35,16 +35,19 @@ export default {
             white: '#FFFFFF',
             black: '#000000',
 
-            // Raw ramps: neutrals, the brand blue, and the cool hues used for charts and call tints.
-            gray: colors.slate,
+            // Raw ramps: neutral greys (zinc, no blue cast), the brand blue, and the
+            // secondary hues used for charts, calls and tiles.
+            gray: colors.zinc,
             blue: {
                 50: '#EEF3FE', 100: '#DCE6FD', 200: '#BCD0FB', 300: '#8FB0F7', 400: '#5B8AF2',
                 500: '#3B73EE', 600: '#2664EB', 700: '#1D4FC4', 800: '#1C419C', 900: '#1C397B', 950: '#0E1A3A',
             },
             sky: colors.sky,
             violet: colors.violet,
+            pink: colors.pink,
             indigo: colors.indigo,
             // Amber and red carry meaning only: waiting on someone, and stopped or late.
+            // No green: an institutional rule.
             amber: colors.amber,
             red: colors.red,
 
@@ -68,7 +71,7 @@ export default {
             review: { DEFAULT: token('review'), soft: token('review-soft'), ink: token('review-ink'), line: token('review-line') },
             neutral: { DEFAULT: token('neutral'), soft: token('neutral-soft'), ink: token('neutral-ink'), line: token('neutral-line') },
             // Each call's pale tint, set by .tint-1 … .tint-5 (SeedCall::tintClass()).
-            tint: { DEFAULT: 'var(--tint-bg)', line: 'var(--tint-line)', chip: 'var(--tint-chip)', ink: 'var(--tint-ink)' },
+            tint: { DEFAULT: 'var(--tint-bg)', line: 'var(--tint-line)', chip: 'var(--tint-chip)', ink: 'var(--tint-ink)', solid: 'var(--tint-solid)' },
             chart: {
                 1: token('chart-1'), 2: token('chart-2'), 3: token('chart-3'), 4: token('chart-4'), 5: token('chart-5'),
             },
@@ -76,7 +79,7 @@ export default {
 
         extend: {
             fontFamily: {
-                sans: ['Geist', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+                sans: ['Geist Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
                 mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
             },
             fontSize: {

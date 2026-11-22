@@ -41,7 +41,7 @@
     ];
 
     $link = fn (bool $active) => 'group flex h-8 items-center gap-2.5 rounded-md px-2 text-[13.5px] transition-colors '
-        . ($active ? 'bg-gray-200/70 font-medium text-foreground' : 'text-gray-700 hover:bg-gray-200/50 hover:text-foreground');
+        . ($active ? 'bg-card font-medium text-foreground shadow-xs ring-1 ring-border' : 'text-gray-700 hover:bg-gray-200/60 hover:text-foreground');
     $icon = fn (bool $active) => 'size-4 ' . ($active ? 'text-foreground' : 'text-subtle group-hover:text-gray-600');
 @endphp
 <body class="h-full bg-background" x-data="{ nav: false }" @keydown.escape.window="nav = false">
@@ -53,7 +53,7 @@
        :class="nav && 'translate-x-0'">
     <div class="flex h-14 shrink-0 items-center justify-between gap-2 px-4">
         <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-2.5">
-            <img src="{{ asset('images/nimr-logo.png') }}" alt="" class="size-8 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-border">
+            <img src="{{ asset('images/nimr-logo.png') }}" alt="" class="size-9 shrink-0 rounded-full bg-white object-contain">
             <span class="min-w-0 leading-tight">
                 <span class="block text-sm font-semibold">NIMR Grants</span>
                 <span class="block truncate text-xs text-muted-foreground">Grants Management Unit</span>
@@ -83,7 +83,7 @@
                             <x-icon :name="$iconName" class="{{ $icon($active) }}" />
                             <span class="min-w-0 flex-1 truncate">{{ $label }}</span>
                             @if($count !== null)
-                                <span class="grid h-5 min-w-5 place-items-center rounded-md px-1.5 font-mono text-[11px] font-medium {{ $alert ? 'bg-danger text-white' : 'bg-card text-foreground ring-1 ring-border' }}">{{ $count }}</span>
+                                <span class="grid h-5 min-w-5 place-items-center rounded-md px-1.5 text-[11.5px] font-semibold tabular-nums {{ $alert ? 'bg-danger-soft text-danger-ink' : 'bg-primary-soft text-ok-ink' }}">{{ $count }}</span>
                             @endif
                         </a>
                     @endforeach
@@ -113,7 +113,7 @@
         <x-dropdown direction="up" align="left" width="w-56">
             <x-slot:trigger>
                 <button type="button" class="flex w-full items-center gap-2.5 rounded-lg p-2 text-left hover:bg-gray-200/60" aria-label="Account menu">
-                    <span class="relative grid size-8 shrink-0 place-items-center rounded-full bg-blue-950 text-xs font-semibold text-white">{{ $initials }}</span>
+                    <span class="relative grid size-8 shrink-0 place-items-center rounded-full bg-review-soft text-xs font-semibold text-review-ink">{{ $initials }}</span>
                     <span class="min-w-0 flex-1 leading-tight">
                         <span class="block truncate text-[13px] font-semibold">{{ $user->name }}</span>
                         <span class="block truncate text-xs text-muted-foreground">{{ $user->role?->display_name ?? 'No role assigned' }}</span>
@@ -137,7 +137,7 @@
     </div>
 </aside>
 
-{{-- The page: a white panel set in the frame --}}
+{{-- The page: a white panel set in the frame, using the full width beside the side panel --}}
 <div class="flex min-h-full lg:pl-60 print:pl-0">
     <div class="flex min-w-0 flex-1 flex-col bg-card lg:my-2 lg:mr-2 lg:rounded-xl lg:border lg:border-border lg:shadow-xs print:m-0 print:border-0 print:shadow-none">
         {{-- Top bar: where you are, and notifications. Never navigation. --}}
@@ -164,7 +164,7 @@
             </a>
         </header>
 
-        <main class="mx-auto w-full max-w-page flex-1 px-4 py-5 lg:px-6 lg:py-6 print:p-0">
+        <main class="w-full flex-1 px-4 py-5 lg:px-6 lg:py-6 print:p-0">
             @php $showErrors = $errors->any() && ! $errors->has('__hidden'); @endphp
             @if(session('success') || session('error') || session('status') || $showErrors)
                 <div class="mb-5 space-y-3">

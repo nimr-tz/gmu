@@ -69,10 +69,19 @@ class SeedCall extends Model
         return $this->exists && $this->getOriginal('status') !== 'draft';
     }
 
-    /** The call's own pale tint (tint-1 … tint-5), so the same call looks the same in every list. */
+    /**
+     * The call's own hue (tint-1 … tint-5), so the same call looks the same in every list.
+     * Taken from the call's place in the order calls were created, not its id, so
+     * calls next to each other never share a hue (ids can have gaps).
+     */
     public function tintClass(): string
     {
-        return 'tint-' . ((((int) $this->id) - 1) % 5 + 1);
+        static $order = null;
+        $order ??= static::orderBy('id')->pluck('id')->flip();
+        $position = $order[$this->id] ?? (((int) $this->id) - 1);
+
+        // Full class names, so the Tailwind build sees each one.
+        return ['tint-1', 'tint-2', 'tint-3', 'tint-4', 'tint-5'][$position % 5];
     }
 
     public function isVisible(): bool

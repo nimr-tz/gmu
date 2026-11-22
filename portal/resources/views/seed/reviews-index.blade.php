@@ -86,7 +86,7 @@
                 </li>
             @endforeach
         </ul>
-        <div class="mt-5 rounded-lg bg-primary-soft p-3.5 text-[13px] text-blue-900">
+        <div class="mt-5 rounded-lg bg-primary-soft p-3.5 text-[13px] text-foreground">
             Fundable at <strong class="font-mono">{{ S::trimNumber($form->passMark()) }}/{{ S::trimNumber($form->maxTotal()) }}</strong> or more{{ $form->minimumsPhrase(', and never below ', ' on ') }}. Don’t mark down a strong study for having no innovation.
         </div>
     </x-card>

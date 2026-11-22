@@ -265,7 +265,7 @@
                         :description="$roundDone ? 'All reviews are in.' : $open->reviews->filter->isSubmitted()->count() . ' of ' . $application->activeAssignments()->count() . ' reviews in.'">
                     @if($stage === 'proposal' && $means)
                         @php $meets = $application->meetsThreshold(); @endphp
-                        <div class="mb-4 space-y-1 rounded-lg p-3.5 text-sm {{ $meets ? 'bg-ok-soft text-blue-950' : 'bg-danger-soft text-danger-ink' }}">
+                        <div class="mb-4 space-y-1 rounded-lg p-3.5 text-sm {{ $meets ? 'bg-ok-soft text-foreground' : 'bg-danger-soft text-danger-ink' }}">
                             <div class="flex justify-between"><span>Mean score</span><strong class="font-mono">{{ $means['total'] }} / {{ S::trimNumber($form->maxTotal()) }}</strong></div>
                             @foreach($form->minimums() as $key => $min)
                                 <div class="flex justify-between text-[13px]"><span>{{ $form->criteria()[$key][0] }} (at least {{ S::trimNumber($min) }})</span><span class="font-mono">{{ $means[$key] ?? '—' }} / {{ S::trimNumber($form->criteria()[$key][2]) }}</span></div>

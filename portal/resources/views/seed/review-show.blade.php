@@ -130,7 +130,7 @@
                         <div class="grid grid-cols-3 gap-2">
                             @foreach(SeedReview::RECOMMENDATIONS as $value => $label)
                                 <label class="flex cursor-pointer items-center justify-center gap-2 rounded-lg border px-2 py-2.5 text-sm font-medium transition-colors has-[:disabled]:cursor-not-allowed"
-                                       :class="rec === '{{ $value }}' ? 'border-primary bg-primary-soft text-blue-800 ring-1 ring-primary' : 'border-border hover:bg-muted/50'">
+                                       :class="rec === '{{ $value }}' ? 'border-primary bg-primary-soft text-ok-ink ring-1 ring-primary' : 'border-border hover:bg-muted/50'">
                                     <input type="radio" class="sr-only" name="recommendation" value="{{ $value }}" x-model="rec" @checked(old('recommendation', $review?->recommendation) === $value) @disabled(! $editable)>{{ $label }}
                                 </label>
                             @endforeach

@@ -72,6 +72,21 @@ final class SeedGrant
 
     public const CLOSED_STATUSES = [self::INELIGIBLE, self::CONCEPT_DECLINED, self::NOT_RECOMMENDED];
 
+    /**
+     * Where a submitted application is, in five plain parts, for the
+     * "where applications are" bars: key => [label, statuses, colour class].
+     */
+    public const STAGE_GROUPS = [
+        'concept'  => ['Concept note', [self::SUBMITTED, self::SCREENED, self::CONCEPT_REVIEW, self::CONCEPT_REVISION], 'bg-chart-1'],
+        'proposal' => ['Full proposal', [self::SHORTLISTED, self::PROPOSAL_SUBMITTED, self::PROPOSAL_REVIEW, self::PROPOSAL_REVISION], 'bg-chart-2'],
+        'approval' => ['Approval', [self::RECOMMENDED, self::WITH_DRCP, self::WITH_DG, self::APPROVED], 'bg-chart-3'],
+        'award'    => ['Agreement', [self::AGREEMENT_ISSUED, self::AGREEMENT_ACCEPTED, self::AWARDED], 'bg-chart-4'],
+        'closed'   => ['Closed', self::CLOSED_STATUSES, 'bg-chart-5'],
+    ];
+
+    /** Statuses in which money has been approved. */
+    public const APPROVED_STATUSES = [self::APPROVED, self::AGREEMENT_ISSUED, self::AGREEMENT_ACCEPTED, self::AWARDED];
+
     /** The eight steps shown to the applicant, and which statuses fall in each. */
     public const TRACK = [
         ['Concept note', 'Submit online', [self::DRAFT]],

@@ -51,7 +51,7 @@
         <ol class="grid grid-cols-4 gap-1.5 sm:grid-cols-8" aria-label="Applications at each stage">
             @foreach($summary['stages'] as $stage)
                 <li class="rounded-lg px-1.5 py-2 text-center {{ $stage['count'] ? 'bg-primary-soft' : 'bg-muted' }}">
-                    <span class="block font-mono text-base tabular-nums {{ $stage['count'] ? 'font-semibold text-blue-800' : 'text-subtle' }}">{{ $stage['count'] }}</span>
+                    <span class="block font-mono text-base tabular-nums {{ $stage['count'] ? 'font-semibold text-ok-ink' : 'text-subtle' }}">{{ $stage['count'] }}</span>
                     <span class="mt-0.5 block text-[10.5px] leading-tight text-muted-foreground">{{ $stage['label'] }}</span>
                 </li>
             @endforeach

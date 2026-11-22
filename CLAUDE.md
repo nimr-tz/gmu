@@ -30,21 +30,25 @@ The point of view, in order of priority:
 
 Being predictable is part of caring for the user here. Pages of the same kind look and behave the same. Put craft into clarity and details, not novelty.
 
-## Visual rules (non-negotiable)
+## Visual rules
 
-The bar is a premium product dashboard: quiet surfaces, hairline borders, small type set carefully, real charts. When unsure, look at how a well-made SaaS dashboard (shadcn/ui-style) does it, then keep NIMR's rules below.
+The bar is a premium product dashboard, like the ReUI finance dashboards the owner pointed to: neutral surfaces, hairline borders, small type set carefully, colour used with purpose, real charts. These rules serve that look; when a rule gets in its way, raise it with the owner rather than working around the look. The reference design for every side-panel page is the canvas at https://claude.ai/artifact/Q1GKEQ3aAgS7DwHbYvdqwy.
 
-- **Brand blue `#2664EB`**: `primary` in Tailwind, with the ramp `blue-50` … `blue-950`.
-- **Never green, anywhere**: not for brand, success, "approved" or charts. This is an institutional rule. Positive and done states use blue. The Tailwind palette is *replaced*, not extended, so green does not exist to use.
+- **NIMR blue `#2664EB` leads, but it doesn't do everything.** It is `primary`: links, focus, selection, done states and the lead series in a chart. Don't make whole pages blue, and don't use navy or near-navy blues (`blue-900`, `blue-950`) for surfaces, buttons or chips.
+- **Ink, not navy.** Primary buttons and headings are near-black ink (`#18181B`). Greys are neutral (zinc), not slate, so they carry no blue cast.
+- **Secondary hues are welcome**: violet, sky, pink, plus amber and rose for meaning. Use them to tell calls, stages and categories apart, for tinted key-figure tiles and for group rows. Each call has its own hue.
+- **Never green, anywhere**: not for brand, success, "approved" or charts. This is an institutional rule. Positive and done states use blue.
 - Status colour has fixed meanings:
   - **blue** (`ok`): done or positive
   - **amber** (`warn`): waiting on someone
-  - **red** (`danger`): stopped, late or blocked
-  - **navy**: under review
-  - **grey**: in progress or neutral
+  - **rose/red** (`danger`): stopped, late or blocked
+  - **violet** (`review`): under review
+  - **grey** (`neutral`): in progress or neutral
 
-  Red and amber mean only these things. Never use them for decoration.
-- **Every card is a frame**: a quiet grey frame carries the title, description and actions; a white panel inside holds the content; supporting figures sit in the frame below (`x-card`, `x-kpi`). Controls are small (32px buttons), filters are segmented (`x-segmented`), tables have plain grey headers and hairline rows, and group rows are tinted by meaning. The primary button is NIMR navy; brand blue is for accents, links, focus and charts.
+  Amber and red mean only these things. Never use them for decoration.
+- **Keep it simple.** Show people what they need to act on and where things stand, in plain numbers. No statistics that need explaining (medians, ratios, multi-series breakdowns) unless someone asked for them.
+- **Use the whole width.** Pages fill the space beside the side panel; don't box the content in a centred max-width container.
+- **Cards**: a light grey head carries the title, description and actions; a white body holds the content (`x-card`, `x-kpi`). Controls are small (32px buttons), filters are segmented (`x-segmented`), tables have plain headers and hairline rows, and group rows are tinted by meaning or by call.
 - Use the semantic colour names (`background`, `card`, `muted`, `border`, `primary`, `ok`, `warn`, `danger`, `review`, `neutral`, `chart-1`…`chart-5`), not raw ramps, except for charts and tints. In a badge or alert, status colours come through the `x-badge`/`x-alert` `tone`.
 - **Navigation lives only in the left side panel**: light, on the page frame, with the account menu at its foot. The page itself is a white panel inset in the frame. Its thin top bar holds the breadcrumb (from `@section('context', 'A · B')`) and notifications, never navigation links. On small screens the side panel slides in (the menu button). Don't add a second navigation pattern.
 - Fonts: Geist and Geist Mono (`font-sans`, `font-mono`), bundled by Vite. Use mono for amounts, references and scores. Base text is 14px; captions 12–13px.

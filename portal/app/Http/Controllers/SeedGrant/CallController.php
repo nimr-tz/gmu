@@ -25,15 +25,37 @@ class CallController extends Controller
     {
         $manage = $request->user()->can('manage-seed-grants');
 
-        $calls = SeedCall::withCount('applications')
+        $all = SeedCall::withCount('applications')
             ->when(! $manage, fn ($q) => $q->where('status', '!=', 'draft'))
             ->orderByRaw("case status when 'open' then 0 when 'draft' then 1 else 2 end")
             ->latest('id')
             ->get();
 
+        $show = in_array($request->query('show'), ['open', 'draft', 'closed'], true) ? $request->query('show') : 'all';
+        $calls = $show === 'all' ? $all : $all->where('status', $show)->values();
+        $counts = $all->countBy('status');
+
         $mine = SeedApplication::where('pi_id', $request->user()->id)->pluck('id', 'seed_call_id');
 
-        return view('seed.calls-index', compact('calls', 'manage', 'mine'));
+        // For GMU: where each call's applications are, and the money approved.
+        $stats = [];
+        if ($manage) {
+            $submitted = SeedApplication::whereIn('seed_call_id', $calls->pluck('id'))
+                ->where('status', '!=', \App\Support\SeedGrant::DRAFT)
+                ->get(['id', 'seed_call_id', 'status', 'approved_amount'])
+                ->groupBy('seed_call_id');
+            foreach ($calls as $call) {
+                $mineOf = $submitted->get($call->id, collect());
+                $stats[$call->id] = [
+                    'submitted' => $mineOf->count(),
+                    'stages'    => collect(\App\Support\SeedGrant::STAGE_GROUPS)
+                        ->map(fn ($g) => $mineOf->whereIn('status', $g[1])->count())->all(),
+                    'approved'  => $mineOf->whereIn('status', \App\Support\SeedGrant::APPROVED_STATUSES)->sum('approved_amount'),
+                ];
+            }
+        }
+
+        return view('seed.calls-index', compact('calls', 'manage', 'mine', 'show', 'counts', 'stats') + ['total' => $all->count()]);
     }
 
     /** The old single "The call" address: the default call's page, or setup for GMU when there is none. */

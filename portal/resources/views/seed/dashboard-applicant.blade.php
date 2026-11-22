@@ -101,7 +101,7 @@
             @if($application->mentor_name)
                 <x-card title="Your mentor">
                     <div class="flex items-center gap-3">
-                        <span class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-blue-800">{{ collect(explode(' ', preg_replace('/^(Dr\.?|Prof\.?)\s+/i', '', $application->mentor_name)))->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('') }}</span>
+                        <span class="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-sm font-semibold text-ok-ink">{{ collect(explode(' ', preg_replace('/^(Dr\.?|Prof\.?)\s+/i', '', $application->mentor_name)))->take(2)->map(fn ($p) => mb_substr($p, 0, 1))->implode('') }}</span>
                         <span class="min-w-0 leading-snug"><span class="block font-medium">{{ $application->mentor_name }}</span><span class="block text-[13px] text-muted-foreground">{{ collect([$application->mentor_designation, $application->mentor_centre])->filter()->implode(' · ') }}</span></span>
                     </div>
                     @if(in_array($application->status, S::CONCEPT_STATUSES, true))

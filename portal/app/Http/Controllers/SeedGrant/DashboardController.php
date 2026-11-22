@@ -48,8 +48,8 @@ class DashboardController extends Controller
     }
 
     /**
-     * GMU's dashboard across every call: what needs action anywhere first,
-     * then a card per call still running, then reviewer load and centres.
+     * GMU's dashboard across every call, kept simple: four plain figures, what
+     * needs action, money by call, and which reviewers still owe reviews.
      */
     private function gmu()
     {
@@ -119,71 +119,37 @@ class DashboardController extends Controller
             ->sortBy(fn ($card) => [['open' => 0, 'draft' => 1, 'closed' => 2][$card['call']->status] ?? 3, -$card['call']->id])
             ->values();
 
-        // ── Key figures ────────────────────────────────────────────────────
+        // ── Key figures: only what GMU needs to act on and where money stands ──
         $running = $cards->pluck('call');
         $approvedStatuses = [S::APPROVED, S::AGREEMENT_ISSUED, S::AGREEMENT_ACCEPTED, S::AWARDED];
 
         $openRounds = $submitted->map->openRound()->filter();
         $pendingReviews = $openRounds->sum(fn ($r) => $r->application->activeAssignments($r->stage)->count()
             - $r->reviews->whereNotNull('submitted_at')->count());
-        $submittedReviews = $submitted->flatMap(fn ($a) => $a->rounds)->flatMap(fn ($r) => $r->reviews->whereNotNull('submitted_at')->map(fn ($rv) => [$r, $rv]));
-        $turnaround = $submittedReviews->isEmpty() ? null
-            : round($submittedReviews->avg(fn ($pair) => $pair[0]->created_at->diffInHours($pair[1]->submitted_at) / 24), 1);
 
-        // Days from concept note to GMU's first decision on it.
-        $decisionDays = $submitted->map(function ($a) {
-            $first = $a->rounds->where('stage', 'concept')->whereNotNull('decided_at')->sortBy('decided_at')->first();
-
-            return $first && $a->concept_submitted_at ? $a->concept_submitted_at->diffInHours($first->decided_at) / 24 : null;
-        })->filter(fn ($d) => $d !== null)->sort()->values();
-        $median = $decisionDays->isEmpty() ? null : round($decisionDays->get(intdiv($decisionDays->count() - 1, 2)), 1);
+        // The next concept-note deadline still to come; a date means the end of that day.
+        $nextDeadline = $running->filter(fn (SeedCall $c) => $c->status === 'open' && $c->concept_deadline
+                && ! $c->concept_deadline->copy()->endOfDay()->isPast())
+            ->sortBy(fn (SeedCall $c) => $c->concept_deadline)->first();
 
         $kpi = [
-            'needs'        => $needs->count(),
-            'needsOld'     => $needs->filter(fn ($n) => $n['application']->updated_at->lt(now()->subDays(7)))->count(),
-            'screen'       => $needs->where('action', 'Screen')->count(),
-            'decide'       => $needs->where('action', 'Decide')->count(),
-            'approved'     => $submitted->whereIn('status', $approvedStatuses)->sum('approved_amount'),
-            'available'    => (int) $running->sum('envelope'),
-            'inPlay'       => $submitted->whereNotIn('status', array_merge(S::CLOSED_STATUSES, $approvedStatuses))->sum(fn ($a) => $a->requestedAmount()),
-            'awarded'      => $submitted->where('status', S::AWARDED)->count(),
-            'pending'      => max(0, $pendingReviews),
-            'late'         => $overdue,
-            'turnaround'   => $turnaround,
-            'reviewsDone'  => $submittedReviews->count(),
-            'decisionDays' => $median,
-            'decided'      => $decisionDays->count(),
+            'needs'     => $needs->count(),
+            'screen'    => $needs->where('action', 'Screen')->count(),
+            'approved'  => $submitted->whereIn('status', $approvedStatuses)->sum('approved_amount'),
+            'available' => (int) $running->sum('envelope'),
+            'pending'   => max(0, $pendingReviews),
+            'late'      => $overdue,
         ];
-
-        // ── Pipeline by call: applications in each part of the process ──────
-        $groups = [
-            'concept'  => ['Concept note', [S::SUBMITTED, S::SCREENED, S::CONCEPT_REVIEW, S::CONCEPT_REVISION]],
-            'proposal' => ['Full proposal', [S::SHORTLISTED, S::PROPOSAL_SUBMITTED, S::PROPOSAL_REVIEW, S::PROPOSAL_REVISION]],
-            'approval' => ['Approval', [S::RECOMMENDED, S::WITH_DRCP, S::WITH_DG, S::APPROVED]],
-            'award'    => ['Agreement',[S::AGREEMENT_ISSUED, S::AGREEMENT_ACCEPTED, S::AWARDED]],
-            'closed'   => ['Closed', S::CLOSED_STATUSES],
-        ];
-        $pipeline = $running->map(fn (SeedCall $c) => [
-            'call'     => $c,
-            'segments' => collect($groups)->map(fn ($g) => $submitted->where('seed_call_id', $c->id)->whereIn('status', $g[1])->count())->all(),
-        ])->map(fn ($row) => $row + ['total' => array_sum($row['segments'])])->values();
-        $band = collect($groups)->map(fn ($g, $key) => ['label' => $g[0], 'count' => $submitted->whereIn('status', $g[1])->count()]);
 
         return view('seed.dashboard-gmu', [
             'kpi'            => $kpi,
-            'pipeline'       => $pipeline,
-            'groups'         => collect($groups)->map(fn ($g) => $g[0]),
-            'band'           => $band,
             'cards'          => $cards,
             'callCount'      => $cards->count(),
+            'nextDeadline'   => $nextDeadline,
             // Oldest waiting first, across every call.
             'needs'          => $needs->sortBy(fn ($n) => $n['application']->updated_at)->values(),
             'submittedCount' => $submitted->count(),
-            'overdue'        => $overdue,
-            'withApplicants' => $submitted->whereIn('status', [S::CONCEPT_REVISION, S::PROPOSAL_REVISION, S::SHORTLISTED, S::AGREEMENT_ISSUED])->count(),
-            'ineligible'     => $submitted->where('status', S::INELIGIBLE)->count(),
             'load'           => collect($load)->sortByDesc('total')->values(),
-            'byCentre'       => $submitted->groupBy(fn ($a) => $a->pi->research_center ?: 'Not recorded')->map->count()->sortDesc(),
         ]);
     }
 }
