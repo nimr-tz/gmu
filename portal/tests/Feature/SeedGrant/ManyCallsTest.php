@@ -188,7 +188,7 @@ class ManyCallsTest extends TestCase
         $this->twoCallsWithSubmissions();
 
         $this->actingAs($this->gmu)->get(route('dashboard'))->assertOk()
-            ->assertSee('2 calls running')->assertSee('2 submissions need GMU')
+            ->assertSee('2 calls running')->assertSee('Needs GMU')->assertSee('Needs your action')
             ->assertSee('Seed grant')->assertSee('Policy brief grant')
             ->assertSee('SG-2627PB-001')->assertSee('Screen');
     }
