@@ -58,7 +58,13 @@ class ApplicationController extends Controller
 
         $application->load(['call', 'budgetItems', 'documents', 'rounds.reviews.assignment', 'approvals']);
 
-        return view('seed.application-show', ['application' => $application]);
+        // A closed application points to a call still open for concept notes, the nearest deadline first.
+        $otherCall = in_array($application->status, SeedGrant::CLOSED_STATUSES, true)
+            ? SeedCall::where('status', 'open')->where('id', '!=', $application->seed_call_id)->get()
+                ->filter->acceptingConceptNotes()->sortBy('concept_deadline')->first()
+            : null;
+
+        return view('seed.application-show', ['application' => $application, 'otherCall' => $otherCall]);
     }
 
     /**

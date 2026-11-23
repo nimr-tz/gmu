@@ -71,6 +71,8 @@ export default {
             warn: { DEFAULT: token('warn'), soft: token('warn-soft'), ink: token('warn-ink'), line: token('warn-line') },
             danger: { DEFAULT: token('danger'), soft: token('danger-soft'), ink: token('danger-ink'), line: token('danger-line') },
             review: { DEFAULT: token('review'), soft: token('review-soft'), ink: token('review-ink'), line: token('review-line') },
+            // Green exists for one use only: the Awarded status.
+            award: { DEFAULT: token('award'), soft: token('award-soft'), ink: token('award-ink'), line: token('award-line') },
             neutral: { DEFAULT: token('neutral'), soft: token('neutral-soft'), ink: token('neutral-ink'), line: token('neutral-line') },
             // Each call's pale tint, set by .tint-1 … .tint-5 (SeedCall::tintClass()).
             tint: { DEFAULT: 'var(--tint-bg)', line: 'var(--tint-line)', chip: 'var(--tint-chip)', ink: 'var(--tint-ink)', solid: 'var(--tint-solid)' },

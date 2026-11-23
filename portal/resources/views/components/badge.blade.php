@@ -1,6 +1,6 @@
 {{--
     A small label with a meaning.
-      tone  ok (blue, done) | warn (amber, waiting) | danger (red, stopped or late)
+      tone  ok (blue, done) | award (green, Awarded only) | warn (amber, waiting) | danger (red, stopped or late)
             | review (violet, under review) | neutral (grey, in progress) | primary | outline
       dot   true for a leading dot
 --}}
@@ -8,6 +8,7 @@
 @php
     $tones = [
         'ok'      => 'bg-ok-soft text-ok-ink',
+        'award'   => 'bg-award-soft text-award-ink',
         'warn'    => 'bg-warn-soft text-warn-ink',
         'danger'  => 'bg-danger-soft text-danger-ink',
         'review'  => 'bg-review-soft text-review-ink',
@@ -15,7 +16,7 @@
         'primary' => 'bg-primary text-primary-foreground',
         'outline' => 'bg-card text-foreground ring-1 ring-inset ring-input',
     ];
-    $dots = ['ok' => 'bg-ok', 'warn' => 'bg-warn', 'danger' => 'bg-danger', 'review' => 'bg-review', 'neutral' => 'bg-neutral', 'primary' => 'bg-white', 'outline' => 'bg-subtle'];
+    $dots = ['award' => 'bg-award', 'ok' => 'bg-ok', 'warn' => 'bg-warn', 'danger' => 'bg-danger', 'review' => 'bg-review', 'neutral' => 'bg-neutral', 'primary' => 'bg-white', 'outline' => 'bg-subtle'];
     $tone = array_key_exists($tone, $tones) ? $tone : 'neutral';
 @endphp
 <span {{ $attributes->merge(['class' => 'inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md px-2 text-xs font-medium [&_svg]:size-3.5 ' . $tones[$tone]]) }}>

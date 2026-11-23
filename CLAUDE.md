@@ -39,9 +39,10 @@ The bar is a premium product dashboard, like the ReUI finance dashboards the own
 - **NIMR blue `#2664EB` leads, but it doesn't do everything.** It is `primary`: links, focus, selection, done states and the lead series in a chart. Don't make whole pages blue, and don't use navy or near-navy blues (`blue-900`, `blue-950`) for surfaces, buttons or chips.
 - **Ink, not navy.** Primary buttons and headings are near-black ink (`#18181B`). Greys are neutral (zinc), not slate, so they carry no blue cast.
 - **Secondary hues are welcome**: violet, sky, pink, plus amber and rose for meaning. Use them to tell calls, stages and categories apart, for tinted key-figure tiles and for group rows. Each call has its own hue.
-- **Never green, anywhere**: not for brand, success, "approved" or charts. This is an institutional rule. Positive and done states use blue.
+- **Green only for Awarded.** Green (`award`) marks one thing: an application whose status is Awarded (its pill, tile and card). Nothing else is green: not the brand, not other done or positive states (shortlisted, recommended, approved stay blue), not charts. The owner set this exception on 23 Nov 2026 to the institutional no-green rule.
 - Status colour has fixed meanings:
   - **blue** (`ok`): done or positive
+  - **green** (`award`): Awarded, and nothing else
   - **amber** (`warn`): waiting on someone
   - **rose/red** (`danger`): stopped, late or blocked
   - **violet** (`review`): under review

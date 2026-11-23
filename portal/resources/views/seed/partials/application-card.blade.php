@@ -44,14 +44,14 @@
 
         <div class="grid grid-cols-8 gap-1" role="img" aria-label="Step {{ $current + 1 }} of 8: {{ S::TRACK[$current][0] }}">
             @foreach(S::TRACK as $i => $step)
-                <span class="h-1.5 rounded-[3px] {{ $awarded || $i < $current ? 'bg-primary' : ($i === $current ? $nowColour : 'bg-gray-100') }}"></span>
+                <span class="h-1.5 rounded-[3px] {{ $awarded ? 'bg-award' : ($i < $current ? 'bg-primary' : ($i === $current ? $nowColour : 'bg-gray-100')) }}"></span>
             @endforeach
         </div>
 
         @if($awarded)
             <div class="-mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                 <span>All 8 steps done · signed copy on file</span>
-                <a href="{{ route('seed.applications.agreement', $a) }}" class="inline-flex items-center gap-1 text-[13px] font-medium">Open the agreement <x-icon name="arrow-right" class="size-3.5" /></a>
+                <a href="{{ route('seed.applications.show', $a) }}" class="inline-flex items-center gap-1 text-[13px] font-medium">Open the agreement <x-icon name="arrow-right" class="size-3.5" /></a>
             </div>
         @elseif(V::needsYou($a))
             <div class="-mt-2 flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">

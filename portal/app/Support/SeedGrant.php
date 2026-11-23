@@ -61,7 +61,7 @@ final class SeedGrant
         self::CONCEPT_DECLINED => 'danger', self::SHORTLISTED => 'ok', self::PROPOSAL_SUBMITTED => 'info',
         self::PROPOSAL_REVIEW => 'navy', self::PROPOSAL_REVISION => 'warn', self::NOT_RECOMMENDED => 'danger',
         self::RECOMMENDED => 'ok', self::WITH_DRCP => 'warn', self::WITH_DG => 'warn', self::APPROVED => 'ok',
-        self::AGREEMENT_ISSUED => 'warn', self::AGREEMENT_ACCEPTED => 'ok', self::AWARDED => 'ok',
+        self::AGREEMENT_ISSUED => 'warn', self::AGREEMENT_ACCEPTED => 'ok', self::AWARDED => 'award',
     ];
 
     /** Statuses in which the applicant may edit the concept note or proposal. */

@@ -170,7 +170,7 @@
             'needs'    => ['to act on', 'bg-warn'],
             'review'   => ['in review', 'bg-review'],
             'approval' => ['in approval', 'bg-sky-500'],
-            'awarded'  => ['awarded', 'bg-primary'],
+            'awarded'  => ['awarded', 'bg-award'],
             'closed'   => ['closed', 'bg-gray-300'],
         ];
         $byBucket = $applications->groupBy(fn ($a) => V::bucket($a))->map->count();

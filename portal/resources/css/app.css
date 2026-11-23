@@ -47,6 +47,8 @@
         --warn: 245 158 11;     --warn-soft: 254 247 230;   --warn-ink: 146 64 14;  --warn-line: 251 229 182;
         --danger: 244 63 94;    --danger-soft: 254 238 241; --danger-ink: 190 18 60; --danger-line: 251 208 216;
         --review: 139 92 246;   --review-soft: 244 240 254; --review-ink: 109 40 217; --review-line: 224 214 253;
+        /* Green, for one thing only: an application that is Awarded (the owner's decision, 23 Nov 2026). */
+        --award: 22 163 74;     --award-soft: 240 253 244;  --award-ink: 21 128 61;  --award-line: 187 247 208;
         --neutral: 161 161 170; --neutral-soft: 244 244 245; --neutral-ink: 63 63 70; --neutral-line: 228 228 231;
 
         /* Charts, in the order an application moves: sky, violet, blue, indigo; grey for closed.
