@@ -151,6 +151,7 @@ class ApplicationController extends Controller
 
         $data = $request->validate($sectionRules + $choiceRules + [
             'title'                         => ['nullable', 'string', 'max:255'],
+            'references'                    => ['nullable', 'string', 'max:20000'],
             'mentor_name'                   => ['nullable', 'string', 'max:255'],
             'mentor_designation'            => ['nullable', 'string', 'max:255'],
             'mentor_centre'                 => ['nullable', 'string', 'max:255'],
@@ -172,6 +173,11 @@ class ApplicationController extends Controller
 
         $sections = array_map(fn ($v) => trim((string) $v), $data['sections'] ?? []);
         $existing = ($stage === 'proposal' ? $application->proposal : $application->concept) ?? [];
+
+        // References: optional at both stages, outside the word and page limits.
+        if ($request->has('references')) {
+            $sections['references'] = trim((string) ($data['references'] ?? ''));
+        }
 
         // The concept-stage fields are fixed once the concept note is shortlisted.
         if ($stage === 'concept') {

@@ -38,6 +38,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/dashboard',  [DashboardController::class,  'index'])->name('dashboard');
     Route::get('/notifications', [NotificationsController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/read-all', [NotificationsController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::get('/notifications/{notification}/open', [NotificationsController::class, 'open'])->name('notifications.open');
     Route::patch('/notifications/{notification}/read', [NotificationsController::class, 'markRead'])->name('notifications.read');
 
 

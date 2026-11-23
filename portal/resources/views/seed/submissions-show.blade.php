@@ -163,7 +163,8 @@
                         ? ["Under {$years} years at NIMR", (bool) $pi->withinServiceLimit($years), $service ? "{$service['years']} y {$service['months']} m" : 'not recorded']
                         : null,
                     'prior'    => ($priorRule = $form->priorGrant())
-                        ? ['No prior grant over USD ' . number_format($priorRule['usd']) . ' as PI', $application->declared_no_prior_large_grant, 'declared']
+                        ? ['Grants over USD ' . number_format($priorRule['usd']) . ' as PI disclosed', $application->priorLargeGrant() !== null,
+                           ['no' => 'none', 'yes' => 'yes, see section A'][$application->priorLargeGrant()] ?? 'not answered']
                         : null,
                     'complete' => ['All sections complete, within limits', empty($complete), $application->pageEstimate('concept') . ' pp'],
                     'budget'   => ['Budget within ' . number_format($application->call->min_amount / 1e6) . 'M–' . number_format($application->call->max_amount / 1e6) . 'M', ! isset($complete['budget']), number_format($application->budgetTotal('concept') / 1e6, 2) . 'M'],

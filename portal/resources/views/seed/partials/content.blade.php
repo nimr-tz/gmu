@@ -55,6 +55,12 @@
     </div>
 </x-card>
 
+@if(filled($application->references($stage)))
+    <x-card title="References">
+        <p class="prose-text whitespace-pre-line text-[13.5px]">{{ $application->references($stage) }}</p>
+    </x-card>
+@endif
+
 <x-card :title="$stage === 'concept' ? 'Estimated budget' : 'Detailed budget'" flush>
     <x-slot:actions><span class="font-mono text-lg font-semibold tabular-nums">{{ SeedGrant::tzs($application->budgetTotal($stage)) }}</span></x-slot:actions>
     <div class="overflow-x-auto">

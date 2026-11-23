@@ -622,7 +622,13 @@ class Workflow
                 if ($answer === null) {
                     $problems['prior_grant'] = "Say whether you have held a research grant above {$usd} as Principal Investigator.";
                 } elseif ($answer === 'yes') {
-                    $problems['prior_grant'] = "Lead applicants must not have held a research grant above {$usd} as Principal Investigator, so this call is not open to you.";
+                    // Disclosed for GMU's information; it does not stop the application.
+                    $details = $application->conceptField('prior_grant_details');
+                    if (blank($details)) {
+                        $problems['prior_grant_details'] = 'Give the grant’s title, funding organisation and amount awarded.';
+                    } else {
+                        $this->checkWords($problems, 'prior_grant_details', 'The earlier grant', $details, $prior['words']);
+                    }
                 }
             }
 
@@ -727,27 +733,80 @@ class Workflow
         return max(0, (int) preg_replace('/[^0-9]/', '', (string) $value));
     }
 
+    // ── Calls ───────────────────────────────────────────────────────────────
+
+    /**
+     * A call has just opened: tell the staff who could lead an application.
+     * GMU and the approvers run the call, so they are left out, and so is
+     * anyone the call's years-at-NIMR limit rules out. Staff with no
+     * appointment date on file are told: the call page explains who may apply.
+     *
+     * @return int how many people were told
+     */
+    public function announceCall(SeedCall $call): int
+    {
+        $years = $call->form()->serviceYears();
+        $staff = User::where('is_active', true)
+            ->whereDoesntHave('role', fn ($q) => $q->whereIn('name', ['coordinator', 'planning_officer', 'drcp', 'dg']))
+            ->get()
+            ->filter(fn (User $user) => $years === null || ! $user->first_appointment_date || $user->withinServiceLimit($years))
+            ->values();
+
+        $title = 'New call open: ' . $call->title;
+        $message = 'GMU has opened the ' . $call->fiscal_year . ' call.'
+            . ($call->concept_deadline ? ' Concept notes are due by the end of ' . $call->concept_deadline->format('j M Y') . '.' : '')
+            . ' Read the call to see who may apply, and start your concept note in the portal.';
+
+        $this->notifier->send($staff, 'seed_call', $title, $message, $call);
+        $this->email($staff, 'seed_call', $title, $message, fn () => route('seed.calls.show', $call), '', $call->title);
+
+        return $staff->count();
+    }
+
     // ── Who is told ─────────────────────────────────────────────────────────
 
     /**
-     * Tell people in the portal and by email. A mail failure is logged and
-     * never undoes the step: the portal notification is the record.
+     * Tell people in the portal and by email. The portal notification is the
+     * record and is written straight away; the emails follow (see email()).
      */
-    private function tell(mixed $recipients, string $type, string $title, string $message, SeedApplication $application): void
+    public function tell(mixed $recipients, string $type, string $title, string $message, SeedApplication $application): void
     {
         $this->notifier->send($recipients, $type, $title, $message, $application);
+        $this->email($recipients, $type, $title, $message, fn (User $user) => $this->linkFor($user, $application),
+            $application->reference, (string) $application->call?->title);
+    }
 
+    /**
+     * Email each person the same headline and body as their notification.
+     *
+     * On a web request the emails go once the page has been sent back, so a
+     * step that tells all of GMU or every reviewer doesn't keep the person
+     * who clicked waiting on the mail server. Commands and tests send them
+     * straight away. A failure is logged and never undoes the step.
+     */
+    private function email(mixed $recipients, string $type, string $title, string $message, \Closure $link, string $reference, string $callTitle): void
+    {
+        $mails = [];
         foreach ($recipients instanceof User ? [$recipients] : $recipients as $user) {
-            if (! $user instanceof User || ! $user->is_active || blank($user->email)) {
-                continue;
-            }
-
-            try {
-                Mail::to($user->email)->send(new SeedGrantNotice($user->name, $title, $message, $this->linkFor($user, $application), $application->reference, (string) $application->call?->title));
-            } catch (Throwable $e) {
-                Log::warning('Seed grant email not sent', ['type' => $type, 'user_id' => $user->id, 'reason' => $e->getMessage()]);
+            if ($user instanceof User && $user->is_active && filled($user->email)) {
+                $mails[] = [$user, new SeedGrantNotice($user->name, $title, $message, $link($user), $reference, $callTitle)];
             }
         }
+        if (! $mails) {
+            return;
+        }
+
+        $send = function () use ($mails, $type) {
+            foreach ($mails as [$user, $mail]) {
+                try {
+                    Mail::to($user->email)->send($mail);
+                } catch (Throwable $e) {
+                    Log::warning('Seed grant email not sent', ['type' => $type, 'user_id' => $user->id, 'reason' => $e->getMessage()]);
+                }
+            }
+        };
+
+        app()->runningInConsole() ? $send() : app()->terminating($send);
     }
 
     /** The page this person acts on for this application. */

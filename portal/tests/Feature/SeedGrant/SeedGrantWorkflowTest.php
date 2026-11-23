@@ -129,6 +129,35 @@ class SeedGrantWorkflowTest extends TestCase
 
     // ────────────────────────────────────────────────────────────────────────
 
+    public function test_an_earlier_large_grant_is_disclosed_and_references_sit_outside_the_limits(): void
+    {
+        $this->actingAs($this->pi)->post(route('seed.apply'))->assertRedirect();
+        $application = SeedApplication::firstOrFail();
+
+        $references = "Proctor E, et al. Outcomes for implementation research. 2011.\n" . $this->words(600);
+        $this->actingAs($this->pi)->post(route('seed.applications.submit', $application), $this->conceptForm([
+            'prior_grant' => 'yes',
+            'prior_grant_details' => 'Retention study, Wellcome Trust, USD 40,000.',
+            'references' => $references,
+        ]))->assertRedirect(route('seed.applications.submitted', $application));
+
+        $application = $application->fresh();
+        $this->assertSame(S::SUBMITTED, $application->status);
+        $this->assertSame('yes', $application->priorLargeGrant());
+        $this->assertSame(trim($references), $application->references('concept'));
+        // 600 words of references do not count: only the sections with text do
+        // (question 8 is answered "No", so it has none).
+        $this->assertSame((count(S::CONCEPT_SECTIONS) - 1) * 60, $application->wordCount('concept'));
+
+        $this->actingAs($this->gmu)->get(route('seed.submissions.show', ['application' => $application, 'tab' => 'concept']))
+            ->assertOk()->assertSee('Proctor E, et al.')->assertSee('Retention study, Wellcome Trust');
+
+        // GMU's screening list records the disclosure; it is not an eligibility failure.
+        $this->actingAs($this->gmu)->get(route('seed.submissions.show', $application))
+            ->assertOk()->assertSee('Grants over USD 10,000 as PI disclosed')->assertSee('yes, see section A');
+        $this->assertSame([], app(\App\Services\SeedGrant\Workflow::class)->eligibilityProblems($this->pi, $application->call));
+    }
+
     public function test_the_whole_call_from_concept_note_to_awarded_grant(): void
     {
         // Concept note: incomplete first, then complete.
@@ -136,8 +165,10 @@ class SeedGrantWorkflowTest extends TestCase
         $application = SeedApplication::firstOrFail();
         $this->assertSame('SG-2627-001', $application->reference);
 
+        // An earlier large grant is disclosed, not disqualifying: it only needs its details.
         $this->actingAs($this->pi)->post(route('seed.applications.submit', $application), $this->conceptForm(['prior_grant' => 'yes']))
-            ->assertSessionHasErrors('prior_grant');
+            ->assertSessionHasErrors('prior_grant_details')
+            ->assertSessionDoesntHaveErrors('prior_grant');
         $this->assertSame(S::DRAFT, $application->fresh()->status);
 
         $application = $this->applyAndSubmitConcept();

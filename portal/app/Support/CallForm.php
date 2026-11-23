@@ -94,9 +94,6 @@ final class CallForm
         if ($years = $this->serviceYears()) {
             $lines[] = 'Under ' . $years . ' years’ service at NIMR';
         }
-        if ($prior = $this->priorGrant()) {
-            $lines[] = 'Never held a research grant above USD ' . number_format($prior['usd']) . ' as PI';
-        }
         if ($this->mentorWords() !== null) {
             $lines[] = 'An experienced NIMR scientist agrees to mentor you';
         }
@@ -163,7 +160,10 @@ final class CallForm
         return $this->on('co_investigators') ? (int) $this->config['co_investigators']['words'] : null;
     }
 
-    /** ['usd' => threshold, 'words' => limit], or null when the call does not ask. */
+    /**
+     * ['usd' => threshold, 'words' => limit], or null when the call does not ask.
+     * The answer is disclosed to GMU; it does not decide eligibility.
+     */
     public function priorGrant(): ?array
     {
         return $this->on('prior_grant')

@@ -8,30 +8,46 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Send deadline reminders every morning at 07:00 EAT
-// Covers 30-day, 14-day, and 7-day windows for reports, compliance events, and ethics renewals
-Schedule::command('gmu:send-deadline-reminders')
-    ->dailyAt('07:00')
-    ->timezone('Africa/Dar_es_Salaam')
-    ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/deadline-reminders.log'));
-
-// Send weekly management digest every Monday at 08:00 EAT to coordinators and planning officers
-Schedule::command('gmu:send-weekly-digest')
-    ->weeklyOn(1, '08:00')
-    ->timezone('Africa/Dar_es_Salaam')
-    ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/weekly-digest.log'));
-
-// Flag compliance deliverables that slipped past their due date, and tell the
-// GMU office. Runs before the reminder job so the two agree (finding M6).
-Schedule::command('gmu:mark-overdue')
-    ->dailyAt('06:45')
-    ->timezone('Africa/Dar_es_Salaam')
-    ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/compliance-overdue.log'));
-
-// Configuration and data health. Runs before the reminder job so a silent
+// Configuration and data health. Runs before the reminder jobs so a silent
 // misconfiguration (mail set to "log", debug left on) is visible in the log
 // rather than discovered when a deadline is missed (finding H8).
 Schedule::command('gmu:health')
     ->dailyAt('06:30')
     ->timezone('Africa/Dar_es_Salaam')
     ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/health.log'));
+
+// Seed grant reminders every morning at 07:00 EAT: reviews, revision responses,
+// concept notes and full proposals due within SeedGrant::REMINDER_DAYS, and
+// reviews that are late.
+Schedule::command('gmu:seed-reminders')
+    ->dailyAt('07:00')
+    ->timezone('Africa/Dar_es_Salaam')
+    ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/seed-reminders.log'));
+
+// External grants only (GMU_EXTERNAL_GRANTS). While those features are hidden
+// these jobs do not run, so nobody is emailed about awards, reports or calls
+// they cannot see.
+$external = fn () => (bool) config('gmu.external_grants');
+
+// Flag compliance deliverables that slipped past their due date, and tell the
+// GMU office. Runs before the reminder job so the two agree (finding M6).
+Schedule::command('gmu:mark-overdue')
+    ->dailyAt('06:45')
+    ->timezone('Africa/Dar_es_Salaam')
+    ->when($external)
+    ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/compliance-overdue.log'));
+
+// Deadline reminders every morning at 07:00 EAT: 30-, 14- and 7-day windows for
+// reports and compliance events, 60 and 30 days for ethics renewals.
+Schedule::command('gmu:send-deadline-reminders')
+    ->dailyAt('07:00')
+    ->timezone('Africa/Dar_es_Salaam')
+    ->when($external)
+    ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/deadline-reminders.log'));
+
+// Weekly management digest every Monday at 08:00 EAT to coordinators and planning officers.
+Schedule::command('gmu:send-weekly-digest')
+    ->weeklyOn(1, '08:00')
+    ->timezone('Africa/Dar_es_Salaam')
+    ->when($external)
+    ->appendOutputTo(config('logging.scheduler_output') ?: storage_path('logs/weekly-digest.log'));

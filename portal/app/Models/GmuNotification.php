@@ -19,9 +19,12 @@ class GmuNotification extends Model
     {
         $related = $this->related_type ? $this->related : null;
 
-        return $related instanceof \App\Models\Seed\SeedApplication && $this->user
-            ? app(\App\Services\SeedGrant\Workflow::class)->linkFor($this->user, $related)
-            : null;
+        return match (true) {
+            $related instanceof \App\Models\Seed\SeedApplication && $this->user !== null
+                => app(\App\Services\SeedGrant\Workflow::class)->linkFor($this->user, $related),
+            $related instanceof \App\Models\Seed\SeedCall => route('seed.calls.show', $related),
+            default => null,
+        };
     }
 
     public function markAsRead(): void

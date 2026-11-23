@@ -2,21 +2,46 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GmuNotification;
 use Illuminate\Http\Request;
 
 class NotificationsController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $notifications = auth()->user()->notifications()->latest()->paginate(20);
-        return view('notifications.index', compact('notifications'));
+        $user = $request->user();
+
+        return view('notifications.index', [
+            'notifications' => $user->notifications()->latest()->paginate(20),
+            'unread'        => $user->unreadNotificationsCount(),
+        ]);
     }
 
-    public function markRead(\App\Models\GmuNotification $notification)
+    /** Go to the page the notification is about; having opened it, it is read. */
+    public function open(GmuNotification $notification)
+    {
+        $this->authorize('view', $notification);
+
+        if (! $notification->read_at) {
+            $notification->markAsRead();
+        }
+
+        return redirect()->to($notification->actionUrl() ?? route('notifications.index'));
+    }
+
+    public function markRead(GmuNotification $notification)
     {
         $this->authorize('update', $notification);
 
         $notification->markAsRead();
+
         return back();
+    }
+
+    public function markAllRead(Request $request)
+    {
+        $marked = $request->user()->notifications()->whereNull('read_at')->update(['read_at' => now()]);
+
+        return back()->with('success', $marked === 1 ? '1 notification marked as read.' : $marked . ' notifications marked as read.');
     }
 }

@@ -9,14 +9,23 @@
         'seed_submitted' => 'send', 'seed_resubmitted' => 'send', 'seed_screened' => 'clipboard-check', 'seed_returned' => 'rotate-ccw',
         'seed_review' => 'message-square', 'seed_reviews_in' => 'users', 'seed_conflict' => 'alert-triangle', 'seed_decision' => 'scale',
         'seed_approval' => 'shield-check', 'seed_approved' => 'check-circle', 'seed_agreement' => 'pen-line',
+        'seed_call' => 'megaphone', 'seed_reminder' => 'clock',
         'new_call' => 'megaphone', 'review_assigned' => 'clipboard-check', 'report_due' => 'calendar', 'compliance_overdue' => 'alert-triangle',
     ];
-    $unread = $notifications->whereNull('read_at')->count();
 @endphp
 
-<x-page-header title="Notifications" :description="$unread > 0 ? $unread . ' unread on this page' : 'Everything here has been read'" />
+<x-page-header title="Notifications" :description="$unread > 0 ? $unread . ' unread' : 'Everything here has been read'">
+    @if($unread > 0)
+        <x-slot:actions>
+            <form method="POST" action="{{ route('notifications.read-all') }}">
+                @csrf @method('PATCH')
+                <x-button type="submit" size="sm" variant="secondary" icon="check">Mark all read</x-button>
+            </form>
+        </x-slot:actions>
+    @endif
+</x-page-header>
 
-<x-card flush class="mx-auto max-w-4xl">
+<x-card flush>
     @if($notifications->isEmpty())
         <x-empty icon="bell" title="Nothing to read">
             Notifications arrive when a call opens, something is waiting on you, a decision is made about your application, or a deadline is near. Each one is also sent by email.
@@ -33,10 +42,10 @@
                             <p class="text-sm {{ $new ? 'font-semibold' : 'font-medium' }}">{{ $notification->title }}@if($new)<span class="sr-only"> (unread)</span>@endif</p>
                             <time class="whitespace-nowrap text-xs text-muted-foreground" title="{{ $notification->created_at?->format('j M Y H:i') }}">{{ $notification->created_at?->format('j M Y H:i') }} · {{ $notification->created_at?->diffForHumans() }}</time>
                         </div>
-                        <p class="mt-1 text-[13px] leading-relaxed text-gray-700">{{ $notification->message }}</p>
+                        <p class="mt-1 max-w-3xl text-[13px] leading-relaxed text-gray-700">{{ $notification->message }}</p>
                         @if($url || $new)
                             <div class="mt-3 flex flex-wrap gap-2">
-                                @if($url)<x-button size="sm" :variant="$new ? 'primary' : 'secondary'" :href="$url" icon-right="arrow-right">Open</x-button>@endif
+                                @if($url)<x-button size="sm" :variant="$new ? 'primary' : 'secondary'" :href="route('notifications.open', $notification)" icon-right="arrow-right">Open</x-button>@endif
                                 @if($new)
                                     <form method="POST" action="{{ route('notifications.read', $notification) }}">
                                         @csrf @method('PATCH')
@@ -51,5 +60,5 @@
         </ul>
     @endif
 </x-card>
-@if($notifications->hasPages())<div class="mx-auto mt-4 max-w-4xl">{{ $notifications->links() }}</div>@endif
+@if($notifications->hasPages())<div class="mt-4">{{ $notifications->links() }}</div>@endif
 @endsection

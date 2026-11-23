@@ -139,27 +139,45 @@ class CallController extends Controller
         return view('seed.call-edit', ['call' => $call, 'form' => $call->form(), 'copiedFrom' => null]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, Workflow $workflow)
     {
         $this->authorize('manage-seed-grants');
 
         $call = new SeedCall();
-        $this->save($request, $call);
+        $told = $this->save($request, $call, $workflow);
 
-        return redirect()->route('seed.calls.show', $call)->with('success', 'Call created. It stays hidden from staff until you set it to Open.');
+        return redirect()->route('seed.calls.show', $call)->with('success', $told === null
+            ? 'Call created. It stays hidden from staff until you set it to Open.'
+            : 'Call created and open. ' . $this->toldLine($told));
     }
 
-    public function update(Request $request, SeedCall $call)
+    public function update(Request $request, SeedCall $call, Workflow $workflow)
     {
         $this->authorize('manage-seed-grants');
 
-        $this->save($request, $call);
+        $told = $this->save($request, $call, $workflow);
 
-        return redirect()->route('seed.calls.show', $call)->with('success', 'Call settings saved.');
+        return redirect()->route('seed.calls.show', $call)->with('success', $told === null
+            ? 'Call settings saved.'
+            : 'The call is open. ' . $this->toldLine($told));
     }
 
-    private function save(Request $request, SeedCall $call): void
+    private function toldLine(int $told): string
     {
+        return $told === 0
+            ? 'No one who could apply has a portal account yet, so no one was notified.'
+            : $told . ' ' . ($told === 1 ? 'member of staff who could apply was' : 'staff who could apply were') . ' notified in the portal and by email.';
+    }
+
+    /**
+     * Save the call's settings. The first time it is set to Open, staff are
+     * told; reopening a closed call does not tell them again.
+     *
+     * @return int|null how many staff were told it opened, or null if it did not just open
+     */
+    private function save(Request $request, SeedCall $call, Workflow $workflow): ?int
+    {
+        $neverOpened = $call->opened_at === null;
         $locked = $call->settingsLocked();
 
         $data = $request->validate([
@@ -191,6 +209,8 @@ class CallController extends Controller
         $call->fill($data);
         $call->config = $config;
         $call->save();
+
+        return $neverOpened && $call->opened_at !== null ? $workflow->announceCall($call) : null;
     }
 
     /**

@@ -134,6 +134,12 @@ class SeedApplication extends Model
         return (string) (($stage === 'proposal' ? $this->proposal : $this->concept)[$key] ?? '');
     }
 
+    /** The applicant's references for a stage: optional, outside the word and page limits. */
+    public function references(string $stage): string
+    {
+        return $this->sectionText($stage, 'references');
+    }
+
     /** Any other concept-note answer kept in the concept JSON (Section A extras, tick-boxes, declarations). */
     public function conceptField(string $key): mixed
     {

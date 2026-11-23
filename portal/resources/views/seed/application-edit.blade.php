@@ -25,7 +25,9 @@
     // Section list: [anchor, label, state ok|no|over].
     $nav = [];
     if ($isConcept) {
-        $aDone = (! $form->priorGrant() || $application->priorLargeGrant() === 'no') && ($form->mentorWords() === null || ($application->mentor_name && $application->mentor_suitability));
+        $priorDone = ! $form->priorGrant() || $application->priorLargeGrant() === 'no'
+            || ($application->priorLargeGrant() === 'yes' && filled($application->conceptField('prior_grant_details')));
+        $aDone = $priorDone &&($form->mentorWords() === null || ($application->mentor_name && $application->mentor_suitability));
         $nav[] = ['project', 'A. Applicant', $aDone ? 'ok' : 'no'];
         $nav[] = ['s-title', 'Title', $application->title ? 'ok' : 'no'];
     }
@@ -220,7 +222,6 @@
                                     <label for="prior_grant_details" class="label">Grant title, funding organisation and amount awarded</label>
                                     <textarea id="prior_grant_details" name="prior_grant_details" class="textarea mt-1.5" rows="2" data-words data-limit="{{ $priorRule['words'] }}">{{ $priorDetails }}</textarea>
                                     {!! $meter('prior_grant_details', SeedGrant::wordCount($priorDetails), $priorRule['words']) !!}
-                                    <p class="mt-1 text-[13px] text-danger-ink">The call is open only to researchers who have not held a grant above USD {{ number_format($priorRule['usd']) }} as PI.</p>
                                 </div>
                             </fieldset>
                         @endif
@@ -307,6 +308,23 @@
                     </div>
                 </section>
             @endforeach
+
+            {{-- References: optional, outside the word and page limits --}}
+            @php $refs = old('references', $application->references($stage)); @endphp
+            <section id="references" class="scroll-mt-40 overflow-hidden rounded-[14px] border border-border bg-card">
+                <div class="flex flex-col gap-3 px-5 py-[18px]">
+                    <div class="flex items-start gap-3">
+                        <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-sky-100 text-sky-700"><x-icon name="list" class="size-3.5" /></span>
+                        <div class="flex flex-col gap-0.5 pt-0.5">
+                            <h3 class="text-[15px] font-semibold leading-snug"><label for="references-text">References <span class="font-normal text-muted-foreground">(optional)</span></label></h3>
+                            <p class="text-pretty text-[13px] leading-normal text-muted-foreground">The sources you cite, one per line. They do not count towards the word limits or the {{ $maxPages }}-page length.</p>
+                        </div>
+                    </div>
+                    <div class="pl-10">
+                        <textarea id="references-text" name="references" class="textarea text-[13.5px] leading-[1.6]" rows="5" placeholder="Author, title, journal, year">{{ $refs }}</textarea>
+                    </div>
+                </div>
+            </section>
 
             {{-- D: the budget --}}
             <section id="budget" class="scroll-mt-40 overflow-hidden rounded-[14px] border border-border">

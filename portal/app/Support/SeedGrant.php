@@ -87,6 +87,13 @@ final class SeedGrant
     /** Statuses in which money has been approved. */
     public const APPROVED_STATUSES = [self::APPROVED, self::AGREEMENT_ISSUED, self::AGREEMENT_ACCEPTED, self::AWARDED];
 
+    /**
+     * Days before a deadline that the daily reminder goes out (reviews,
+     * revision responses, concept notes, full proposals). A late review is
+     * reminded once, the day after it was due.
+     */
+    public const REMINDER_DAYS = 3;
+
     /** The eight steps shown to the applicant, and which statuses fall in each. */
     public const TRACK = [
         ['Concept note', 'Submit online', [self::DRAFT]],

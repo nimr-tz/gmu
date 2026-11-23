@@ -113,7 +113,7 @@
             <label class="{{ $set }}">Under <input type="number" class="{{ $num }}" min="1" max="60" name="features[service_limit][years]" value="{{ $f('service_limit.years') }}" @disabled($locked)> years</label>
         </div>
         <div class="{{ $row }}">
-            @include('seed.partials.switch', ['path' => 'prior_grant.on', 'label' => 'Prior-grant question', 'help' => 'Asks whether they have held a large grant as PI; anyone who has cannot apply.'])
+            @include('seed.partials.switch', ['path' => 'prior_grant.on', 'label' => 'Prior-grant question', 'help' => 'Asks whether they have held a large grant as PI, and for its details if so. The answer goes to GMU; it does not stop anyone applying.'])
             <span class="{{ $set }}">
                 <label class="flex items-center gap-2">Above USD <input type="number" class="{{ $num }}" min="0" name="features[prior_grant][usd]" value="{{ $f('prior_grant.usd') }}" @disabled($locked)></label>
                 <label class="flex items-center gap-2">Details <input type="number" class="{{ $num }}" min="{{ $locked ? $f('prior_grant.words') : 10 }}" name="features[prior_grant][words]" value="{{ $f('prior_grant.words') }}"> words</label>

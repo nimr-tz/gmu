@@ -312,6 +312,13 @@
                     @endif
                 </div>
 
+                @if(filled($application->references($shown)))
+                    <div class="{{ $card_ }}">
+                        <header class="{{ $head_ }}"><h3 class="text-sm font-semibold">References</h3></header>
+                        <p class="whitespace-pre-line bg-card px-[18px] py-4 text-[13.5px] leading-relaxed text-gray-800">{{ $application->references($shown) }}</p>
+                    </div>
+                @endif
+
                 <div class="{{ $card_ }}">
                     <header class="flex items-center justify-between border-b border-border bg-muted px-[18px] py-3"><h3 class="text-sm font-semibold">{{ $shown === 'concept' ? 'Estimated budget' : 'Detailed budget' }}</h3><span class="font-mono text-base font-semibold">{{ S::tzs($application->budgetTotal($shown)) }}</span></header>
                     <table class="w-full bg-card text-sm">

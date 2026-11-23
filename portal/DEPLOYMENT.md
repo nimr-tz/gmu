@@ -196,9 +196,12 @@ Scheduled jobs, all in `routes/console.php`:
 | Time (EAT) | Command | What it does |
 |---|---|---|
 | 06:30 | `gmu:health` | Configuration and data checks |
-| 06:45 | `gmu:mark-overdue` | Flags deliverables past their due date |
-| 07:00 | `gmu:send-deadline-reminders` | 30/14/7-day reports and compliance, 60/30-day ethics |
-| Mon 08:00 | `gmu:send-weekly-digest` | The week's movement to the GMU office |
+| 07:00 | `gmu:seed-reminders` | Seed grant: reviews, revision responses, concept notes and full proposals due within 3 days; late reviews to the reviewer and GMU |
+| 06:45 | `gmu:mark-overdue` | External grants only: flags deliverables past their due date |
+| 07:00 | `gmu:send-deadline-reminders` | External grants only: 30/14/7-day reports and compliance, 60/30-day ethics |
+| Mon 08:00 | `gmu:send-weekly-digest` | External grants only: the week's movement to the GMU office |
+
+The external-grant jobs run only while `GMU_EXTERNAL_GRANTS` is on.
 
 ---
 
