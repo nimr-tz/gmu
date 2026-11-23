@@ -20,6 +20,10 @@
     // Where you are, from the page's context: "Submissions · SG-2627-004" → Submissions › SG-2627-004.
     $crumbs = array_values(array_filter(explode(' · ', trim($__env->yieldContent('context', 'Overview')))));
 
+    // A page may colour the top bar with a 'topbar-colour' section: 'bg-primary' for brand blue,
+    // or the call's tint class plus 'bg-tint-ink' for the call's own colour. Otherwise it stays white.
+    $bar = trim($__env->yieldContent('topbar-colour'));
+
     // Seed grant entries by role, with "needs action" counts (App\Support\SeedNav).
     $seedGroups = \App\Support\SeedNav::groups($user);
 
@@ -116,7 +120,7 @@
                     <span class="relative grid size-8 shrink-0 place-items-center rounded-full bg-review-soft text-xs font-semibold text-review-ink">{{ $initials }}</span>
                     <span class="min-w-0 flex-1 leading-tight">
                         <span class="block truncate text-[13px] font-semibold">{{ $user->name }}</span>
-                        <span class="block truncate text-xs text-muted-foreground">{{ $user->role?->display_name ?? 'No role assigned' }}</span>
+                        <span class="block truncate text-xs text-muted-foreground">{{ $user->role?->name === 'pi' ? 'Researcher' : ($user->role?->display_name ?? 'No role assigned') }}</span>
                     </span>
                     <x-icon name="chevrons-up-down" class="size-3.5 text-subtle" />
                 </button>
@@ -141,26 +145,26 @@
 <div class="flex min-h-full lg:pl-60 print:pl-0">
     <div class="flex min-w-0 flex-1 flex-col bg-card lg:my-2 lg:mr-2 lg:rounded-xl lg:border lg:border-border lg:shadow-xs print:m-0 print:border-0 print:shadow-none">
         {{-- Top bar: where you are, and notifications. Never navigation. --}}
-        <header class="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card/90 px-3 backdrop-blur lg:rounded-t-xl lg:px-5 print:hidden">
-            <button type="button" class="grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
+        <header class="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-2 px-3 lg:rounded-t-xl lg:px-5 print:hidden {{ $bar ? $bar . ' text-white' : 'border-b border-border bg-card/90 backdrop-blur' }}">
+            <button type="button" class="grid size-8 place-items-center rounded-md lg:hidden {{ $bar ? 'text-white/80 hover:bg-white/10 hover:text-white' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}"
                     @click="nav = true" aria-label="Open menu" aria-controls="sidebar" :aria-expanded="nav">
                 <x-icon name="menu" class="size-[18px]" />
             </button>
             <nav aria-label="Breadcrumb" class="min-w-0 flex-1">
                 <ol class="flex min-w-0 items-center gap-1.5 text-[13px]">
                     @foreach($crumbs as $crumb)
-                        <li class="flex min-w-0 items-center gap-1.5 {{ $loop->last ? 'font-medium text-foreground' : 'text-muted-foreground max-sm:hidden' }}">
-                            @unless($loop->first)<x-icon name="chevron-right" class="size-3.5 text-subtle" />@endunless
+                        <li class="flex min-w-0 items-center gap-1.5 {{ $loop->last ? ($bar ? 'font-medium text-white' : 'font-medium text-foreground') : ($bar ? 'text-white/70 max-sm:hidden' : 'text-muted-foreground max-sm:hidden') }}">
+                            @unless($loop->first)<x-icon name="chevron-right" class="size-3.5 {{ $bar ? 'text-white/50' : 'text-subtle' }}" />@endunless
                             <span class="truncate">{{ $crumb }}</span>
                         </li>
                     @endforeach
                 </ol>
             </nav>
             @yield('topbar')
-            <a href="{{ route('notifications.index') }}" class="relative grid size-8 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            <a href="{{ route('notifications.index') }}" class="relative grid size-8 place-items-center rounded-md {{ $bar ? 'text-white/85 hover:bg-white/10 hover:text-white' : 'text-muted-foreground hover:bg-muted hover:text-foreground' }}"
                aria-label="Notifications{{ $unread ? ", {$unread} unread" : '' }}">
                 <x-icon name="bell" class="size-[18px]" />
-                @if($unread > 0)<span class="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary ring-2 ring-card"></span>@endif
+                @if($unread > 0)<span class="absolute right-1.5 top-1.5 size-2 rounded-full {{ $bar ? 'bg-white ring-2 ring-primary' : 'bg-primary ring-2 ring-card' }}"></span>@endif
             </a>
         </header>
 

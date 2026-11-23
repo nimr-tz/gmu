@@ -95,7 +95,7 @@ class SeedGrantWorkflowTest extends TestCase
         $this->actingAs($this->pi)->post(route('seed.apply'))->assertRedirect();
         $application = SeedApplication::firstOrFail();
         $this->actingAs($this->pi)->post(route('seed.applications.submit', $application), $this->conceptForm())
-            ->assertRedirect(route('seed.applications.show', $application));
+            ->assertRedirect(route('seed.applications.submitted', $application));
 
         return $application->fresh();
     }
@@ -340,9 +340,10 @@ class SeedGrantWorkflowTest extends TestCase
             array_slice(array_column(S::CONCEPT_SECTIONS, 2), 0, 10));
 
         $this->actingAs($this->pi)->get(route('seed.applications.edit', $application))->assertOk()
-            ->assertSee('A. Applicant and project information')->assertSee('Proposed co-investigators or collaborators')
-            ->assertSee('1. Research problem and justification')->assertSee('8. Intellectual property and commercialisation potential')
-            ->assertSee('E. Applicant declaration')->assertSee(S::DECLARATIONS['stage_two']);
+            // The call document's letters and numbers sit in a badge beside each heading.
+            ->assertSeeInOrder(['>A<', 'Applicant and project information', '>1<', 'Research problem and justification',
+                '>8<', 'Intellectual property and commercialisation potential', '>E<', 'Applicant declaration'], false)
+            ->assertSee('Proposed co-investigators or collaborators')->assertSee(S::DECLARATIONS['stage_two']);
 
         // Every declaration, both tick-boxes, a short title and a description for "yes".
         $form = $this->conceptForm([
@@ -467,7 +468,7 @@ class SeedGrantWorkflowTest extends TestCase
         // On the due day itself the response is not late yet.
         $this->travelTo(Carbon::parse('2026-12-10 16:00', 'Africa/Dar_es_Salaam'));
         $this->actingAs($this->pi)->get(route('dashboard'))->assertOk()
-            ->assertSee('Your response is due')->assertSee('Today')->assertDontSee('This date has passed');
+            ->assertSee('Revision due')->assertSee('Today')->assertDontSee('This date has passed');
 
         // The day after, it says so plainly.
         $this->travelTo(Carbon::parse('2026-12-11 08:00', 'Africa/Dar_es_Salaam'));
@@ -503,7 +504,7 @@ class SeedGrantWorkflowTest extends TestCase
         $application = $this->applyAndSubmitConcept();
 
         $this->actingAs($this->gmu)->get(route('dashboard'))->assertOk()->assertSee('Needs your action')->assertSee($application->reference);
-        $this->actingAs($this->pi)->get(route('dashboard'))->assertOk()->assertSee('Where your application is');
+        $this->actingAs($this->pi)->get(route('dashboard'))->assertOk()->assertSee('Your applications')->assertSee('Needs you');
 
         $drcp = User::whereHas('role', fn ($q) => $q->where('name', 'drcp'))->first();
         $this->actingAs($drcp)->get(route('dashboard'))->assertRedirect(route('seed.approvals.index'));

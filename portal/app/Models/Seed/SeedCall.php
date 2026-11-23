@@ -16,10 +16,37 @@ class SeedCall extends Model
 
     public const STATUSES = ['draft' => 'Draft (hidden)', 'open' => 'Open', 'closed' => 'Closed'];
 
+    /** Record the moment a call is first set to Open (any path: settings, seeders, tests). */
+    protected static function booted(): void
+    {
+        static::saving(function (SeedCall $call) {
+            if ($call->status === 'open' && ! $call->opened_at) {
+                $call->opened_at = now();
+            }
+        });
+    }
+
+    /**
+     * How much of the concept-note window has passed, 0–100, from the day the call
+     * opened to the end of the deadline day. Null when either date is missing.
+     */
+    public function conceptWindowElapsed(): ?float
+    {
+        if (! $this->opened_at || ! $this->concept_deadline) {
+            return null;
+        }
+        $start = $this->opened_at->copy()->startOfDay();
+        $end = $this->concept_deadline->copy()->endOfDay();
+        $span = max(1, $start->diffInSeconds($end));
+
+        return max(0, min(100, $start->diffInSeconds(now(), false) / $span * 100));
+    }
+
     protected function casts(): array
     {
         return [
             'concept_deadline'  => 'date',
+            'opened_at'         => 'datetime',
             'proposal_deadline' => 'date',
             'min_amount'        => 'integer',
             'max_amount'        => 'integer',

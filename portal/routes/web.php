@@ -60,6 +60,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('my-application',  [SeedGrant\ApplicationController::class, 'mine'])->name('mine');
         Route::scopeBindings()->prefix('applications/{application}')->name('applications.')->group(function () {
             Route::get('/',                      [SeedGrant\ApplicationController::class, 'show'])->name('show');
+            Route::get('submitted',              [SeedGrant\ApplicationController::class, 'submitted'])->name('submitted');
             Route::get('edit',                   [SeedGrant\ApplicationController::class, 'edit'])->name('edit');
             Route::put('/',                      [SeedGrant\ApplicationController::class, 'update'])->name('update');
             // PUT as well: the editor's Submit button shares the Save form, which spoofs PUT.

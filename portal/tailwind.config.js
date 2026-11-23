@@ -17,6 +17,8 @@ const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
 export default {
     content: [
         './resources/views/layouts/app.blade.php',
+        './resources/views/auth/login.blade.php',
+        './resources/views/auth/welcome/**/*.blade.php',
         './resources/views/components/**/*.blade.php',
         './resources/views/seed/**/*.blade.php',
         './resources/views/admin/**/*.blade.php',
@@ -94,6 +96,10 @@ export default {
                 xs: '0 1px 2px 0 rgb(15 23 42 / 0.04)',
                 sm: '0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04)',
                 pop: '0 12px 32px -8px rgb(15 23 42 / 0.18), 0 2px 6px -2px rgb(15 23 42 / 0.08)',
+                // Cards that sit over a coloured band, and the white sign-in button.
+                lift: '0 12px 32px -8px rgb(15 23 42 / 0.14)',
+                brand: '0 18px 40px -16px rgb(14 26 58 / 0.55)',
+                cta: '0 12px 28px -12px rgb(38 100 235 / 0.7)',
             },
             maxWidth: {
                 page: '90rem',

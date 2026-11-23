@@ -73,12 +73,18 @@
     .tabular, .font-mono { font-variant-numeric: tabular-nums; }
 }
 
+@layer utilities {
+    /* The soft light at the top of the blue sign-in and welcome pages. */
+    .bg-brand-glow { background-image: radial-gradient(ellipse 80% 60% at 50% 0%, rgb(255 255 255 / .10), transparent 70%); }
+}
+
 @layer components {
-    /* Each call's own hue (SeedCall::tintClass): blue, violet, sky, pink, indigo. */
+    /* Each call's own hue (SeedCall::tintClass), in creation order: blue, pink, sky, violet, indigo.
+       --tint-ink doubles as the call's band colour on the call page and open-call cards. */
     .tint-1 { --tint-bg:#F5F8FF; --tint-line:#E3EBFD; --tint-chip:#DCE6FD; --tint-ink:#1D4FC4; --tint-solid:#2664EB; }
-    .tint-2 { --tint-bg:#F9F6FF; --tint-line:#ECE6FD; --tint-chip:#E9E1FD; --tint-ink:#6D28D9; --tint-solid:#8B5CF6; }
+    .tint-2 { --tint-bg:#FEF5FA; --tint-line:#FBE1EF; --tint-chip:#FCE7F3; --tint-ink:#BE185D; --tint-solid:#EC4899; }
     .tint-3 { --tint-bg:#F3FAFE; --tint-line:#D9F0FB; --tint-chip:#CFEDFB; --tint-ink:#0369A1; --tint-solid:#0EA5E9; }
-    .tint-4 { --tint-bg:#FEF5FA; --tint-line:#FBE1EF; --tint-chip:#FCE7F3; --tint-ink:#BE185D; --tint-solid:#EC4899; }
+    .tint-4 { --tint-bg:#F9F6FF; --tint-line:#ECE6FD; --tint-chip:#E9E1FD; --tint-ink:#6D28D9; --tint-solid:#8B5CF6; }
     .tint-5 { --tint-bg:#F6F6FF; --tint-line:#E3E4FB; --tint-chip:#E0E7FF; --tint-ink:#4338CA; --tint-solid:#6366F1; }
 
     /* Form controls (also used bare, inside components). */

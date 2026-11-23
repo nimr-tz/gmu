@@ -32,6 +32,8 @@ Being predictable is part of caring for the user here. Pages of the same kind lo
 
 ## Visual rules
 
+**The owner designs every page; we implement.** Each page's design comes from the owner as a design artifact. Build it faithfully. Don't design or restyle a page on your own; when work reaches a page with no design yet, say which page you need and wait for it.
+
 The bar is a premium product dashboard, like the ReUI finance dashboards the owner pointed to: neutral surfaces, hairline borders, small type set carefully, colour used with purpose, real charts. These rules serve that look; when a rule gets in its way, raise it with the owner rather than working around the look. The reference design for every side-panel page is the canvas at https://claude.ai/artifact/Q1GKEQ3aAgS7DwHbYvdqwy.
 
 - **NIMR blue `#2664EB` leads, but it doesn't do everything.** It is `primary`: links, focus, selection, done states and the lead series in a chart. Don't make whole pages blue, and don't use navy or near-navy blues (`blue-900`, `blue-950`) for surfaces, buttons or chips.

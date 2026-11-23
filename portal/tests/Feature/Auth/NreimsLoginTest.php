@@ -94,34 +94,31 @@ class NreimsLoginTest extends TestCase
         $this->assertSame('pi', $user->role->name);
         $this->assertTrue($user->needsProfileCompletion());
 
-        // Held in the welcome until it is done: step 1 greets them by name.
+        // Held in the welcome until it is done: step 1 greets them by name and asks for their details.
         $this->get(route('dashboard'))->assertRedirect(route('profile.complete'));
         $this->get(route('profile.complete'))->assertOk()
-            ->assertSee('Neema.')->assertSee('Welcome to NIMR Grants.')->assertSee('Get started');
+            ->assertSee('Neema.')->assertSee('Confirm your details')->assertSee('From NREIMS')
+            ->assertSee('neema.mushi@nimr.or.tz')->assertSee('name="first_appointment_date"', false);
     }
 
-    public function test_the_welcome_walks_through_four_steps(): void
+    public function test_the_welcome_walks_through_two_steps(): void
     {
         $this->get($this->nreimsReturns($this->neema()));
 
-        // Step 2 shows what came from NREIMS; step 3 holds the form.
-        $this->get(route('profile.complete.nreims'))->assertOk()
-            ->assertSee('We already know a little about you.')->assertSee('neema.mushi@nimr.or.tz')
-            ->assertSee('+255712000111')->assertSee('Yes, that’s me', false);
-        $this->get(route('profile.complete.details'))->assertOk()
-            ->assertSee('A little more about you, so everything runs smoothly.')->assertSee('name="first_appointment_date"', false);
+        // The earlier step addresses lead to step 1.
+        $this->get(route('profile.complete.nreims'))->assertRedirect(route('profile.complete'));
+        $this->get(route('profile.complete.details'))->assertRedirect(route('profile.complete'));
 
-        // Step 4 is only for someone who has finished.
+        // Step 2 is only for someone who has finished.
         $this->get(route('profile.complete.ready'))->assertRedirect(route('profile.complete'));
         $this->post(route('profile.complete.store'), $this->postDetails())->assertRedirect(route('profile.complete.ready'));
         $this->get(route('profile.complete.ready'))->assertOk()
-            ->assertSee('You’re all set, Neema.', false)->assertSee('Your profile is complete.')->assertSee('Mwanza Centre')
-            ->assertSee('Enter NIMR Grants')->assertDontSee('Start your concept note');
+            ->assertSee('You’re all set', false)->assertSee('Mwanza Centre')
+            ->assertSee('Enter NIMR Grants')->assertSee('Change my details');
 
-        // Once done, the first three steps send them on to the dashboard.
-        foreach (['profile.complete', 'profile.complete.nreims', 'profile.complete.details'] as $step) {
-            $this->get(route($step))->assertRedirect(route('dashboard'));
-        }
+        // Once done, step 1 sends them on to the dashboard, unless they asked to change their details.
+        $this->get(route('profile.complete'))->assertRedirect(route('dashboard'));
+        $this->get(route('profile.complete', ['change' => 1]))->assertOk()->assertSee('Confirm your details');
     }
 
     private function postDetails(): array

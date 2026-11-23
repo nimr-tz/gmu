@@ -105,7 +105,7 @@
 
     {{-- How full proposals are scored, for each call this reviewer works in --}}
     @if($guideCalls->isNotEmpty())
-        <x-card title="How full proposals are scored" description="Concept notes get accept, revise or reject only. Weighted scoring starts at stage 2." class="xl:sticky xl:top-20"
+        <x-card title="How full proposals are scored" description="Concept notes get accept, revise or reject only" class="xl:sticky xl:top-20"
                 x-data="{ shown: {{ $guideCalls->first()->id }} }">
             @if($guideCalls->count() > 1)
                 <div class="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Call">
@@ -119,8 +119,9 @@
             @foreach($guideCalls as $c)
                 @php $form = $c->form(); $top = max(array_column($form->criteria(), 2) ?: [1]) ?: 1; @endphp
                 <div x-show="shown === {{ $c->id }}" @unless($loop->first) x-cloak @endunless>
-                    <p class="mb-3 text-[13px] font-medium">{{ $c->title }}</p>
+                    <p class="text-[13px] font-medium">{{ $c->title }}</p>
                     @if($form->scored())
+                        <p class="mb-3 mt-0.5 text-xs text-muted-foreground">Weighted scoring starts at the full proposal.</p>
                         <ul class="space-y-3 text-[13px]">
                             @foreach($form->criteria() as $key => [$name, , $max])
                                 @php $hasMin = isset($form->minimums()[$key]); @endphp
@@ -134,7 +135,7 @@
                             Fundable at <strong class="font-mono">{{ S::trimNumber($form->passMark()) }}/{{ S::trimNumber($form->maxTotal()) }}</strong> or more{{ $form->minimumsPhrase(', and never below ', ' on ') }}. Don’t mark down a strong study for having no innovation.
                         </div>
                     @else
-                        <p class="text-[13px] text-muted-foreground">This call has no scored review: full proposals get accept, revise or reject.</p>
+                        <p class="mt-1 text-[13px] text-muted-foreground">This call has no scored review: full proposals get accept, revise or reject too.</p>
                     @endif
                 </div>
             @endforeach

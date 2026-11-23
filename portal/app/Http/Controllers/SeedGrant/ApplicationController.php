@@ -61,6 +61,25 @@ class ApplicationController extends Controller
         return view('seed.application-show', ['application' => $application]);
     }
 
+    /**
+     * Straight after a concept note or full proposal is sent: what GMU received, where
+     * it is now, and what happens next (the owner's "Submitted" design). Only the
+     * applicant sees it, and only while it waits with GMU; otherwise their page.
+     */
+    public function submitted(Request $request, SeedApplication $application)
+    {
+        $this->authorize('view', $application);
+
+        if ($request->user()->id !== $application->pi_id
+            || ! in_array($application->status, [\App\Support\SeedGrant::SUBMITTED, \App\Support\SeedGrant::PROPOSAL_SUBMITTED], true)) {
+            return redirect()->route('seed.applications.show', $application);
+        }
+
+        $application->load(['call', 'budgetItems']);
+
+        return view('seed.application-submitted', ['application' => $application]);
+    }
+
     public function edit(Request $request, SeedApplication $application)
     {
         $this->authorize('update', $application);
@@ -99,10 +118,12 @@ class ApplicationController extends Controller
             $message = 'Your response has gone back to the reviewers.';
         } elseif ($application->stage() === 'concept') {
             $this->workflow->submitConcept($application);
-            $message = 'Concept note submitted. GMU will screen it for eligibility.';
+
+            return redirect()->route('seed.applications.submitted', $application);
         } else {
             $this->workflow->submitProposal($application);
-            $message = 'Full proposal submitted.';
+
+            return redirect()->route('seed.applications.submitted', $application);
         }
 
         return redirect()->route('seed.applications.show', $application)->with('success', $message);

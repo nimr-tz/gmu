@@ -26,24 +26,24 @@ class DashboardController extends Controller
             return redirect()->route('seed.approvals.index');
         }
 
-        // An applicant's dashboard follows their own latest application, in whichever call it is.
-        $application = SeedApplication::with(['rounds.reviews.assignment', 'budgetItems', 'call'])
-            ->where('pi_id', $user->id)->latest('id')->first();
-        if ($application) {
-            $call = $application->call;
-        }
+        // An applicant's dashboard (the owner's design): all their applications, what needs
+        // them first; or, before they apply, the calls open for concept notes.
+        $applications = SeedApplication::with(['rounds.reviews.assignment', 'budgetItems', 'call'])
+            ->where('pi_id', $user->id)->latest('id')->get();
 
         $reviewing = SeedReviewerAssignment::where('reviewer_id', $user->id)->whereNull('removed_at')->exists();
-        if (! $application && $reviewing) {
+        if ($applications->isEmpty() && $reviewing) {
             return redirect()->route('seed.reviews.index');
         }
 
+        $calls = SeedCall::where('status', '!=', 'draft')->orderBy('concept_deadline')->get();
+
         return view('seed.dashboard-applicant', [
-            'user'        => $user,
-            'call'        => $call,
-            'application' => $application,
-            'problems'    => $this->workflow->eligibilityProblems($user),
-            'reviewing'   => $reviewing,
+            'user'         => $user,
+            'applications' => $applications,
+            'openCalls'    => $calls->filter->acceptingConceptNotes()->values(),
+            'closedCalls'  => $calls->reject->acceptingConceptNotes()->sortByDesc('id')->values(),
+            'reviewing'    => $reviewing,
         ]);
     }
 
