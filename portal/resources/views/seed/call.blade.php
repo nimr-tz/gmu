@@ -213,7 +213,7 @@
                         @elseif($problems)
                             <x-alert tone="warn" icon="info">@foreach($problems as $p)<p>{{ $p }}</p>@endforeach</x-alert>
                             @if(auth()->user()->isNreimsLinked())
-                                <x-button class="w-full" :href="route('profile.complete', ['change' => 1])">Update my details</x-button>
+                                <x-button class="w-full" :href="route('profile.complete.details', ['change' => 1])">Update my details</x-button>
                             @endif
                         @else
                             <div class="flex items-start gap-2.5 rounded-[10px] border border-blue-100 bg-blue-50 px-3.5 py-3 text-[13.5px] leading-snug text-blue-700">

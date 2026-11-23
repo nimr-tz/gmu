@@ -11,47 +11,37 @@ use Illuminate\View\View;
 
 /**
  * The welcome a member of staff walks through after their first NREIMS sign-in,
- * in two steps (the owner's "Onboarding" design):
+ * in four steps (drawn in the owner's "Onboarding" design):
  *
- *   1. details   confirm their post at NIMR: the only step that saves
- *   2. ready     a summary, and the way in
+ *   1. welcome   what NIMR Grants is
+ *   2. nreims    what came across from NREIMS (name, email, phone)
+ *   3. details   confirm their post at NIMR: the only step that saves
+ *   4. ready     a summary, and the way in
  *
- * Step 1 is for someone who has not finished yet, or who chose "Change my
- * details" on step 2. The old welcome and NREIMS step addresses lead to step 1.
+ * Steps 1 to 3 are for someone who has not finished yet; "Change my details" on
+ * step 4 reopens step 3. Each step is its own page, so Back and a refresh both work.
  */
 class ProfileCompletionController extends Controller
 {
     /** The step list in the blue panel. */
-    public const STEPS = ['Confirm your details', 'Enter the portal'];
+    public const STEPS = ['Welcome', 'From NREIMS', 'Confirm your details', 'Enter the portal'];
 
-    /** Step 1: their details, with what came from NREIMS shown above the form. */
     public function welcome(Request $request): View|RedirectResponse
     {
-        $user = $request->user();
+        return $this->step($request, 0, 'auth.welcome.welcome');
+    }
 
-        if (! $user->isNreimsLinked() || (! $user->needsProfileCompletion() && ! $request->boolean('change'))) {
-            return redirect()->route('dashboard');
-        }
+    public function nreims(Request $request): View|RedirectResponse
+    {
+        return $this->step($request, 1, 'auth.welcome.nreims');
+    }
 
-        return view('auth.welcome.details', [
-            'user'         => $user,
-            'steps'        => self::STEPS,
-            'current'      => 0,
-            'greeting'     => $this->greeting(),
+    public function edit(Request $request): View|RedirectResponse
+    {
+        return $this->step($request, 2, 'auth.welcome.details', [
             'designations' => config('gmu.designations'),
             'centres'      => config('gmu.centres'),
-        ]);
-    }
-
-    /** The earlier "From NREIMS" and "About you" addresses: both are step 1 now. */
-    public function nreims(Request $request): RedirectResponse
-    {
-        return redirect()->route('profile.complete', $request->only('change'));
-    }
-
-    public function edit(Request $request): RedirectResponse
-    {
-        return redirect()->route('profile.complete', $request->only('change'));
+        ], $request->boolean('change'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -88,7 +78,19 @@ class ProfileCompletionController extends Controller
             return redirect()->route('profile.complete');
         }
 
-        return view('auth.welcome.ready', ['user' => $user, 'steps' => self::STEPS, 'current' => 1, 'greeting' => $this->greeting()]);
+        return view('auth.welcome.ready', ['user' => $user, 'steps' => self::STEPS, 'current' => 3, 'greeting' => $this->greeting()]);
+    }
+
+    /** Steps 1 to 3: for an NREIMS account that has not finished, or is changing its details. */
+    private function step(Request $request, int $index, string $view, array $data = [], bool $changing = false): View|RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user->isNreimsLinked() || (! $user->needsProfileCompletion() && ! $changing)) {
+            return redirect()->route('dashboard');
+        }
+
+        return view($view, $data + ['user' => $user, 'steps' => self::STEPS, 'current' => $index, 'greeting' => $this->greeting()]);
     }
 
     /** Good morning, afternoon or evening, in East Africa Time. */

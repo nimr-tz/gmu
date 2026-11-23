@@ -11,8 +11,12 @@
 @endphp
 
 @section('content')
-    <h1 class="text-[32px] font-semibold leading-tight tracking-[-0.03em]">Confirm your details</h1>
-    <p class="mt-2.5 text-[15px] text-muted-foreground">Asked once. GMU uses them to check eligibility.</p>
+    @unless(request()->boolean('change'))
+        <a href="{{ route('profile.complete.nreims') }}" class="inline-flex items-center gap-1 self-start text-[13px] text-muted-foreground hover:text-foreground"><x-icon name="arrow-left" class="size-3.5" /> Back</a>
+        <p class="mt-4 text-[13px] text-muted-foreground">Step 3 of {{ count($steps) }}</p>
+    @endunless
+    <h1 class="mt-1 text-[32px] font-semibold leading-tight tracking-[-0.03em]">Confirm your details</h1>
+    <p class="mt-2.5 text-[15px] text-muted-foreground">To make NIMR Grants work well for you, we need a few details about your post at NIMR. You give them once, and we won’t ask again. GMU also uses them to check eligibility.</p>
 
     @if($missing)
         <div role="alert" class="mt-5 rounded-xl border border-danger-line bg-danger-soft px-3.5 py-3 text-[13.5px] font-medium text-danger-ink">
@@ -51,6 +55,7 @@
             </label>
             <label class="flex flex-col gap-1.5"><span class="text-[13px] font-medium">Mobile phone</span>
                 <input name="phone" inputmode="tel" placeholder="+255 712 345 678" value="{{ old('phone', $user->phone) }}" class="input {{ $field }} font-mono" @error('phone') aria-invalid="true" @enderror>
+                <span class="text-xs text-muted-foreground">For reminders about deadlines and review requests.</span>
             </label>
             <fieldset class="flex flex-col gap-1.5">
                 <legend class="mb-1.5 text-[13px] font-medium">Employment</legend>

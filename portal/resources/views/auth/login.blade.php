@@ -1,8 +1,9 @@
 {{--
     Sign in, from the owner's "Sign In" design: the NIMR seal on brand blue and one
-    button, "Sign in with NREIMS". Accounts without NREIMS (the GMU administrator,
-    demo users) use the quiet "Sign in with a password" link, which shows the
-    email-and-password form here. Without NREIMS configured, the form shows at once.
+    button, "Sign in with NREIMS". Staff sign in only that way, so nothing else sits
+    beside the button. Accounts without NREIMS (the GMU administrator) use the small
+    "Admin login" link in the top-right corner, which shows the email-and-password
+    form here. Without NREIMS configured, the form shows at once.
 --}}
 @php
     $sso       = app(\App\Services\Auth\NreimsOAuth::class)->enabled();
@@ -20,6 +21,11 @@
 </head>
 <body class="h-full bg-primary text-white">
 <div class="flex min-h-full flex-col bg-primary bg-brand-glow">
+    @if($sso && ! $showLocal)
+        <div class="flex justify-end px-6 pt-5">
+            <a href="{{ route('login', ['admin' => 1]) }}" class="inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px] text-blue-100 hover:bg-white/10 hover:text-white"><x-icon name="lock" class="size-3.5" />Admin login</a>
+        </div>
+    @endif
     <main class="flex flex-1 items-center justify-center px-6 py-14">
         <div class="flex w-full max-w-[420px] flex-col items-center text-center">
             <span class="grid size-[120px] place-items-center rounded-full bg-white shadow-brand ring-[10px] ring-white/10">
@@ -61,7 +67,6 @@
                 <a href="{{ route('nreims.redirect') }}" class="mt-12 flex h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-white text-base font-semibold text-blue-700 shadow-brand transition-colors hover:bg-blue-50 hover:text-blue-800">
                     <x-icon name="lock" class="size-[18px]" />Sign in with NREIMS
                 </a>
-                <a href="{{ route('login', ['admin' => 1]) }}" class="mt-5 text-[13px] text-blue-100 underline-offset-4 hover:text-white hover:underline">Sign in with a password</a>
             @endif
         </div>
     </main>

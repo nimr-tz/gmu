@@ -6,8 +6,9 @@
 
 @section('content')
     <span class="grid size-14 place-items-center rounded-2xl bg-primary text-white ring-8 ring-blue-50"><x-icon name="check" class="size-7" /></span>
-    <h1 class="mt-7 text-[32px] font-semibold leading-tight tracking-[-0.03em]">You’re all set</h1>
-    <p class="sr-only">Your profile is complete.</p>
+    <p class="mt-7 text-[13px] text-muted-foreground">Step 4 of {{ count($steps) }}</p>
+    <h1 class="mt-1 text-[32px] font-semibold leading-tight tracking-[-0.03em]">You’re all set, {{ \Illuminate\Support\Str::of($user->name)->replaceMatches('/^(Dr\.?|Prof\.?|Mr\.?|Ms\.?|Mrs\.?)\s+/i', '')->before(' ') }}.</h1>
+    <p class="mt-2.5 text-[15px] text-muted-foreground">Your profile is complete. Here is what you gave us; you can change it at any time.</p>
 
     <dl class="mt-6 grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-px overflow-hidden rounded-2xl border border-border bg-border">
         @foreach([
@@ -25,5 +26,5 @@
     <a href="{{ route('dashboard') }}" class="mt-8 flex h-[52px] items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-semibold text-white shadow-cta transition-colors hover:bg-blue-700">
         Enter NIMR Grants <x-icon name="arrow-right" class="size-4" />
     </a>
-    <a href="{{ route('profile.complete', ['change' => 1]) }}" class="mt-2.5 flex h-10 items-center justify-center text-[13.5px] font-medium text-muted-foreground hover:text-foreground">Change my details</a>
+    <a href="{{ route('profile.complete.details', ['change' => 1]) }}" class="mt-2.5 flex h-10 items-center justify-center text-[13.5px] font-medium text-muted-foreground hover:text-foreground">Change my details</a>
 @endsection
