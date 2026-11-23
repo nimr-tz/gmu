@@ -285,10 +285,7 @@ class CallController extends Controller
             if ($maxTotal > 0 && $c['pass_mark'] > $maxTotal) {
                 $errors['features.pass_mark'] = 'The pass mark cannot be above the total of the criteria (' . SeedGrant::trimNumber($maxTotal) . ').';
             }
-
-            foreach (['drcp', 'dg'] as $level) {
-                $c['approval'][$level] = $on($in['approval'][$level] ?? null);
-            }
+            // The approval chain is the same for every call (GMU, DRCP, DG): nothing to set here.
         }
 
         if ($errors) {

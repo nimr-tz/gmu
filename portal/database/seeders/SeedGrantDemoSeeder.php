@@ -10,6 +10,7 @@ use App\Services\SeedGrant\Workflow;
 use App\Support\CallForm;
 use App\Support\SeedGrant as S;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -22,7 +23,7 @@ use Illuminate\Support\Str;
  *
  *   2627    Seed grant FY 2026/27       open    the seed grant as written
  *   2627PB  Policy and practice briefs  open    no mentor, no years limit, CV only,
- *                                               four criteria, pass mark 60, GMU then DG
+ *                                               four criteria, pass mark 60
  *   2526LI  Laboratory innovation fund  closed  last year's call, finished outcomes;
  *                                               8-year limit, 40% equipment, innovation weighted 20
  *
@@ -53,6 +54,8 @@ class SeedGrantDemoSeeder extends Seeder
         $this->reviewers = [
             $this->person('Dr Peter Mboya', 'p.mboya', 'research_scientist', 'Muhimbili Centre', 9),
             $this->person('Dr Sara Kimaro', 's.kimaro', 'research_scientist', 'Tanga Centre', 12),
+            $this->person('Dr Anna Mkumbo', 'a.mkumbo', 'research_scientist', 'Mwanza Centre', 14),
+            $this->person('Dr Musa Mwita', 'm.mwita', 'research_scientist', 'Amani Centre', 10),
         ];
 
         [$seed, $briefs, $lab] = $this->calls();
@@ -97,6 +100,47 @@ class SeedGrantDemoSeeder extends Seeder
         ] as [$name, $handle, $centre, $title, $target]) {
             $this->story($lab, $this->person($name, $handle, 'pi', $centre, 6), $title, $target);
         }
+
+        // ── Many more, so the lists, queues and ranking look like a real call ──
+        $this->crowd($seed, 3, [
+            S::DRAFT => ['Peer support groups to improve PrEP continuation among adolescent girls in Shinyanga', 'Facility checklists to improve postnatal care quality in Kigoma', 'Community drug distributors to sustain deworming coverage in Lindi', 'Text-message follow-up to improve sputum return in presumptive TB'],
+            S::SUBMITTED => ['Village health days to raise measles second-dose coverage in Simiyu', 'Nurse-led blood pressure clubs to improve control in Moshi', 'School eye screening to increase spectacle uptake in Arusha', 'Radio drama to improve care-seeking for childhood pneumonia in Mtwara', 'Lay counsellors to deliver brief alcohol interventions in Mbeya', 'Point-of-care CD4 testing to speed advanced HIV disease care in Iringa'],
+            'returned' => ['Dispensary stock dashboards to reduce malaria test stock-outs in Kagera', 'Community midwives to improve birth preparedness in Katavi'],
+            S::INELIGIBLE => ['Digital adherence technology to support TB treatment in Ilala'],
+            S::SCREENED => ['Mobile outreach to increase cervical screening in rural Morogoro', 'Supportive supervision to improve IMCI practice in Singida', 'Linkage officers to speed ART start after community testing in Geita', 'Family planning counselling during child immunisation visits in Rukwa'],
+            S::CONCEPT_REVIEW => ['School bed net distribution to sustain coverage in Ruvuma', 'Clinical mentorship to improve sepsis care in district hospitals', 'WhatsApp groups to support community health workers in Njombe', 'Kangaroo mother care champions to improve uptake in Mara', 'Community pharmacists to screen for diabetes in Mwanza', 'Household visits to improve exclusive breastfeeding in Manyara'],
+            S::CONCEPT_REVISION => ['Community score cards to improve accountability for maternal health in Pwani', 'Integrated outreach to improve trachoma surgery uptake in Dodoma'],
+            S::CONCEPT_DECLINED => ['Solar lighting to improve night deliveries in rural dispensaries', 'Mobile money incentives to improve clinic attendance in Tabora', 'Drone delivery of blood products to remote hospitals'],
+            S::SHORTLISTED => ['Triage training to reduce waiting times in paediatric outpatients', 'Community case management to improve malaria treatment in Kilombero', 'Same-day ART initiation to improve retention in Temeke', 'Male partner invitations to improve antenatal HIV testing in Chunya'],
+            S::PROPOSAL_SUBMITTED => ['Electronic reminders to improve immunisation timeliness in Meru', 'Task-sharing to improve hypertension care in Kibaha'],
+            S::PROPOSAL_REVIEW => ['Adolescent-friendly services to improve HIV retention in Mufindi', 'Community screening to find child malnutrition early in Bahi', 'Peer navigators to improve TB treatment completion in Ilemela'],
+            S::PROPOSAL_REVISION => ['Quality improvement teams to reduce stillbirths in Kasulu'],
+            S::NOT_RECOMMENDED => ['Mass media to increase hepatitis B testing in Tanga city', 'Vouchers to improve facility delivery in Liwale'],
+            S::RECOMMENDED => ['Pharmacy refill clubs to improve diabetes control in Kinondoni', 'Community health workers to improve postnatal home visits in Newala'],
+            S::WITH_DRCP => ['Facility audits to improve oxygen availability in regional hospitals'],
+            S::WITH_DG => ['Village leaders to improve malaria testing before treatment in Muleba'],
+        ]);
+        $this->crowd($briefs, 11, [
+            S::SUBMITTED => ['Brief: community health worker remuneration options for councils', 'Brief: scaling school deworming through local government', 'Brief: oxygen supply planning for regional hospitals'],
+            S::SCREENED => ['Brief: hypertension medicines in the essential medicines list'],
+            S::CONCEPT_REVIEW => ['Brief: integrating mental health into primary care guidelines', 'Brief: user fees and maternal care in faith-based facilities'],
+            S::CONCEPT_DECLINED => ['Brief: a national strategy for snakebite care'],
+            S::SHORTLISTED => ['Brief: malaria vaccine introduction in high-burden councils', 'Brief: council budgets for community health workers'],
+            S::PROPOSAL_REVIEW => ['Brief: cervical screening targets in district health plans'],
+            S::NOT_RECOMMENDED => ['Brief: tobacco tax and health spending'],
+            S::RECOMMENDED => ['Brief: TB case finding in mining communities', 'Brief: newborn sickle cell screening in regional hospitals'],
+            S::WITH_DG => ['Brief: pharmacy regulation for antibiotic dispensing'],
+            S::APPROVED => ['Brief: referral transport for obstetric emergencies'],
+        ]);
+        $this->crowd($lab, 6, [
+            S::AWARDED => ['Contamination checks for TB culture in regional laboratories', 'Portable centrifuges for haemoglobin testing in dispensaries'],
+            S::AGREEMENT_ACCEPTED => ['Barcode tracking for laboratory samples in district hospitals'],
+            S::APPROVED => ['Low-cost incubators for blood culture in district laboratories'],
+            S::NOT_RECOMMENDED => ['A paper test for urinary schistosomiasis', 'Smartphone microscopy for soil-transmitted helminths', 'Reusable sample containers for viral load testing'],
+            S::CONCEPT_DECLINED => ['Computer reading of chest X-rays in district hospitals', 'A rapid test for brucellosis in livestock keepers', 'Solar freezers for laboratory reagent storage', 'Microfluidic CD4 counting for health centres'],
+            S::INELIGIBLE => ['Automated malaria slide staining for health centres'],
+        ]);
+
         // The fund has run its course: close it, with last year's dates.
         $lab->update(['status' => 'closed', 'concept_deadline' => now()->subYear()->toDateString(), 'proposal_deadline' => now()->subMonths(9)->toDateString()]);
 
@@ -133,7 +177,6 @@ class SeedGrantDemoSeeder extends Seeder
         $c['criteria']['innovation']['on'] = false;
         $c['criteria']['science']['min'] = null;
         $c['pass_mark'] = 60;
-        $c['approval']['drcp'] = false;
         $c['page'] = [
             'about' => "Short grants for NIMR staff to turn finished research into a policy or practice brief that a ministry, council or programme can act on.\n\nThe grant pays for stakeholder consultation, writing and a dissemination meeting. It does not fund new data collection.",
             'who' => 'Any NIMR scientist, permanent or contract, with completed research findings to share',
@@ -159,7 +202,7 @@ class SeedGrantDemoSeeder extends Seeder
         $lab = SeedCall::updateOrCreate(['code' => '2526LI'], [
             'title' => 'Laboratory Innovation Fund', 'fiscal_year' => '2025/26',
             'summary' => 'Last year’s fund for low-cost diagnostics and laboratory tools.',
-            'min_amount' => 3_000_000, 'max_amount' => 15_000_000, 'envelope' => 40_000_000, 'duration_months' => 12, 'equipment_cap_percent' => 40,
+            'min_amount' => 3_000_000, 'max_amount' => 15_000_000, 'envelope' => 70_000_000, 'duration_months' => 12, 'equipment_cap_percent' => 40,
             // Open while the stories run; closed at the end.
             'status' => 'open', 'concept_deadline' => now()->addWeeks(1)->toDateString(), 'proposal_deadline' => now()->addWeeks(2)->toDateString(),
             'config' => $l,
@@ -170,7 +213,41 @@ class SeedGrantDemoSeeder extends Seeder
 
     // ── One application, moved through the real workflow to $target ────────
 
+    /**
+     * Each application happens a few days ago (1 to 11 days, fixed by its title),
+     * so lists have a spread of dates and review rounds are still within their 14 days.
+     */
     private function story(SeedCall $call, User $pi, string $title, string $target): void
+    {
+        $seed = crc32($title);
+        Carbon::setTestNow(now()->subDays(1 + $seed % 11)->setTime(8 + $seed % 9, $seed % 60));
+        try {
+            $this->tell($call, $pi, $title, $target);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** Many applications at once: [status => [titles]], each from a new applicant at the call's centres. */
+    private function crowd(SeedCall $call, int $years, array $byStatus): void
+    {
+        static $i = 0;
+        $firsts = ['Amina', 'Hamisi', 'Rose', 'Yusuf', 'Esther', 'Faraji', 'Upendo', 'Juma', 'Mary', 'Salim', 'Happiness', 'Godfrey', 'Tumaini', 'Abdallah', 'Leah', 'Erasto', 'Winfrida', 'Khamis', 'Janeth', 'Seif', 'Anna', 'Rashidi', 'Glory', 'Nassoro', 'Beatrice', 'Frank', 'Zaituni', 'Gabriel', 'Mwajuma', 'Elisha'];
+        $lasts  = ['Mwakalebela', 'Mrisho', 'Kisanga', 'Swai', 'Mmbaga', 'Kileo', 'Mfinanga', 'Komba', 'Chuwa', 'Mwamba', 'Lukumay', 'Minja', 'Mbwambo', 'Lyakurwa', 'Urassa', 'Kahindi', 'Mapunda', 'Nkya', 'Haule', 'Mwanga', 'Sanga', 'Kapinga', 'Tarimo', 'Mtui'];
+        $centres = ['Muhimbili Centre', 'Mwanza Centre', 'Tanga Centre', 'Amani Centre', 'Mbeya Medical Research Centre', 'Dodoma Centre', 'Tukuyu Centre', 'Tabora Centre', 'Ngongongare Centre', 'Headquarters'];
+
+        foreach ($byStatus as $target => $titles) {
+            foreach ($titles as $title) {
+                [$first, $last] = [$firsts[$i % count($firsts)], $lasts[$i % count($lasts)]];
+                $handle = Str::lower($first . '.' . $last);
+                $pi = $this->person("Dr {$first} {$last}", $handle, 'pi', $centres[$i % count($centres)], 1 + ($i + $years) % $years);
+                $this->story($call, $pi, $title, (string) $target);
+                $i++;
+            }
+        }
+    }
+
+    private function tell(SeedCall $call, User $pi, string $title, string $target): void
     {
         $w = $this->workflow;
         $app = $w->start($pi, $call);
@@ -201,7 +278,7 @@ class SeedGrantDemoSeeder extends Seeder
 
         $this->openRound($app);
         if ($target === S::CONCEPT_REVIEW) {
-            $this->reviewAll($app, 1, ['accept']);
+            $this->reviewPartly($app, null);
 
             return;
         }
@@ -230,7 +307,7 @@ class SeedGrantDemoSeeder extends Seeder
 
         $this->openRound($app);
         if ($target === S::PROPOSAL_REVIEW) {
-            $this->reviewAll($app, 1, ['accept'], 'good');
+            $this->reviewPartly($app, 'good');
 
             return;
         }
@@ -287,7 +364,10 @@ class SeedGrantDemoSeeder extends Seeder
 
     private function openRound(SeedApplication $app): void
     {
-        foreach ($this->reviewers as $reviewer) {
+        // Two of the four reviewers, in turn, so each has a realistic share.
+        $pairs = [[0, 1], [0, 2], [1, 3], [0, 3], [1, 2], [2, 3]];
+        foreach ($pairs[crc32($app->reference) % count($pairs)] as $r) {
+            $reviewer = $this->reviewers[$r];
             $assignment = $this->workflow->assignReviewer($app->fresh(), $reviewer, $this->gmu);
             $this->workflow->declareInterest($assignment, false, null);
         }
@@ -397,7 +477,7 @@ class SeedGrantDemoSeeder extends Seeder
     }
 
     /** @param  string|null  $scores  'good' or 'low' for the full proposal, null for a concept note */
-    private function reviewAll(SeedApplication $application, int $howMany, array $recommendations, ?string $scores = null): void
+    private function reviewAll(SeedApplication $application, int $howMany, array $recommendations, ?string $scores = null, ?array $plan = null): void
     {
         $application->refresh()->load('assignments.application');
         $criteria = $application->call->form()->criteria();
@@ -405,12 +485,19 @@ class SeedGrantDemoSeeder extends Seeder
             'The implementation question is clear and the facilities are committed. The outcomes are well chosen.',
             'Name an implementation framework and narrow the outcomes to adoption and fidelity for a 12-month study.',
         ];
-        foreach ($application->activeAssignments()->take($howMany)->values() as $i => $assignment) {
+        foreach ($application->activeAssignments()->values() as $i => $assignment) {
+            // By default the first $howMany submit; $plan picks who submits (true) or saves a draft (false).
+            $submit = $plan === null ? ($i < $howMany ? true : null) : ($plan[$i] ?? null);
+            if ($submit === null) {
+                continue;
+            }
             $marks = [];
             if ($scores) {
                 // A share of each criterion's maximum: strong, or weak on science.
+                // Varied by title, so the ranking has a spread; 'good' always clears the pass mark.
+                $spread = crc32($application->title) % 12 / 100;
                 foreach ($criteria as $key => [, , $max]) {
-                    $share = $scores === 'good' ? 0.86 - $i * 0.04 : ($key === 'science' ? 0.4 : 0.6);
+                    $share = $scores === 'good' ? 0.8 + $spread - $i * 0.03 : ($key === 'science' ? 0.4 : 0.52 + $spread);
                     $marks[$key] = round($max * $share * 2) / 2;
                 }
             }
@@ -419,7 +506,17 @@ class SeedGrantDemoSeeder extends Seeder
                 'comments'       => $comments[$i] ?? $comments[0],
                 'confidential_note' => $i === 1 ? 'The budget looks tight for the travel planned.' : null,
                 'scores'         => $marks,
-            ], true);
+            ], $submit);
         }
+    }
+
+    /**
+     * A round still under way: neither reviewer has submitted, one has, the other has,
+     * or one has and the other has a draft (fixed by the title), so every reviewer has work waiting.
+     */
+    private function reviewPartly(SeedApplication $application, ?string $scores): void
+    {
+        $plan = [[], [0 => true], [1 => true], [0 => true, 1 => false]][crc32($application->title) % 4];
+        $this->reviewAll($application, 0, ['accept', 'accept'], $scores, $plan);
     }
 }

@@ -32,7 +32,8 @@ class RankingController extends Controller
         $recommended = $ranked->where('application.status', '!=', SeedGrant::NOT_RECOMMENDED)
             ->filter(fn ($row) => $row['passes']);
 
-        return view('seed.ranking', [
+        // GMU signs off from its ranking; the DRCP and the DG read theirs (the owner's Approvals design).
+        return view($manage ? 'seed.ranking' : 'seed.ranking-readonly', [
             'call'        => $call,
             'ranked'      => $ranked,
             'recommendedTotal' => $recommended->sum(fn ($r) => $r['application']->budgetTotal('proposal')),

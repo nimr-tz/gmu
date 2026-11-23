@@ -77,11 +77,11 @@ final class SeedGrant
      * "where applications are" bars: key => [label, statuses, colour class].
      */
     public const STAGE_GROUPS = [
-        'concept'  => ['Concept note', [self::SUBMITTED, self::SCREENED, self::CONCEPT_REVIEW, self::CONCEPT_REVISION], 'bg-chart-1'],
-        'proposal' => ['Full proposal', [self::SHORTLISTED, self::PROPOSAL_SUBMITTED, self::PROPOSAL_REVIEW, self::PROPOSAL_REVISION], 'bg-chart-2'],
-        'approval' => ['Approval', [self::RECOMMENDED, self::WITH_DRCP, self::WITH_DG, self::APPROVED], 'bg-chart-3'],
-        'award'    => ['Agreement', [self::AGREEMENT_ISSUED, self::AGREEMENT_ACCEPTED, self::AWARDED], 'bg-chart-4'],
-        'closed'   => ['Closed', self::CLOSED_STATUSES, 'bg-chart-5'],
+        'concept'  => ['Concept note', [self::SUBMITTED, self::SCREENED, self::CONCEPT_REVIEW, self::CONCEPT_REVISION], 'bg-primary'],
+        'proposal' => ['Full proposal', [self::SHORTLISTED, self::PROPOSAL_SUBMITTED, self::PROPOSAL_REVIEW, self::PROPOSAL_REVISION], 'bg-violet-500'],
+        'approval' => ['Approval', [self::RECOMMENDED, self::WITH_DRCP, self::WITH_DG, self::APPROVED], 'bg-sky-500'],
+        'award'    => ['Agreement', [self::AGREEMENT_ISSUED, self::AGREEMENT_ACCEPTED, self::AWARDED], 'bg-pink-500'],
+        'closed'   => ['Closed', self::CLOSED_STATUSES, 'bg-gray-400'],
     ];
 
     /** Statuses in which money has been approved. */

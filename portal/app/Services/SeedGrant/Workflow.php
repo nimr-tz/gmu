@@ -502,7 +502,7 @@ class Workflow
             $this->fail('decision', 'GMU sends recommended proposals on; to change the panel’s recommendation, reopen the review.');
         }
         if (in_array($decision, ['returned', 'conditions'], true) && blank($note)) {
-            $this->fail('note', $decision === 'returned' ? 'Give the reason for returning it.' : 'State the conditions.');
+            $this->fail('note', $decision === 'returned' ? 'Give GMU your reason.' : 'Write the conditions.');
         }
 
         $application->approvals()->create(['level' => $level, 'decision' => $decision, 'note' => $note, 'decided_by' => $by->id]);

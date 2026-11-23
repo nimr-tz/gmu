@@ -10,7 +10,8 @@ use App\Models\User;
 
 /**
  * The seed grant entries in the side panel, by role.
- * Each item: [label, url, icon, active route pattern, count or null, count is an alert].
+ * Each item: [label, url, icon, active route pattern, count or null, count style:
+ * false (blue), true (red, an alert) or 'warn' (amber, waiting on this person)].
  */
 final class SeedNav
 {
@@ -34,10 +35,10 @@ final class SeedNav
         if ($level = ApprovalsController::levelFor($user)) {
             $waiting = SeedApplication::where('status', ApprovalsController::QUEUE_STATUS[$level])->count();
 
-            return ['Decisions' => [
-                ['Awaiting decision', route('seed.approvals.index'), 'shield-check', 'seed.approvals.*', $waiting ?: null, false],
-                ['Full ranking', route('seed.ranking'), 'list-ordered', 'seed.ranking', null, false],
-                ['Calls', route('seed.calls.index'), 'megaphone', 'seed.calls.*|seed.call', null, false],
+            // The owner's Approvals design: Approvals (with what waits, in amber) and Ranking.
+            return ['Grants' => [
+                ['Approvals', route('seed.approvals.index'), 'shield-check', 'seed.approvals.*', $waiting ?: null, 'warn'],
+                ['Ranking', route('seed.ranking'), 'list-ordered', 'seed.ranking', null, false],
             ]] + self::reviewing($user);
         }
 
@@ -70,8 +71,8 @@ final class SeedNav
         $controller = app(\App\Http\Controllers\SeedGrant\ReviewsController::class);
         $todo = $assignments->filter(fn ($a) => $controller->needsAction($a))->count();
 
-        return ['Reviewing' => [
-            ['My reviews', route('seed.reviews.index'), 'message-square', 'seed.reviews.*', $todo ?: null, false],
+        return ['Review panel' => [
+            ['My reviews', route('seed.reviews.index'), 'clipboard-check', 'seed.reviews.*', $todo ?: null, 'warn'],
         ]];
     }
 }

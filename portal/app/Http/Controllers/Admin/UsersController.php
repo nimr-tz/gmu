@@ -19,7 +19,9 @@ class UsersController extends Controller
 
         $query = User::with('role');
 
-        if ($request->role) {
+        if ($request->role === 'none') {
+            $query->whereNull('role_id');
+        } elseif ($request->role) {
             $query->whereHas('role', fn($q) => $q->where('name', $request->role));
         }
 
@@ -41,7 +43,17 @@ class UsersController extends Controller
         $roles = Role::orderBy('display_name')->get();
         $sso   = app(NreimsOAuth::class)->enabled();
 
-        return view('admin.users.index', compact('users', 'roles', 'sso'));
+        // Active accounts per role, for the role tiles (the owner's "GMU Admin" design).
+        $byRole = User::where('is_active', true)->selectRaw('role_id, count(*) as n')->groupBy('role_id')->pluck('n', 'role_id');
+        $tiles = $roles->sortBy(fn ($r) => [array_search($r->name, \App\Support\RoleLook::TILE_ORDER, true) === false ? 1 : 0,
+                array_search($r->name, \App\Support\RoleLook::TILE_ORDER, true), $r->display_name])
+            ->filter(fn ($r) => in_array($r->name, \App\Support\RoleLook::TILE_ORDER, true) || ($byRole[$r->id] ?? 0) > 0)
+            ->map(fn ($r) => ['key' => $r->name, 'label' => \App\Support\RoleLook::label($r->name, $r->display_name), 'n' => (int) ($byRole[$r->id] ?? 0)])
+            ->push(['key' => 'none', 'label' => 'No role', 'n' => (int) ($byRole[''] ?? $byRole[null] ?? 0)])
+            ->values();
+        $total = User::count();
+
+        return view('admin.users.index', compact('users', 'roles', 'sso', 'tiles', 'total'));
     }
 
     public function create()

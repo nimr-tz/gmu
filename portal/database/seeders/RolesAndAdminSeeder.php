@@ -26,7 +26,7 @@ class RolesAndAdminSeeder extends Seeder
             ['name' => 'finance_officer',    'display_name' => 'Finance Officer',            'description' => 'Reviews budgets and tracks financial expenditures'],
             ['name' => 'legal_officer',      'display_name' => 'Legal & Compliance Officer', 'description' => 'Reviews contracts and donor compliance requirements'],
             ['name' => 'research_scientist', 'display_name' => 'Research Scientist',         'description' => 'Conducts technical reviews of proposals'],
-            ['name' => 'pi',                 'display_name' => 'Principal Investigator',     'description' => 'Lead researcher on grant proposals and awards'],
+            ['name' => 'pi',                 'display_name' => 'Staff',                      'description' => 'NIMR staff: applies to open calls as lead applicant, and reviews when GMU assigns them'],
             ['name' => 'secretary',          'display_name' => 'Secretary / Admin',          'description' => 'Administrative support and document management'],
             ['name' => 'drcp',                'display_name' => 'Director, Research Coordination & Promotion', 'description' => 'Institutional clearance of proposals before the Director General'],
             ['name' => 'dg',                  'display_name' => 'Director General',           'description' => 'Final institutional approval and Letter of Support'],

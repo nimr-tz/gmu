@@ -18,7 +18,6 @@ use App\Models\Seed\SeedCall;
  *   service_limit     on, years       equipment_cap      on (percent is the call's own column)
  *   documents.<kind>  off | optional | required
  *   criteria.<key>    on, max, min    pass_mark          number
- *   approval          drcp, dg        (GMU sign-off is always on)
  */
 final class CallForm
 {
@@ -282,10 +281,13 @@ final class CallForm
 
     // ── Approval ────────────────────────────────────────────────────────────
 
-    /** The approval chain for this call, in order: always GMU, then DRCP and the DG if switched on. */
+    /**
+     * The approval chain, in order: GMU, then the DRCP, then the Director General. The same for
+     * every call (the owner, 23 Nov 2026); an old call's "approval" switches are ignored.
+     */
     public function approvalLevels(): array
     {
-        return array_values(array_filter(self::APPROVAL_LEVELS, fn ($l) => $l === 'gmu' || ! empty($this->config['approval'][$l])));
+        return self::APPROVAL_LEVELS;
     }
 
     /** The level after this one, or null when this is the last. */

@@ -39,7 +39,8 @@ The bar is a premium product dashboard, like the ReUI finance dashboards the own
 - **NIMR blue `#2664EB` leads, but it doesn't do everything.** It is `primary`: links, focus, selection, done states and the lead series in a chart. Don't make whole pages blue, and don't use navy or near-navy blues (`blue-900`, `blue-950`) for surfaces, buttons or chips.
 - **Ink, not navy.** Primary buttons and headings are near-black ink (`#18181B`). Greys are neutral (zinc), not slate, so they carry no blue cast.
 - **Secondary hues are welcome**: violet, sky, pink, plus amber and rose for meaning. Use them to tell calls, stages and categories apart, for tinted key-figure tiles and for group rows. Each call has its own hue.
-- **Green only for Awarded.** Green (`award`) marks one thing: an application whose status is Awarded (its pill, tile and card). Nothing else is green: not the brand, not other done or positive states (shortlisted, recommended, approved stay blue), not charts. The owner set this exception on 23 Nov 2026 to the institutional no-green rule.
+- **Green in two places only.** Green (`award`) marks an application whose status is Awarded (its pill, tile and card). Emerald is the colour of the reviewer pages (the Review panel: band, top bar, primary button), as the owner's Reviews design draws them. Nothing else is green: not the brand, not other done or positive states (shortlisted, recommended, approved stay blue), not charts. The owner set these exceptions on 23 Nov 2026 to the institutional no-green rule.
+- **Each role's pages have a colour**, from the owner's designs: applicants and the call page brand blue (`primary`), GMU's own pages (dashboard, submissions, ranking, calls, people and roles, audit register) ink (`foreground`), the approval pages (DRCP, DG and GMU sign-off) indigo, the reviewer pages emerald. The colour carries the band and top bar; status colours keep their meanings inside.
 - Status colour has fixed meanings:
   - **blue** (`ok`): done or positive
   - **green** (`award`): Awarded, and nothing else
@@ -102,9 +103,10 @@ New pages should follow one of these:
 ## Code rules for the seed grant
 
 - **`App\Services\SeedGrant\Workflow` owns every status change.** Controllers call it; they never set `status` themselves. Notifications go out from there.
-- **There are many calls, each with its own form.** A call switches features on and sets their numbers (questions and word limits, Section A items, years-at-NIMR limit, equipment cap, documents, scoring criteria and pass mark, DRCP/DG approval). Read a call's rules only through `$call->form()` (`App\Support\CallForm`), never from constants. Its settings lock once the call opens; only raising word limits stays allowed. A small variance between calls is a setting on an existing feature, not a new feature.
+- **There are many calls, each with its own form.** A call switches features on and sets their numbers (questions and word limits, Section A items, years-at-NIMR limit, equipment cap, documents, scoring criteria and pass mark). Approval is the same for every call: GMU, then the DRCP, then the Director General, and only proposals recommended in the ranking go up it (the owner, 23 Nov 2026). Read a call's rules only through `$call->form()` (`App\Support\CallForm`), never from constants. Its settings lock once the call opens; only raising word limits stays allowed. A small variance between calls is a setting on an existing feature, not a new feature.
 - **`App\Support\SeedGrant` holds the defaults and the fixed parts**: statuses, the track, the seed grant's sections, limits, criteria and thresholds that new calls start from. Change a default there, never in a view.
 - `App\Support\SeedNav` builds the side-panel entries by role, with counts for "needs action".
+- The applicant role (key `pi`) is shown as **Staff**: the person who applies, leads as PI and reviews when assigned is one staff member. A review round needs `Workflow::MIN_REVIEWERS` (2); show that number, never a hard-coded one.
 - Use permissions through gates and roles (`manage-seed-grants`, approval levels). Hiding a button is not access control.
 - Uploads are allowed only where the call allows them: mentor letter, CV and support letters at stage 2.
 

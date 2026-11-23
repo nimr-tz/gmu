@@ -60,15 +60,7 @@ class DashboardController extends Controller
         $overdue = 0;
         $load = [];
         foreach ($submitted as $a) {
-            $next = $a->call->form()->nextApprovalLevel('gmu');
-            $why = match ($a->status) {
-                S::SUBMITTED          => ['Screen', ''],
-                S::SCREENED, S::PROPOSAL_SUBMITTED => [$a->activeAssignments()->count() < Workflow::MIN_REVIEWERS ? 'Assign reviewers' : 'Send to reviewers', 'info'],
-                S::APPROVED           => ['Issue agreement', 'ok'],
-                S::AGREEMENT_ACCEPTED => ['Upload signed copy', 'ok'],
-                S::RECOMMENDED        => [['drcp' => 'Send to DRCP', 'dg' => 'Send to the DG'][$next] ?? 'Approve', 'ok'],
-                default               => null,
-            };
+            $why = \App\Support\GmuNext::step($a, $this->workflow);
 
             $round = $a->openRound();
             if ($round) {
@@ -82,15 +74,6 @@ class DashboardController extends Controller
                         $overdue++;
                     }
                 }
-                if ($this->workflow->roundComplete($round)) {
-                    $why = ['Decide', 'warn'];
-                } elseif ($round->isOverdue()) {
-                    $why ??= ['Review overdue', 'danger'];
-                }
-            }
-            if ($a->stageAssignments()->contains(fn ($as) => $as->coi_status === 'conflict' && $as->removed_at === null)
-                && $a->activeAssignments()->count() < Workflow::MIN_REVIEWERS) {
-                $why = ['Reassign: conflict', 'danger'];
             }
             if ($why) {
                 $needs->push(['application' => $a, 'action' => $why[0], 'tone' => $why[1], 'toRanking' => $a->status === S::RECOMMENDED]);
@@ -137,6 +120,7 @@ class DashboardController extends Controller
             'approved'  => $submitted->whereIn('status', S::APPROVED_STATUSES)->sum('approved_amount'),
             'available' => (int) $running->sum('envelope'),
             'pending'   => max(0, $pendingReviews),
+            'nextDue'   => $openRounds->filter(fn ($r) => ! $this->workflow->roundComplete($r))->min('due_at'),
             'late'      => $overdue,
         ];
 

@@ -87,7 +87,7 @@
                             <x-icon :name="$iconName" class="{{ $icon($active) }}" />
                             <span class="min-w-0 flex-1 truncate">{{ $label }}</span>
                             @if($count !== null)
-                                <span class="grid h-5 min-w-5 place-items-center rounded-md px-1.5 text-[11.5px] font-semibold tabular-nums {{ $alert ? 'bg-danger-soft text-danger-ink' : 'bg-primary-soft text-ok-ink' }}">{{ $count }}</span>
+                                <span class="grid h-5 min-w-5 place-items-center rounded-md px-1.5 text-[11.5px] font-semibold tabular-nums {{ $alert === 'warn' ? 'bg-warn-soft text-warn-ink' : ($alert ? 'bg-danger-soft text-danger-ink' : 'bg-primary-soft text-ok-ink') }}">{{ $count }}</span>
                             @endif
                         </a>
                     @endforeach
@@ -169,10 +169,14 @@
         </header>
 
         <main class="w-full flex-1 px-4 py-5 lg:px-6 lg:py-6 print:p-0">
-            @php $showErrors = $errors->any() && ! $errors->has('__hidden'); @endphp
-            @if(session('success') || session('error') || session('status') || $showErrors)
+            @php
+                $showErrors = $errors->any() && ! $errors->has('__hidden');
+                // A page that shows its own confirmation (an 'own-flash' section) keeps 'success' for itself.
+                $ownFlash = trim($__env->yieldContent('own-flash')) !== '';
+            @endphp
+            @if((session('success') && ! $ownFlash) || session('error') || session('status') || $showErrors)
                 <div class="mb-5 space-y-3">
-                    @if(session('success'))<x-alert tone="ok">{{ session('success') }}</x-alert>@endif
+                    @if(session('success') && ! $ownFlash)<x-alert tone="ok">{{ session('success') }}</x-alert>@endif
                     @if(session('error'))<x-alert tone="danger">{{ session('error') }}</x-alert>@endif
                     @if(session('status'))<x-alert tone="info">{{ session('status') }}</x-alert>@endif
                     @if($showErrors)

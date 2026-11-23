@@ -46,11 +46,13 @@ class ActivityLogController extends Controller
         $logs  = $query->paginate(50)->withQueryString();
         $users = User::orderBy('name')->get(['id', 'name']);
 
-        $modelTypes = [
-            'Award', 'Proposal', 'FundingCall', 'Donor', 'Report',
-            'EthicsRenewal', 'ComplianceCalendar', 'MonitoringVisit',
-            'AwardBudget', 'Document', 'DonorPolicy', 'User',
-        ];
+        // The seed grant's records, as the owner's "GMU Admin" design lists them;
+        // the hidden external-grant records join only when that feature is on.
+        $modelTypes = ['SeedApplication', 'SeedCall', 'SeedReview', 'SeedReviewerAssignment', 'SeedApproval', 'User'];
+        if (config('gmu.external_grants')) {
+            $modelTypes = array_merge($modelTypes, ['Award', 'Proposal', 'FundingCall', 'Donor', 'Report',
+                'EthicsRenewal', 'ComplianceCalendar', 'MonitoringVisit', 'AwardBudget', 'Document', 'DonorPolicy']);
+        }
 
         $actions = ['created', 'updated', 'deleted', 'restored'];
 

@@ -74,7 +74,8 @@ class ManyCallsTest extends TestCase
         $this->actingAs($this->gmu)->get(route('seed.calls.create'))->assertOk()
             ->assertSee('Started from the settings of')->assertSee('Research problem and justification');
 
-        // Second call: no innovation or IP questions, a longer problem section, no DRCP step, no years limit.
+        // Second call: no innovation or IP questions, a longer problem section, no years limit.
+        // A request to skip the DRCP is ignored: every call goes GMU, DRCP, DG.
         $config = CallForm::defaults();
         $config['questions']['concept']['innovation']['on'] = false;
         $config['questions']['concept']['ip']['on'] = false;
@@ -88,7 +89,7 @@ class ManyCallsTest extends TestCase
         $form = $second->form();
         $this->assertArrayNotHasKey('innovation', $form->sections('concept'));
         $this->assertSame(400, $form->sections('concept')['problem'][2]);
-        $this->assertSame(['gmu', 'dg'], $form->approvalLevels());
+        $this->assertSame(['gmu', 'drcp', 'dg'], $form->approvalLevels());
         $this->assertNull($form->serviceYears());
         // The first call is untouched.
         $this->assertArrayHasKey('innovation', $first->form()->sections('concept'));
@@ -110,20 +111,22 @@ class ManyCallsTest extends TestCase
         $this->actingAs($this->pi)->get(route('seed.mine'))->assertOk()->assertSee('SG-2627-001')->assertSee('SG-2627PB-001');
     }
 
-    public function test_without_a_drcp_step_gmu_sign_off_goes_straight_to_the_dg(): void
+    public function test_every_call_goes_to_the_drcp_after_gmu_even_if_an_old_setting_skipped_it(): void
     {
         $config = CallForm::defaults();
         $config['approval']['drcp'] = false;
-        $call = SeedCall::create(['title' => 'No DRCP', 'code' => '9001', 'fiscal_year' => '2026/27', 'min_amount' => 1, 'max_amount' => 10,
+        $call = SeedCall::create(['title' => 'Old setting', 'code' => '9001', 'fiscal_year' => '2026/27', 'min_amount' => 1, 'max_amount' => 10,
             'status' => 'open', 'config' => $config]);
         $application = new SeedApplication(['title' => 'X']);
         $application->forceFill(['seed_call_id' => $call->id, 'pi_id' => $this->pi->id, 'reference' => 'SG-9001-001', 'status' => S::RECOMMENDED])->save();
 
         app(\App\Services\SeedGrant\Workflow::class)->approve($application, $this->gmu, 'gmu', 'approved', null);
-        $this->assertSame(S::WITH_DG, $application->fresh()->status);
+        $this->assertSame(S::WITH_DRCP, $application->fresh()->status);
 
-        $drcp = User::whereHas('role', fn ($q) => $q->where('name', 'drcp'))->first();
-        $this->actingAs($drcp)->post(route('seed.approvals.decide', $application), ['decision' => 'approved'])->assertSessionHasErrors();
+        // The DG cannot decide before the DRCP has cleared it.
+        $dg = User::whereHas('role', fn ($q) => $q->where('name', 'dg'))->first();
+        $this->actingAs($dg)->post(route('seed.approvals.decide', $application), ['decision' => 'approved'])->assertSessionHasErrors();
+        $this->assertSame(S::WITH_DRCP, $application->fresh()->status);
     }
 
     public function test_once_open_a_call_s_form_is_locked_except_raising_word_limits(): void
@@ -135,7 +138,7 @@ class ManyCallsTest extends TestCase
         $config['questions']['concept']['problem']['on'] = false;     // ignored: locked
         $config['questions']['concept']['problem']['limit'] = 100;    // ignored: lowering
         $config['questions']['concept']['objectives']['limit'] = 300; // allowed: raising
-        $config['approval']['dg'] = false;                            // ignored: locked
+        $config['approval']['dg'] = false;                            // ignored: the chain is fixed
 
         $this->actingAs($this->gmu)->put(route('seed.calls.update', $call), $this->callPayload(['max_amount' => 12_000_000], $config))
             ->assertSessionHasNoErrors();

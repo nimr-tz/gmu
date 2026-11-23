@@ -37,6 +37,6 @@ final class CallPicker
     /** The calls offered in the picker. */
     public static function options(bool $includeDrafts = true): Collection
     {
-        return SeedCall::when(! $includeDrafts, fn ($q) => $q->where('status', '!=', 'draft'))->latest('id')->get(['id', 'title', 'code', 'status']);
+        return SeedCall::when(! $includeDrafts, fn ($q) => $q->where('status', '!=', 'draft'))->latest('id')->get(['id', 'title', 'code', 'status', 'fiscal_year']);
     }
 }

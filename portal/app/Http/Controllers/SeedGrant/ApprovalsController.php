@@ -75,14 +75,15 @@ class ApprovalsController extends Controller
 
         $next = $application->call->form()->nextApprovalLevel($level);
         $message = match (true) {
-            $data['decision'] === 'returned' => 'Returned to GMU.',
-            $next === 'drcp'                 => 'Sent to the DRCP.',
-            $next === 'dg'                   => 'Cleared and sent to the Director General.',
-            default                          => 'Approved. The PI and GMU have been told.',
+            $data['decision'] === 'returned'   => 'Returned to GMU with your reason. Nothing was sent to the PI.',
+            $next === 'drcp'                   => 'Signed off. It is now with the DRCP.',
+            $next === 'dg'                     => ($level === 'gmu' ? 'Signed off.' : 'Cleared.') . ' It is now with the Director General.',
+            $data['decision'] === 'conditions' => 'Approved with conditions. The PI has been told, and the conditions go into the grant agreement.',
+            default                            => 'Approved. The PI has been told, and GMU will issue the grant agreement.',
         };
 
-        return $level === 'gmu'
-            ? back()->with('success', $message)
-            : redirect()->route('seed.approvals.index')->with('success', $message);
+        // Back to the list, which shows the confirmation (the owner's Approvals design).
+        return redirect()->route('seed.approvals.index', ['call' => $application->seed_call_id])
+            ->with('success', $application->reference . ' · ' . $message);
     }
 }

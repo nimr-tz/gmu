@@ -48,6 +48,8 @@ export default {
             violet: colors.violet,
             pink: colors.pink,
             indigo: colors.indigo,
+            // Emerald is the reviewer pages' colour (Review panel) and nothing else; Awarded uses the award token.
+            emerald: colors.emerald,
             // Amber and red carry meaning only: waiting on someone, and stopped or late.
             // No green: an institutional rule.
             amber: colors.amber,
