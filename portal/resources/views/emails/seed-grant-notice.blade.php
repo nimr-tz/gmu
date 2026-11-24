@@ -47,11 +47,11 @@
           @endif
           <tr><td style="padding:20px 28px 30px;">
             <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:{{ $style['band'] }};border-radius:9px;"><a href="{{ $actionUrl }}" style="display:inline-block;padding:13px 22px;font-size:15px;font-weight:bold;color:#FFFFFF;text-decoration:none;">{{ $button }} &rarr;</a></td></tr></table>
-            <p style="margin:16px 0 0;font-size:12.5px;line-height:1.6;color:#67676F;">Or open <a href="{{ config('app.url') }}" style="color:#1D4FC4;">{{ $host }}</a> and sign in with NREIMS.</p>
+            <p style="margin:16px 0 0;font-size:12.5px;line-height:1.6;color:#67676F;">Or open <a href="{{ config('app.url') }}" style="color:#1D4FC4;">{{ $host }}</a> and sign in {{ $signIn }}.</p>
           </td></tr>
         </table>
       </td></tr>
-      <tr><td style="padding:14px 28px 22px;font-size:12px;line-height:1.6;color:#67676F;">{{ $why }} The same message is in your notifications in the portal.<br>Grants Management Unit, National Institute for Medical Research, Dar es Salaam.</td></tr>
+      <tr><td style="padding:14px 28px 22px;font-size:12px;line-height:1.6;color:#67676F;">{{ $why }}@if($inPortal) The same message is in your notifications in the portal.@endif<br>Grants Management Unit, National Institute for Medical Research, Dar es Salaam.</td></tr>
     </table>
   </td></tr>
 </table>

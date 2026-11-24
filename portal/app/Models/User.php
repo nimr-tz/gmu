@@ -71,6 +71,12 @@ class User extends Authenticatable
         return $this->nreims_id !== null;
     }
 
+    /** The reset email in the owner's "Email" design (only local-password accounts get one). */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\AdminPasswordReset($token));
+    }
+
     /** NREIMS accounts confirm their post on first sign-in; local accounts are set up by GMU. */
     public function needsProfileCompletion(): bool
     {

@@ -45,6 +45,9 @@ class SeedGrantNotice extends Mailable
         public array $style,
         public array $facts,
         public string $why,
+        // How they sign in, for the line under the button; and whether the portal holds a copy.
+        public string $signIn = 'with NREIMS',
+        public bool $inPortal = true,
     ) {}
 
     /** The email for one person about one application or call. */
