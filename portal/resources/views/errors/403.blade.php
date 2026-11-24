@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => '403', 'icon' => 'lock', 'title' => 'You don’t have access to this page', 'text' => 'Your role doesn’t include it. If you think it should, ask the GMU Coordinator.'])

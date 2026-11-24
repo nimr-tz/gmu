@@ -26,6 +26,9 @@ return [
     |
     */
 
+    // Where people write to GMU, shown on the "Something went wrong" page.
+    'contact_email' => env('GMU_CONTACT_EMAIL', 'grantsunit@nimr.or.tz'),
+
     'designations' => [
         'Research Scientist II',
         'Research Scientist I',

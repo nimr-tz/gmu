@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => '500', 'icon' => 'alert-triangle', 'title' => 'Something went wrong', 'text' => 'The problem is on our side, and it has been recorded. Try again in a few minutes.', 'retry' => true])

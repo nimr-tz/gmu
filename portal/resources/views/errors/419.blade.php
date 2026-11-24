@@ -1,0 +1,1 @@
+@include('errors.page', ['code' => '419', 'icon' => 'clock', 'title' => 'This page has expired', 'text' => 'It was open too long without activity. Go back and try again. Anything already saved is still there.', 'retry' => true])

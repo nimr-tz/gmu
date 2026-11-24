@@ -49,6 +49,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Every local password (the administrator's, and any fallback account): at least 12
+        // characters, upper and lower case, and a number or a symbol (the owner's "Password
+        // Reset" design). Staff passwords live in NREIMS and are not checked here.
+        \Illuminate\Validation\Rules\Password::defaults(fn () => \Illuminate\Validation\Rules\Password::min(12)->mixedCase()->rules([
+            function (string $attribute, mixed $value, \Closure $fail) {
+                if (! preg_match('/[0-9\W_]/', (string) $value)) {
+                    $fail('The password needs a number or a symbol.');
+                }
+            },
+        ]));
+
         Gate::define('manage-donors', fn ($user) =>
             $user->hasAnyRole(['coordinator', 'planning_officer'])
         );

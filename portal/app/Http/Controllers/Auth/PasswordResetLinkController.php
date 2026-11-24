@@ -3,43 +3,42 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
+/**
+ * "Forgot your password?" for accounts with a local password: the GMU administrator, and any
+ * fallback account the Coordinator gave one. Staff sign in with NREIMS and reset there.
+ */
 class PasswordResetLinkController extends Controller
 {
-    /**
-     * Display the password reset link request view.
-     */
     public function create(): View
     {
         return view('auth.forgot-password');
     }
 
     /**
-     * Handle an incoming password reset link request.
-     *
-     * @throws ValidationException
+     * Send a reset link to a local-password account. The answer is always "Check your email",
+     * whatever the address, so the page never tells anyone which accounts exist.
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'email' => ['required', 'email'],
+        $data = $request->validate(['email' => ['required', 'email']], [
+            'email.required' => 'Enter your email.',
+            'email.email'    => 'Enter a valid email address.',
         ]);
+        $email = mb_strtolower(trim($data['email']));
 
-        // We will send the password reset link to this user. Once we have attempted
-        // to send the link, we will examine the response then see the message we
-        // need to show to the user. Finally, we'll send out a proper response.
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        $user = User::where('email', $email)->first();
+        if ($user && $user->is_active && ! $user->nreims_id) {
+            Password::sendResetLink(['email' => $user->email]);
+        }
 
-        return $status == Password::RESET_LINK_SENT
-                    ? back()->with('status', __($status))
-                    : back()->withInput($request->only('email'))
-                        ->withErrors(['email' => __($status)]);
+        return redirect()->route('password.request')
+            ->with('reset_sent', $email)
+            ->with('reset_resent', $request->boolean('resend'));
     }
 }

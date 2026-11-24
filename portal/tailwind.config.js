@@ -17,8 +17,9 @@ const token = (name) => `rgb(var(--${name}) / <alpha-value>)`;
 export default {
     content: [
         './resources/views/layouts/app.blade.php',
-        './resources/views/auth/login.blade.php',
-        './resources/views/auth/welcome/**/*.blade.php',
+        './resources/views/layouts/plain.blade.php',
+        './resources/views/auth/**/*.blade.php',
+        './resources/views/errors/**/*.blade.php',
         './resources/views/components/**/*.blade.php',
         './resources/views/seed/**/*.blade.php',
         './resources/views/admin/**/*.blade.php',

@@ -38,13 +38,25 @@ class PasswordResetTest extends TestCase
 
         $this->post('/forgot-password', ['email' => $user->email]);
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-            $response = $this->get('/reset-password/'.$notification->token);
-
-            $response->assertStatus(200);
+        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
+            $this->get('/reset-password/'.$notification->token.'?email='.urlencode($user->email))->assertOk()->assertSee('Set a new password');
+            $this->get('/reset-password/wrong-token?email='.urlencode($user->email))->assertOk()->assertSee('This link has expired');
 
             return true;
         });
+    }
+
+    public function test_an_nreims_account_gets_no_reset_link_but_the_same_answer(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create(['nreims_id' => 'NR-9']);
+
+        $this->post('/forgot-password', ['email' => $user->email])->assertRedirect(route('password.request'));
+        $this->get('/forgot-password')->assertSee('Check your email');
+        $this->post('/forgot-password', ['email' => 'nobody@example.com'])->assertRedirect(route('password.request'));
+
+        Notification::assertNothingSent();
     }
 
     public function test_password_can_be_reset_with_valid_token(): void
@@ -59,13 +71,14 @@ class PasswordResetTest extends TestCase
             $response = $this->post('/reset-password', [
                 'token' => $notification->token,
                 'email' => $user->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
+                'password' => 'New-password-2026',
+                'password_confirmation' => 'New-password-2026',
             ]);
 
             $response
                 ->assertSessionHasNoErrors()
-                ->assertRedirect(route('login'));
+                ->assertRedirect(route('password.changed'));
+            $this->get(route('password.changed'))->assertOk()->assertSee('Password changed');
 
             $this->assertFalse($user->fresh()->must_change_password);
 

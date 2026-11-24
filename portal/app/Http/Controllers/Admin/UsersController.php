@@ -78,7 +78,7 @@ class UsersController extends Controller
         $data = $request->validate([
             'name'            => 'required|string|max:255',
             'email'           => 'required|email|unique:users,email',
-            'password'        => [$sso ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
+            'password'        => [$sso ? 'nullable' : 'required', 'string', \Illuminate\Validation\Rules\Password::defaults(), 'confirmed'],
             'role_id'         => 'nullable|exists:roles,id',
             'phone'           => 'nullable|string|max:20',
             'department'      => 'nullable|string|max:255',
@@ -137,7 +137,7 @@ class UsersController extends Controller
             'department'      => 'nullable|string|max:255',
             'research_center' => 'nullable|string|max:255',
             'is_active'       => 'nullable|boolean',
-            'password'        => 'nullable|string|min:8|confirmed',
+            'password'        => ['nullable', 'string', \Illuminate\Validation\Rules\Password::defaults(), 'confirmed'],
         ]);
 
         if ($request->filled('password')) {

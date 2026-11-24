@@ -59,8 +59,8 @@
             </div>
             @if(! $isEdit && ! $sso)
                 <div class="grid gap-x-4 gap-y-[18px] border-t border-border p-[18px] sm:grid-cols-2">
-                    <label class="{{ $field }}"><span class="{{ $label }}">First password</span><input type="password" name="password" class="input" required minlength="8" autocomplete="new-password"><span class="text-xs text-muted-foreground">At least 8 characters. Hand it over in person.</span>@error('password')<span class="text-[12.5px] text-danger-ink">{{ $message }}</span>@enderror</label>
-                    <label class="{{ $field }}"><span class="{{ $label }}">Confirm password</span><input type="password" name="password_confirmation" class="input" required minlength="8" autocomplete="new-password"></label>
+                    <label class="{{ $field }}"><span class="{{ $label }}">First password</span><input type="password" name="password" class="input" required minlength="12" autocomplete="new-password"><span class="text-xs text-muted-foreground">At least 12 characters, upper and lower case, and a number or a symbol. Hand it over in person.</span>@error('password')<span class="text-[12.5px] text-danger-ink">{{ $message }}</span>@enderror</label>
+                    <label class="{{ $field }}"><span class="{{ $label }}">Confirm password</span><input type="password" name="password_confirmation" class="input" required minlength="12" autocomplete="new-password"></label>
                 </div>
             @else
                 <details class="group border-t border-border px-[18px] py-3" @if($errors->has('password')) open @endif>
@@ -69,8 +69,8 @@
                     </summary>
                     <p class="mt-2 text-xs text-muted-foreground">{{ $isEdit ? 'Setting a password holds the account at the profile page until the person chooses their own.' : 'Only for a fallback administrator who must get in when NREIMS is down.' }}</p>
                     <div class="mt-3 grid gap-4 sm:grid-cols-2">
-                        <label class="{{ $field }}"><span class="{{ $label }}">{{ $isEdit ? 'New password' : 'Password' }}</span><input type="password" name="password" class="input" minlength="8" autocomplete="new-password">@error('password')<span class="text-[12.5px] text-danger-ink">{{ $message }}</span>@enderror</label>
-                        <label class="{{ $field }}"><span class="{{ $label }}">Confirm</span><input type="password" name="password_confirmation" class="input" minlength="8" autocomplete="new-password"></label>
+                        <label class="{{ $field }}"><span class="{{ $label }}">{{ $isEdit ? 'New password' : 'Password' }}</span><input type="password" name="password" class="input" minlength="12" autocomplete="new-password">@error('password')<span class="text-[12.5px] text-danger-ink">{{ $message }}</span>@enderror</label>
+                        <label class="{{ $field }}"><span class="{{ $label }}">Confirm</span><input type="password" name="password_confirmation" class="input" minlength="12" autocomplete="new-password"></label>
                     </div>
                 </details>
             @endif
