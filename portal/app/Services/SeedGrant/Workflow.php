@@ -758,7 +758,7 @@ class Workflow
             . ' Read the call to see who may apply, and start your concept note in the portal.';
 
         $this->notifier->send($staff, 'seed_call', $title, $message, $call);
-        $this->email($staff, 'seed_call', $title, $message, fn () => route('seed.calls.show', $call), '', $call->title);
+        $this->email($staff, 'seed_call', $title, $message, fn () => route('seed.calls.show', $call), $call);
 
         return $staff->count();
     }
@@ -772,8 +772,7 @@ class Workflow
     public function tell(mixed $recipients, string $type, string $title, string $message, SeedApplication $application): void
     {
         $this->notifier->send($recipients, $type, $title, $message, $application);
-        $this->email($recipients, $type, $title, $message, fn (User $user) => $this->linkFor($user, $application),
-            $application->reference, (string) $application->call?->title);
+        $this->email($recipients, $type, $title, $message, fn (User $user) => $this->emailLinkFor($user, $type, $application), $application);
     }
 
     /**
@@ -784,12 +783,12 @@ class Workflow
      * who clicked waiting on the mail server. Commands and tests send them
      * straight away. A failure is logged and never undoes the step.
      */
-    private function email(mixed $recipients, string $type, string $title, string $message, \Closure $link, string $reference, string $callTitle): void
+    private function email(mixed $recipients, string $type, string $title, string $message, \Closure $link, SeedApplication|SeedCall $subject): void
     {
         $mails = [];
         foreach ($recipients instanceof User ? [$recipients] : $recipients as $user) {
             if ($user instanceof User && $user->is_active && filled($user->email)) {
-                $mails[] = [$user, new SeedGrantNotice($user->name, $title, $message, $link($user), $reference, $callTitle)];
+                $mails[] = [$user, SeedGrantNotice::for($user, $type, $title, $message, $link($user), $subject)];
             }
         }
         if (! $mails) {
@@ -807,6 +806,14 @@ class Workflow
         };
 
         app()->runningInConsole() ? $send() : app()->terminating($send);
+    }
+
+    /** The email button's page: the agreement itself when it waits for the PI, else linkFor(). */
+    private function emailLinkFor(User $user, string $type, SeedApplication $application): string
+    {
+        return $type === 'seed_agreement' && $user->id === $application->pi_id && $application->status === SeedGrant::AGREEMENT_ISSUED
+            ? route('seed.applications.agreement', $application)
+            : $this->linkFor($user, $application);
     }
 
     /** The page this person acts on for this application. */

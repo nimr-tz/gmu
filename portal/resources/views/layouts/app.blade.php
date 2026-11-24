@@ -120,7 +120,7 @@
                     <span class="relative grid size-8 shrink-0 place-items-center rounded-full bg-review-soft text-xs font-semibold text-review-ink">{{ $initials }}</span>
                     <span class="min-w-0 flex-1 leading-tight">
                         <span class="block truncate text-[13px] font-semibold">{{ $user->name }}</span>
-                        <span class="block truncate text-xs text-muted-foreground">{{ $user->role?->name === 'pi' ? 'Researcher' : ($user->role?->display_name ?? 'No role assigned') }}</span>
+                        <span class="block truncate text-xs text-muted-foreground">{{ $user->role ? \App\Support\RoleLook::label($user->role->name, $user->role->display_name) : 'No role assigned' }}</span>
                     </span>
                     <x-icon name="chevrons-up-down" class="size-3.5 text-subtle" />
                 </button>

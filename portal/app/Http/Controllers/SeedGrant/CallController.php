@@ -35,7 +35,7 @@ class CallController extends Controller
         $calls = $show === 'all' ? $all : $all->where('status', $show)->values();
         $counts = $all->countBy('status');
 
-        $mine = SeedApplication::where('pi_id', $request->user()->id)->pluck('id', 'seed_call_id');
+        $mine = SeedApplication::where('pi_id', $request->user()->id)->get()->keyBy('seed_call_id');
 
         // For GMU: where each call's applications are, and the money approved.
         $stats = [];

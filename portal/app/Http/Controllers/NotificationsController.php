@@ -10,10 +10,13 @@ class NotificationsController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $unreadOnly = $request->boolean('unread');
 
         return view('notifications.index', [
-            'notifications' => $user->notifications()->latest()->paginate(20),
+            'notifications' => $user->notifications()->with('related')->when($unreadOnly, fn ($q) => $q->whereNull('read_at'))->latest()->paginate(20)->withQueryString(),
             'unread'        => $user->unreadNotificationsCount(),
+            'total'         => $user->notifications()->count(),
+            'unreadOnly'    => $unreadOnly,
         ]);
     }
 

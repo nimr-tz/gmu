@@ -40,7 +40,7 @@ The bar is a premium product dashboard, like the ReUI finance dashboards the own
 - **Ink, not navy.** Primary buttons and headings are near-black ink (`#18181B`). Greys are neutral (zinc), not slate, so they carry no blue cast.
 - **Secondary hues are welcome**: violet, sky, pink, plus amber and rose for meaning. Use them to tell calls, stages and categories apart, for tinted key-figure tiles and for group rows. Each call has its own hue.
 - **Green in two places only.** Green (`award`) marks an application whose status is Awarded (its pill, tile and card). Emerald is the colour of the reviewer pages (the Review panel: band, top bar, primary button), as the owner's Reviews design draws them. Nothing else is green: not the brand, not other done or positive states (shortlisted, recommended, approved stay blue), not charts. The owner set these exceptions on 23 Nov 2026 to the institutional no-green rule.
-- **Each role's pages have a colour**, from the owner's designs: applicants and the call page brand blue (`primary`), GMU's own pages (dashboard, submissions, ranking, calls, people and roles, audit register) ink (`foreground`), the approval pages (DRCP, DG and GMU sign-off) indigo, the reviewer pages emerald. The colour carries the band and top bar; status colours keep their meanings inside.
+- **Each role's pages have a colour**, from the owner's designs: applicants and the call page brand blue (`primary`), the staff account pages (grant agreement, staff calls list, notifications, profile) the darker `blue-700` their design draws, GMU's own pages (dashboard, submissions, ranking, calls, people and roles, audit register) ink (`foreground`), the approval pages (DRCP, DG and GMU sign-off) indigo, the reviewer pages emerald. The colour carries the band and top bar; status colours keep their meanings inside.
 - Status colour has fixed meanings:
   - **blue** (`ok`): done or positive
   - **green** (`award`): Awarded, and nothing else
@@ -55,7 +55,7 @@ The bar is a premium product dashboard, like the ReUI finance dashboards the own
 - **Cards**: a light grey head carries the title, description and actions; a white body holds the content (`x-card`, `x-kpi`). Controls are small (32px buttons), filters are segmented (`x-segmented`), tables have plain headers and hairline rows, and group rows are tinted by meaning or by call.
 - Use the semantic colour names (`background`, `card`, `muted`, `border`, `primary`, `ok`, `warn`, `danger`, `review`, `neutral`, `chart-1`…`chart-5`), not raw ramps, except for charts and tints. In a badge or alert, status colours come through the `x-badge`/`x-alert` `tone`.
 - **Navigation lives only in the left side panel**: light, on the page frame, with the account menu at its foot. The page itself is a white panel inset in the frame. Its thin top bar holds the breadcrumb (from `@section('context', 'A · B')`) and notifications, never navigation links. On small screens the side panel slides in (the menu button). Don't add a second navigation pattern.
-- Fonts: Geist and Geist Mono (`font-sans`, `font-mono`), bundled by Vite. Use mono for amounts, references and scores. Base text is 14px; captions 12–13px.
+- Fonts: Geist and Geist Mono (`font-sans`, `font-mono`), bundled by Vite. Source Serif 4 (`font-serif`) sets the grant agreement's text only, as a printed document. Use mono for amounts, references and scores. Base text is 14px; captions 12–13px.
 - Use tokens only. Never hard-code a hex colour or an arbitrary colour (`bg-[#…]`) in a view. The only exception is emails, where inline hex is required; copy the values from the tokens.
 - Never build a Tailwind class name from pieces (`'grid-cols-' . $n`): the build can't see it. Write each full class name.
 
@@ -97,7 +97,7 @@ New pages should follow one of these:
 - A deadline stored as a date means **the end of that day** in Dar es Salaam. Compare with `->copy()->endOfDay()`, as `SeedCall::acceptingConceptNotes()` and `SeedReviewRound::isOverdue()` do. Never use a bare `isPast()` on a date, which treats the due day itself as late.
 - Use sentence case for headings and buttons. A button says what it does: "Submit concept note", not "Submit" or "OK".
 - Reviewers appear to applicants **by letter only** ("Reviewer B"). Never show a name or the confidential note to GMU. `partials/feedback` enforces this, so use it.
-- Every email has an in-portal twin. `Mail\SeedGrantNotice` sends the same headline and body as the portal notification, plus one button to the page where the person acts.
+- Every email has an in-portal twin. `Mail\SeedGrantNotice` sends the same headline and body as the portal notification, plus one button to the page where the person acts. Its band follows who it is for (staff blue, reviewers emerald, approvers indigo, decisions and GMU ink), with the key facts and why they got it; `App\Support\NotificationLook` gives the page and the email the same icons and button words.
 - Write with GMU's voice: polite, direct, specific. Say "GMU has asked for changes to section B3 by 12 Dec 2026", not "Your application has been updated".
 
 ## Code rules for the seed grant

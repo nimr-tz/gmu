@@ -31,7 +31,7 @@ class ApplicationController extends Controller
         return redirect()->route('seed.applications.edit', $application);
     }
 
-    /** "My applications" in the menu: straight to the one, or a list of several. */
+    /** The dashboard's "My application(s)" button: straight to the one, or to the dashboard's list of several. */
     public function mine(Request $request)
     {
         $applications = SeedApplication::with('call')->where('pi_id', $request->user()->id)->latest('id')->get();
@@ -45,7 +45,8 @@ class ApplicationController extends Controller
             return redirect()->route($application->isEditableByApplicant() ? 'seed.applications.edit' : 'seed.applications.show', $application);
         }
 
-        return view('seed.my-applications', ['applications' => $applications]);
+        // Several: the dashboard lists them all (the owner dropped the separate list page).
+        return redirect()->to(route('dashboard') . '#applications');
     }
 
     public function show(Request $request, SeedApplication $application)

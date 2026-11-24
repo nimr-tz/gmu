@@ -42,21 +42,18 @@ final class SeedNav
             ]] + self::reviewing($user);
         }
 
-        $applications = SeedApplication::where('pi_id', $user->id)->latest('id')->get();
+        // Staff (the owner's "Staff Pages" design): their calls, then their account. Their
+        // applications and agreements are on the dashboard, which opens each one.
         $items = [];
         if (SeedCall::where('status', '!=', 'draft')->exists()) {
             $items[] = ['Calls', route('seed.calls.index'), 'megaphone', 'seed.calls.*|seed.call', null, false];
         }
-        if ($applications->isNotEmpty()) {
-            $items[] = [$applications->count() === 1 ? 'My application' : 'My applications', route('seed.mine'), 'file-text',
-                'seed.mine|seed.applications.show|seed.applications.edit', $applications->contains->isRevising() ? 'Revise' : null, false];
-            foreach ($applications->whereNotNull('agreement_issued_at') as $application) {
-                $items[] = ['Grant agreement · ' . $application->reference, route('seed.applications.agreement', $application), 'pen-line',
-                    'seed.applications.agreement', $application->status === SeedGrant::AGREEMENT_ISSUED ? 1 : null, false];
-            }
-        }
+        $unread = $user->unreadNotificationsCount();
 
-        return ($items ? ['My grants' => $items] : []) + self::reviewing($user);
+        return ($items ? ['My grants' => $items] : []) + self::reviewing($user) + ['Account' => [
+            ['Notifications', route('notifications.index'), 'bell', 'notifications.*', $unread ?: null, false],
+            ['Profile', route('profile.edit'), 'user', 'profile.*', null, false],
+        ]];
     }
 
     private static function reviewing(User $user): array

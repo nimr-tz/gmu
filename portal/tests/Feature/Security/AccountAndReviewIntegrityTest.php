@@ -176,13 +176,14 @@ class AccountAndReviewIntegrityTest extends TestCase
 
     // ── C5: the record outlives the person ──────────────────────────────────
 
-    public function test_closing_an_account_keeps_the_grant_record(): void
+    public function test_deactivating_an_account_keeps_the_grant_record(): void
     {
         $pi       = $this->user('pi');
         $proposal = $this->proposal($pi);
         $award    = $this->award($proposal);
 
-        $this->actingAs($pi)->delete(route('profile.destroy'), ['password' => 'password'])->assertRedirect();
+        // Only the Coordinator deactivates an account now; nobody closes their own.
+        $this->actingAs($this->user('coordinator'))->delete(route('admin.users.destroy', $pi))->assertRedirect();
 
         $this->assertNotNull(User::find($pi->id));
         $this->assertFalse(User::find($pi->id)->is_active);

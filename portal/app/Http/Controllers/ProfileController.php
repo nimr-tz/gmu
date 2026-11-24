@@ -22,44 +22,33 @@ class ProfileController extends Controller
     }
 
     /**
-     * Update the user's profile information.
+     * Save a person's own details. The month they joined NIMR keeps the exact day
+     * already on record when the month is unchanged; a new month is stored as its first day.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $data = $request->validated();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if (array_key_exists('joined', $data)) {
+            $joined = $data['joined'];
+            if ($joined === null) {
+                $user->first_appointment_date = null;
+            } elseif ($user->first_appointment_date?->format('Y-m') !== $joined) {
+                $user->first_appointment_date = $joined . '-01';
+            }
+            unset($data['joined']);
         }
 
-        $request->user()->save();
+        $user->fill($data);
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+        $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
-    /**
-     * Close the user's own account.
-     *
-     * Finding C5: this used to hard-delete the user row, which cascaded through
-     * their proposals, awards, reports, budgets, compliance items and every
-     * funding call they had posted. Accounts are deactivated instead — the
-     * grant record has to outlive the person who entered it. Only the
-     * Coordinator can reinstate an account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-        $user->update(['is_active' => false]);
-
-        Auth::logout();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::route('login')->with('status', 'Your account has been closed. Contact the GMU Coordinator if you need it reopened.');
-    }
+    // Closing one's own account was removed (the owner's "Staff Pages" design): only the
+    // GMU Coordinator deactivates an account, from People and roles, and the record is kept (finding C5).
 }

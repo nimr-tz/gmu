@@ -108,7 +108,8 @@ class ManyCallsTest extends TestCase
             ->assertSee('/ 400 words', false)->assertDontSee('7. Innovation potential');
 
         // My applications lists both.
-        $this->actingAs($this->pi)->get(route('seed.mine'))->assertOk()->assertSee('SG-2627-001')->assertSee('SG-2627PB-001');
+        $this->actingAs($this->pi)->get(route('seed.mine'))->assertRedirect(route('dashboard') . '#applications');
+        $this->actingAs($this->pi)->get(route('dashboard'))->assertOk()->assertSee('SG-2627-001')->assertSee('SG-2627PB-001');
     }
 
     public function test_every_call_goes_to_the_drcp_after_gmu_even_if_an_old_setting_skipped_it(): void

@@ -61,44 +61,33 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_closing_an_account_deactivates_it_but_keeps_the_record(): void
+    public function test_staff_details_are_saved_and_the_joining_month_keeps_its_day(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['first_appointment_date' => '2022-03-17']);
 
-        $response = $this
-            ->actingAs($user)
-            ->delete('/profile', [
-                'password' => 'password',
-            ]);
+        $this->actingAs($user)->patch('/profile', [
+            'name' => 'Dr Test User', 'email' => $user->email,
+            'designation' => 'Research Scientist I', 'research_center' => 'Amani Centre',
+            'employment_type' => 'permanent', 'joined' => '2022-03',
+        ])->assertSessionHasNoErrors()->assertRedirect('/profile');
 
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('login'));
+        $user->refresh();
+        $this->assertSame('Amani Centre', $user->research_center);
+        $this->assertSame('2022-03-17', $user->first_appointment_date->toDateString(), 'Same month: the exact day is kept.');
 
-        $this->assertGuest();
-
-        // Finding C5: the user row survives — deleting it would cascade through
-        // their proposals, awards, reports and every call they posted.
-        $this->assertNotNull($user->fresh());
-        $this->assertFalse($user->fresh()->is_active);
+        $this->actingAs($user)->patch('/profile', ['name' => 'Dr Test User', 'email' => $user->email, 'joined' => '2021-07'])->assertSessionHasNoErrors();
+        $this->assertSame('2021-07-01', $user->fresh()->first_appointment_date->toDateString());
     }
 
-    public function test_correct_password_must_be_provided_to_close_account(): void
+    public function test_an_nreims_account_cannot_change_its_email_here_and_cannot_close_itself(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['nreims_id' => 'NR-1', 'profile_completed_at' => now()]);
 
-        $response = $this
-            ->actingAs($user)
-            ->from('/profile')
-            ->delete('/profile', [
-                'password' => 'wrong-password',
-            ]);
+        $this->actingAs($user)->patch('/profile', ['name' => 'X', 'email' => 'other@example.com'])->assertSessionHasErrors('email');
+        $this->actingAs($user)->patch('/profile', ['name' => 'X'])->assertSessionHasNoErrors();
+        $this->assertSame('X', $user->fresh()->name);
 
-        $response
-            ->assertSessionHasErrorsIn('userDeletion', 'password')
-            ->assertRedirect('/profile');
-
-        $this->assertNotNull($user->fresh());
+        $this->actingAs($user)->delete('/profile')->assertStatus(405);
         $this->assertTrue($user->fresh()->is_active);
     }
 }

@@ -9,6 +9,8 @@
 @import '@fontsource/geist-sans/700.css';
 @import '@fontsource/geist-mono/400.css';
 @import '@fontsource/geist-mono/500.css';
+@import '@fontsource/source-serif-4/400.css';
+@import '@fontsource/source-serif-4/600.css';
 
 @tailwind base;
 @tailwind components;

@@ -87,6 +87,8 @@ export default {
             fontFamily: {
                 sans: ['Geist Sans', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
                 mono: ['Geist Mono', 'ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
+                // The grant agreement's text only, from the owner's Staff Pages design.
+                serif: ['"Source Serif 4"', 'Georgia', 'serif'],
             },
             fontSize: {
                 '2xs': ['0.6875rem', { lineHeight: '1rem' }],

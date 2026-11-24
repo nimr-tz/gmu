@@ -271,7 +271,7 @@
         <div class="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
             {{-- The applications --}}
             <div class="flex flex-col gap-4">
-                <div class="pt-2"><h2 class="text-base font-semibold">Your applications</h2><p class="text-[13px] text-muted-foreground">What needs you first, then the rest by date</p></div>
+                <div id="applications" class="scroll-mt-20 pt-2"><h2 class="text-base font-semibold">Your applications</h2><p class="text-[13px] text-muted-foreground">What needs you first, then the rest by date</p></div>
                 @foreach($sorted as $application)
                     @include('seed.partials.application-card')
                 @endforeach
